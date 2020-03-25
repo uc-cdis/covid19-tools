@@ -64,6 +64,7 @@ class JonhsHopkinsETL:
             "Long",
             "1/22/20",
         ]
+        self.existing_data = self.metadata_helper.get_existing_data()
 
     def files_to_submissions(self):
         """
@@ -80,7 +81,9 @@ class JonhsHopkinsETL:
     def parse_file(self, data_type, url):
         """
         Converts a CSV file to data we can submit via Sheepdog. Stores the
-        records to submit in `self.location_data` and `self.time_series_data`
+        records to submit in `self.location_data` and `self.time_series_data`.
+        Ignores any records that are already in Sheepdog (relies on unique
+        `submitter_id` to check)
 
         Args:
             data_type (str): type of the data in this file - one
@@ -103,13 +106,22 @@ class JonhsHopkinsETL:
                 location, date_to_value = self.parse_row(headers, row)
 
                 location_submitter_id = location["submitter_id"]
-                if location_submitter_id not in self.location_data:
+                if (
+                    location_submitter_id not in self.location_data
+                    # do not re-submit location data that already exist
+                    and location_submitter_id not in self.existing_data
+                ):
                     self.location_data[location_submitter_id] = location
 
                 for date, value in date_to_value.items():
-                    self.time_series_data[location_submitter_id][date][
-                        data_type
-                    ] = value
+                    submitter_id = format_time_series_submitter_id(
+                        location_submitter_id, date
+                    )
+                    # do not re-submit time_series data that already exist
+                    if submitter_id not in self.existing_data[location_submitter_id]:
+                        self.time_series_data[location_submitter_id][date][
+                            data_type
+                        ] = value
 
     def parse_row(self, headers, row):
         """
@@ -148,16 +160,11 @@ class JonhsHopkinsETL:
         """
         Converts the data in `self.time_series_data` to Sheepdog records.
         `self.location_data already contains Sheepdog records. Batch submits
-        any records in `self.location_data` and `self.time_series_data` that
-        are not already in Sheepdog (relies on unique `submitter_id` to check)
+        all records in `self.location_data` and `self.time_series_data`
         """
-        existing_data = self.metadata_helper.get_existing_data()
 
         print("Submitting location data")
         for location in self.location_data.values():
-            if location["submitter_id"] in existing_data:
-                # do not re-submit location data that already exist
-                continue
             record = {"type": "location"}
             record.update(location)
             self.metadata_helper.add_record_to_submit(record)
@@ -169,9 +176,6 @@ class JonhsHopkinsETL:
                 submitter_id = format_time_series_submitter_id(
                     location_submitter_id, date
                 )
-                if submitter_id in existing_data.get(location_submitter_id, []):
-                    # do not re-submit time_series data that already exist
-                    continue
                 record = {
                     "type": "time_series",
                     "submitter_id": submitter_id,
