@@ -19,7 +19,17 @@ PROJECT_CODE = "JHU"
 SUBMIT_BATCH_SIZE = 100
 
 
+# TODO remove
+# def get_token():
+#     with open("credentials.json", "r") as f:
+#         creds = json.load(f)
+#     token_url = BASE_URL + "/user/credentials/api/access_token"
+#     token = requests.post(token_url, json=creds).json()["access_token"]
+#     return token
+
+
 def main():
+    # token = get_token()
     token = os.environ.get("ACCESS_TOKEN")
     if not token:
         raise Exception(
@@ -43,13 +53,26 @@ def format_location_submitter_id(country, province):
     return submitter_id.strip("-")
 
 
-def format_time_series_submitter_id(location_submitter_id, date):
+def get_unified_date_format(date):
     month, day, year = date.split("/")
-    return "{}_timeseries_{}-{}-{}".format(location_submitter_id, year, month, day)
+
+    # format all the dates the same way
+    if len(year) == 2:
+        year = "20{}".format(year)
+    if len(month) == 1:
+        month = "0{}".format(month)
+    if len(day) == 1:
+        day = "0{}".format(day)
+
+    return "-".join((year, month, day))
+
+
+def format_time_series_submitter_id(location_submitter_id, date):
+    return "{}_timeseries_{}".format(location_submitter_id, date)
 
 
 def format_time_series_date(date):
-    return datetime.strptime(date, "%m/%d/%y").isoformat("T")
+    return datetime.strptime(date, "%Y-%m-%d").isoformat("T")
 
 
 class JonhsHopkinsETL:
@@ -70,13 +93,28 @@ class JonhsHopkinsETL:
         """
         Reads CSV files and converts the data to Sheepdog records
         """
+        # self.metadata_helper.delete_tmp()  # TODO remove
+        # return
         urls = {
-            "confirmed": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv",
-            "deaths": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv",
-            "recovered": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv",
+            "global": {
+                "confirmed": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
+                "deaths": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv",
+                "recovered": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv",
+                "testing": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_testing_global.csv",
+            },
+            "US_states": {
+                "confirmed": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv",
+                "deaths": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv",
+                "testing": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_testing_US.csv",
+            },
         }
-        for data_type, url in urls.items():
+
+        for data_type, url in urls["global"].items():
             self.parse_file(data_type, url)
+
+        # TODO: enable this when the files are available and test
+        # for data_type, url in urls["US_states"].items():
+        #     self.parse_file(data_type, url)
 
     def parse_file(self, data_type, url):
         """
@@ -90,11 +128,16 @@ class JonhsHopkinsETL:
                 of ["confirmed", "deaths", "recovered"]
             url (str): URL at which the CSV file is available
         """
+        print("Getting data from {}".format(url))
         with closing(requests.get(url, stream=True)) as r:
             f = (line.decode("utf-8") for line in r.iter_lines())
             reader = csv.reader(f, delimiter=",", quotechar='"')
 
             headers = next(reader)
+
+            if headers[0] == "404: Not Found":
+                print("  Unable to get file contents, received {}.".format(headers))
+                return
 
             assert (
                 headers[:5] == self.expected_csv_headers
@@ -104,6 +147,9 @@ class JonhsHopkinsETL:
 
             for row in reader:
                 location, date_to_value = self.parse_row(headers, row)
+                if not location:
+                    # We are using US data by state instead of global
+                    continue
 
                 location_submitter_id = location["submitter_id"]
                 if (
@@ -114,11 +160,13 @@ class JonhsHopkinsETL:
                     self.location_data[location_submitter_id] = location
 
                 for date, value in date_to_value.items():
-                    submitter_id = format_time_series_submitter_id(
+                    date_submitter_id = format_time_series_submitter_id(
                         location_submitter_id, date
                     )
                     # do not re-submit time_series data that already exist
-                    if submitter_id not in self.existing_data[location_submitter_id]:
+                    if date_submitter_id not in self.existing_data.get(
+                        location_submitter_id, []
+                    ):
                         self.time_series_data[location_submitter_id][date][
                             data_type
                         ] = value
@@ -140,6 +188,12 @@ class JonhsHopkinsETL:
         country = row[1]
         submitter_id = format_location_submitter_id(country, province)
 
+        # TODO: enable this AND DELETE THE GLOBAL US DATA when the
+        # state-level data files are available
+        # if country == "US" and province == "":
+        #     # We are using US data by state instead of global
+        #     return None, None
+
         location = {
             "country_region": country,
             "latitude": row[2],
@@ -152,7 +206,21 @@ class JonhsHopkinsETL:
 
         date_to_value = {}
         for i in range(4, len(headers)):
-            date_to_value[headers[i]] = row[i]
+            date = headers[i]
+            date = get_unified_date_format(date)
+
+            if row[i] == "":  # ignore empty values
+                continue
+            try:
+                val = int(row[i])
+            except:
+                print(
+                    'Unable to convert {} to int for "{}", "{}" at {}'.format(
+                        row[i], province, country, date
+                    )
+                )
+                raise
+            date_to_value[date] = val
 
         return location, date_to_value
 
@@ -202,10 +270,13 @@ class MetadataHelper:
         Note: if we end up having too much data, the query may timeout. We
         could simplify this by assuming that any `time_series` date that
         already exists for one location also already exists for all other
-        locations, and use the following query to retrieve the dates we
-        already have data for:
+        locations (historically not true), and use the following query to
+        retrieve the dates we already have data for:
         { location (first: 1, project_id: <...>) { time_seriess (first: 0) { date } } }
+        We could also get the existing data directly from the DB instead of
+        querying Peregrine.
         """
+        print("Getting existing data from Peregrine...")
         query_string = (
             '{ location (first: 0, project_id: "'
             + self.project_id
@@ -243,7 +314,7 @@ class MetadataHelper:
         Submits Sheepdog records in batch
         """
         if not self.records_to_submit:
-            print("  Nothing to submit")
+            print("  Nothing new to submit")
             return
 
         n_batches = ceil(len(self.records_to_submit) / SUBMIT_BATCH_SIZE)
@@ -256,6 +327,8 @@ class MetadataHelper:
                     len(records), [r["submitter_id"] for r in records]
                 )
             )
+            # self.records_to_submit = []  # TODO remove
+            # return  # TODO remove
 
             response = requests.put(
                 "{}/api/v0/submission/{}/{}".format(
@@ -271,6 +344,35 @@ class MetadataHelper:
             )
 
         self.records_to_submit = []
+
+    # TODO remove
+    def delete_tmp(self):
+        for i in range(3):
+            print(i)
+            query_string = (
+                '{ location (first: 200, project_id: "'
+                + self.project_id
+                + '") { submitter_id, id } }'
+            )
+            # query_string = (
+            #     '{ time_series (first: 200, project_id: "'
+            #     + self.project_id
+            #     + '") { submitter_id, id } }'
+            # )
+            response = requests.post(
+                "{}/api/v0/submission/graphql".format(self.base_url),
+                json={"query": query_string, "variables": None},
+                headers=self.headers,
+            )
+            ids = [loc["id"] for loc in json.loads(response.text)["data"]["location"]]
+            url = (
+                self.base_url
+                + "/api/v0/submission/{}/{}".format(PROGRAM_NAME, PROJECT_CODE)
+                + "/entities/"
+                + ",".join(ids)
+            )
+            resp = requests.delete(url, headers=self.headers)
+            assert resp.status_code == 200, resp.status_code
 
 
 if __name__ == "__main__":
