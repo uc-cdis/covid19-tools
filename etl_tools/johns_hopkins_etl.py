@@ -280,9 +280,9 @@ class MetadataHelper:
         """
         print("Getting existing data from Peregrine...")
         query_string = (
-            '{ location (first: 0, project_id: "'
+            '{ summary_location (first: 0, project_id: "'
             + self.project_id
-            + '") { submitter_id, time_seriess (first: 0) { submitter_id } } }'
+            + '") { submitter_id, summary_report (first: 0) { submitter_id } } }'
         )
         response = requests.post(
             "{}/api/v0/submission/graphql".format(self.base_url),
