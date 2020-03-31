@@ -44,7 +44,7 @@ def main():
 
 
 def format_location_submitter_id(country, province):
-"""summary_location_<country><state>"""
+    """summary_location_<country><state>"""
     submitter_id = "summary_location_{}".format(country)
     if province:
         submitter_id += "_{}".format(province)
@@ -69,7 +69,7 @@ def get_unified_date_format(date):
 
 
 def format_time_series_submitter_id(location_submitter_id, date):
-"""summary_report_<country>_<state>_<date>"""
+    """summary_report_<country>_<state>_<date>"""
     sub_id = location_submitter_id.replace("summary_location", "summary_report")
     return "{}_{}".format(sub_id, date)
 
