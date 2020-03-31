@@ -282,7 +282,7 @@ class MetadataHelper:
         query_string = (
             '{ summary_location (first: 0, project_id: "'
             + self.project_id
-            + '") { submitter_id, summary_report (first: 0) { submitter_id } } }'
+            + '") { submitter_id, summary_reports (first: 0) { submitter_id } } }'
         )
         response = requests.post(
             "{}/api/v0/submission/graphql".format(self.base_url),
