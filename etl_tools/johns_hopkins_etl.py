@@ -44,7 +44,7 @@ def main():
 
 
 def format_location_submitter_id(country, province):
-    submitter_id = "summary_location_{}".format(country)
+    submitter_id = "summary_report_{}".format(country)
     if province:
         submitter_id += "_{}".format(province)
 
@@ -87,7 +87,7 @@ class JonhsHopkinsETL:
             "Long",
             "1/22/20",
         ]
-        self.existing_data = {}
+        self.existing_data = self.metadata_helper.get_existing_data()
 
     def files_to_submissions(self):
         """
@@ -235,9 +235,8 @@ class JonhsHopkinsETL:
         for location in self.location_data.values():
             record = {"type": "summary_location"}
             record.update(location)
-            print(record)
-            #self.metadata_helper.add_record_to_submit(record)
-        #self.metadata_helper.batch_submit_records()
+            self.metadata_helper.add_record_to_submit(record)
+        self.metadata_helper.batch_submit_records()
 
         print("Submitting time_series data")
         for location_submitter_id, time_series in self.time_series_data.items():
@@ -253,9 +252,8 @@ class JonhsHopkinsETL:
                 }
                 for data_type, value in data.items():
                     record[data_type] = value
-                print(record)
-                #self.metadata_helper.add_record_to_submit(record)
-        #self.metadata_helper.batch_submit_records()
+                self.metadata_helper.add_record_to_submit(record)
+        self.metadata_helper.batch_submit_records()
 
 
 class MetadataHelper:
