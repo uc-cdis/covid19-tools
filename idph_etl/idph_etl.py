@@ -69,11 +69,17 @@ class IllinoisDPHETL:
         """
         Reads JSON file and convert the data to Sheepdog records
         """
-        yesterday = datetime.date.today() - datetime.timedelta(days=1)
-        yesterday_str = yesterday.strftime("%Y%m%d")
-        print(f"Getting data for date: {yesterday_str}")
+
+        latest_submitted_date = self.metadata_helper.get_latest_submitted_data()
+        today = datetime.date.today()
+        if latest_submitted_date == today:
+            print("Nothing to submit: today and latest submitted date are the same.")
+            return
+
+        today_str = today.strftime("%Y%m%d")
+        print(f"Getting data for date: {today_str}")
         state = "IL"
-        url = f"https://www.dph.illinois.gov/sites/default/files/COVID19/COVID19CountyResults{yesterday_str}.json"
+        url = f"https://www.dph.illinois.gov/sites/default/files/COVID19/COVID19CountyResults{today_str}.json"
         self.parse_file(state, url)
 
     def parse_file(self, state, url):
@@ -183,6 +189,41 @@ class MetadataHelper:
         self.headers = {"Authorization": "bearer " + access_token}
         self.project_id = "{}-{}".format(PROGRAM_NAME, PROJECT_CODE)
         self.records_to_submit = []
+
+    def get_latest_submitted_data(self):
+        """
+        Queries Peregrine for the existing `summary_report` data.
+
+        { summary_report (first: 1, project_id: <...>) { date } }
+
+        Returns the latest submitted date as Python "datetime.date"
+        """
+        print("Getting latest date from Peregrine...")
+        query_string = (
+            '{ summary_report (first: 1, order_by_desc: "date", project_id: "'
+            + self.project_id
+            + '") { submitter_id date } }'
+        )
+        response = requests.post(
+            "{}/api/v0/submission/graphql".format(self.base_url),
+            json={"query": query_string, "variables": None},
+            headers=self.headers,
+        )
+        assert (
+            response.status_code == 200
+        ), "Unable to query Peregrine for existing data: {}\n{}".format(
+            response.status_code, response.text
+        )
+        try:
+            query_res = json.loads(response.text)
+        except:
+            print("Peregrine did not return JSON")
+            raise
+
+        report = query_res["data"]["summary_report"][0]
+        latest_submitted_date = datetime.datetime.strptime(
+            report["date"], "%Y-%m-%d")
+        return latest_submitted_date.date()
 
     def add_record_to_submit(self, record):
         self.records_to_submit.append(record)
