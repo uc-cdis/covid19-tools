@@ -44,7 +44,7 @@ def main():
 
 
 def format_location_submitter_id(country, province):
-    submitter_id = "location_{}".format(country)
+    submitter_id = "summary_location_{}".format(country)
     if province:
         submitter_id += "_{}".format(province)
 
@@ -68,7 +68,7 @@ def get_unified_date_format(date):
 
 
 def format_time_series_submitter_id(location_submitter_id, date):
-    return "{}_timeseries_{}".format(location_submitter_id, date)
+    return "{}_summaryreport_{}".format(location_submitter_id, date)
 
 
 def format_time_series_date(date):
@@ -233,7 +233,7 @@ class JonhsHopkinsETL:
 
         print("Submitting location data")
         for location in self.location_data.values():
-            record = {"type": "location"}
+            record = {"type": "summary_location"}
             record.update(location)
             self.metadata_helper.add_record_to_submit(record)
         self.metadata_helper.batch_submit_records()
@@ -245,7 +245,7 @@ class JonhsHopkinsETL:
                     location_submitter_id, date
                 )
                 record = {
-                    "type": "time_series",
+                    "type": "summary_report",
                     "submitter_id": submitter_id,
                     "locations": [{"submitter_id": location_submitter_id}],
                     "date": format_time_series_date(date),
