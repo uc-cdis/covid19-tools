@@ -301,10 +301,10 @@ class MetadataHelper:
             raise
 
         json_res = {}
-        for location in query_res["data"]["location"]:
+        for location in query_res["data"]["summary_location"]:
             json_res[location["submitter_id"]] = [
                 time_series["submitter_id"]
-                for time_series in location.get("time_seriess")
+                for time_series in location.get("summary_reports")
             ]
         return json_res
 
