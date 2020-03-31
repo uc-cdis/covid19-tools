@@ -68,7 +68,7 @@ def get_unified_date_format(date):
 
 
 def format_time_series_submitter_id(location_submitter_id, date):
-    return "{}_summaryreport_{}".format(location_submitter_id, date)
+    return "{}_{}".format(location_submitter_id, date)
 
 
 def format_time_series_date(date):
