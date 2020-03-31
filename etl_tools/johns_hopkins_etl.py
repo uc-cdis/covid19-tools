@@ -44,6 +44,7 @@ def main():
 
 
 def format_location_submitter_id(country, province):
+"""summary_location_<country><state>"""
     submitter_id = "summary_location_{}".format(country)
     if province:
         submitter_id += "_{}".format(province)
