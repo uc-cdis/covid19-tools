@@ -44,7 +44,8 @@ def main():
 
 
 def format_location_submitter_id(country, province):
-    submitter_id = "location_{}".format(country)
+"""summary_location_<country><state>"""
+    submitter_id = "summary_location_{}".format(country)
     if province:
         submitter_id += "_{}".format(province)
 
@@ -68,7 +69,9 @@ def get_unified_date_format(date):
 
 
 def format_time_series_submitter_id(location_submitter_id, date):
-    return "{}_timeseries_{}".format(location_submitter_id, date)
+"""summary_report_<country>_<state>_<date>"""
+    sub_id = location_submitter_id.replace("summary_location", "summary_report")
+    return "{}_{}".format(sub_id, date)
 
 
 def format_time_series_date(date):
@@ -233,7 +236,7 @@ class JonhsHopkinsETL:
 
         print("Submitting location data")
         for location in self.location_data.values():
-            record = {"type": "location"}
+            record = {"type": "summary_location"}
             record.update(location)
             self.metadata_helper.add_record_to_submit(record)
         self.metadata_helper.batch_submit_records()
@@ -245,7 +248,7 @@ class JonhsHopkinsETL:
                     location_submitter_id, date
                 )
                 record = {
-                    "type": "time_series",
+                    "type": "summary_report",
                     "submitter_id": submitter_id,
                     "locations": [{"submitter_id": location_submitter_id}],
                     "date": format_time_series_date(date),
@@ -278,9 +281,9 @@ class MetadataHelper:
         """
         print("Getting existing data from Peregrine...")
         query_string = (
-            '{ location (first: 0, project_id: "'
+            '{ summary_location (first: 0, project_id: "'
             + self.project_id
-            + '") { submitter_id, time_seriess (first: 0) { submitter_id } } }'
+            + '") { submitter_id, summary_reports (first: 0) { submitter_id } } }'
         )
         response = requests.post(
             "{}/api/v0/submission/graphql".format(self.base_url),
@@ -299,10 +302,10 @@ class MetadataHelper:
             raise
 
         json_res = {}
-        for location in query_res["data"]["location"]:
+        for location in query_res["data"]["summary_location"]:
             json_res[location["submitter_id"]] = [
                 time_series["submitter_id"]
-                for time_series in location.get("time_seriess")
+                for time_series in location.get("summary_reports")
             ]
         return json_res
 
