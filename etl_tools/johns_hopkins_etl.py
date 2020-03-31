@@ -20,17 +20,19 @@ SUBMIT_BATCH_SIZE = 100
 
 
 # TODO remove
-# def get_token():
-#     with open("credentials.json", "r") as f:
-#         creds = json.load(f)
-#     token_url = BASE_URL + "/user/credentials/api/access_token"
-#     token = requests.post(token_url, json=creds).json()["access_token"]
-#     return token
+def get_token():
+    with open("credentials.json", "r") as f:
+        creds = json.load(f)
+    token_url = BASE_URL + "/user/credentials/api/access_token"
+    res = requests.post(token_url, json=creds).json()
+    if not "access_token" in res:
+        print(res)
+    return res["access_token"]
 
 
 def main():
-    # token = get_token()
-    token = os.environ.get("ACCESS_TOKEN")
+    token = get_token()
+    # token = os.environ.get("ACCESS_TOKEN")
     if not token:
         raise Exception(
             "Need ACCESS_TOKEN environment variable (token for user with read and write access to {}-{})".format(
@@ -43,7 +45,7 @@ def main():
     etl.submit_metadata()
 
 
-def format_location_submitter_id(country, province):
+def format_location_submitter_id(country, province, county=None):
     submitter_id = "location_{}".format(country)
     if province:
         submitter_id += "_{}".format(province)
@@ -80,14 +82,76 @@ class JonhsHopkinsETL:
         self.location_data = {}
         self.time_series_data = defaultdict(lambda: defaultdict(dict))
         self.metadata_helper = MetadataHelper(access_token=access_token)
-        self.expected_csv_headers = [
-            "Province/State",
-            "Country/Region",
-            "Lat",
-            "Long",
-            "1/22/20",
-        ]
-        self.existing_data = self.metadata_helper.get_existing_data()
+        self.expected_csv_headers = {
+            "global": ["Province/State", "Country/Region", "Lat", "Long", "1/22/20"],
+            "US_counties": {
+                "confirmed": [
+                    "UID",
+                    "iso2",
+                    "iso3",
+                    "code3",
+                    "FIPS",
+                    "Admin2",
+                    "Province_State",
+                    "Country_Region",
+                    "Lat",
+                    "Long_",
+                    "Combined_Key",
+                    "1/22/2020",
+                ],
+                "deaths": [
+                    "UID",
+                    "iso2",
+                    "iso3",
+                    "code3",
+                    "FIPS",
+                    "Admin2",
+                    "Province_State",
+                    "Country_Region",
+                    "Lat",
+                    "Long_",
+                    "Combined_Key",
+                    "Population",  # TODO use this
+                    "1/22/2020",
+                ],
+            },
+        }
+        self.header_to_column = {
+            "global": {
+                "province": 0,
+                "country": 1,
+                "latitude": 2,
+                "longitude": 3,
+                "dates_start": 4,
+            },
+            "US_counties": {
+                "confirmed": {
+                    "iso2": 1,
+                    "iso3": 2,
+                    "code3": 3,
+                    "fips": 4,
+                    "county": 5,
+                    "province": 6,
+                    "country": 7,
+                    "latitude": 8,
+                    "longitude": 9,
+                    "dates_start": 11,
+                },
+                "deaths": {
+                    "iso2": 1,
+                    "iso3": 2,
+                    "code3": 3,
+                    "fips": 4,
+                    "county": 5,
+                    "province": 6,
+                    "country": 7,
+                    "latitude": 8,
+                    "longitude": 9,
+                    "dates_start": 12,
+                },
+            },
+        }
+        self.existing_data = {}  # self.metadata_helper.get_existing_data()
 
     def files_to_submissions(self):
         """
@@ -97,26 +161,22 @@ class JonhsHopkinsETL:
         # return
         urls = {
             "global": {
-                "confirmed": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
-                "deaths": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv",
-                "recovered": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv",
-                "testing": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_testing_global.csv",
+                # "confirmed": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
+                # "deaths": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv",
+                # "recovered": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv",
+                # "testing": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_testing_global.csv",
             },
-            "US_states": {
+            "US_counties": {
                 "confirmed": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv",
                 "deaths": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv",
-                "testing": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_testing_US.csv",
             },
         }
 
-        for data_type, url in urls["global"].items():
-            self.parse_file(data_type, url)
+        for file_type in ["global", "US_counties"]:
+            for data_type, url in urls[file_type].items():
+                self.parse_file(file_type, data_type, url)
 
-        # TODO: enable this when the files are available and test
-        # for data_type, url in urls["US_states"].items():
-        #     self.parse_file(data_type, url)
-
-    def parse_file(self, data_type, url):
+    def parse_file(self, file_type, data_type, url):
         """
         Converts a CSV file to data we can submit via Sheepdog. Stores the
         records to submit in `self.location_data` and `self.time_series_data`.
@@ -139,14 +199,18 @@ class JonhsHopkinsETL:
                 print("  Unable to get file contents, received {}.".format(headers))
                 return
 
+            expected_h = self.expected_csv_headers[file_type][data_type]
+            obtained_h = headers[: len(expected_h)]
             assert (
-                headers[:5] == self.expected_csv_headers
+                obtained_h == expected_h
             ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
-                headers[:5], self.expected_csv_headers
+                expected_h, obtained_h
             )
 
             for row in reader:
-                location, date_to_value = self.parse_row(headers, row)
+                location, date_to_value = self.parse_row(
+                    file_type, data_type, headers, row
+                )
                 if not location:
                     # We are using US data by state instead of global
                     continue
@@ -171,7 +235,7 @@ class JonhsHopkinsETL:
                             data_type
                         ] = value
 
-    def parse_row(self, headers, row):
+    def parse_row(self, file_type, data_type, headers, row):
         """
         Converts a row of a CSV file to data we can submit via Sheepdog
 
@@ -184,28 +248,51 @@ class JonhsHopkinsETL:
                 - location data, in a format ready to be submitted to Sheepdog
                 - { "date1": <value>, "date2": <value> } from the row data
         """
-        province = row[0]
-        country = row[1]
+        country = row[self.header_to_column[file_type][data_type]["country"]]
+        province = row[self.header_to_column[file_type][data_type]["province"]]
+        latitude = row[self.header_to_column[file_type][data_type]["latitude"]]
+        longitude = row[self.header_to_column[file_type][data_type]["longitude"]]
+
+        if country == "US" and province == "":
+            # We are using US data by state instead of global
+            return None, None
+
+        if latitude == "0" and longitude == "0":
+            # Data with "Out of <state>" or "Unassigned" county value have
+            # unknown coordinates of (0,0). We don't submit them for now
+            return None, None
+
         submitter_id = format_location_submitter_id(country, province)
-
-        # TODO: enable this AND DELETE THE GLOBAL US DATA when the
-        # state-level data files are available
-        # if country == "US" and province == "":
-        #     # We are using US data by state instead of global
-        #     return None, None
-
         location = {
             "country_region": country,
-            "latitude": row[2],
-            "longitude": row[3],
-            "submitter_id": submitter_id,
+            "latitude": latitude,
+            "longitude": longitude,
             "projects": [{"code": PROJECT_CODE}],
         }
         if province:
             location["province_state"] = province
+        if file_type == "US_counties":
+            county = row[self.header_to_column[file_type][data_type]["iso2"]]
+            iso2 = row[self.header_to_column[file_type][data_type]["iso2"]]
+            iso3 = row[self.header_to_column[file_type][data_type]["iso3"]]
+            code3 = row[self.header_to_column[file_type][data_type]["code3"]]
+            fips = row[self.header_to_column[file_type][data_type]["fips"]]
+            if county:
+                location["county"] = county
+                submitter_id = format_location_submitter_id(country, province, county)
+            if iso2:
+                location["iso2"] = iso2
+            if iso3:
+                location["iso3"] = iso3
+            if code3:
+                location["code3"] = int(code3)
+            if fips:
+                location["fips"] = int(fips)
+        location["submitter_id"] = submitter_id
 
         date_to_value = {}
-        for i in range(4, len(headers)):
+        dates_start = self.header_to_column[file_type][data_type]["dates_start"]
+        for i in range(dates_start, len(headers)):
             date = headers[i]
             date = get_unified_date_format(date)
 
@@ -213,7 +300,7 @@ class JonhsHopkinsETL:
                 continue
             try:
                 val = int(row[i])
-            except:
+            except ValueError:
                 print(
                     'Unable to convert {} to int for "{}", "{}" at {}'.format(
                         row[i], province, country, date
@@ -273,8 +360,8 @@ class MetadataHelper:
         locations (historically not true), and use the following query to
         retrieve the dates we already have data for:
         { location (first: 1, project_id: <...>) { time_seriess (first: 0) { date } } }
-        We could also get the existing data directly from the DB instead of
-        querying Peregrine.
+        We could also query Guppy instead, or get the existing data directly
+        from the DB.
         """
         print("Getting existing data from Peregrine...")
         query_string = (
@@ -365,6 +452,7 @@ class MetadataHelper:
                 headers=self.headers,
             )
             ids = [loc["id"] for loc in json.loads(response.text)["data"]["location"]]
+            # ids = [loc["id"] for loc in json.loads(response.text)["data"]["time_series"]]
             url = (
                 self.base_url
                 + "/api/v0/submission/{}/{}".format(PROGRAM_NAME, PROJECT_CODE)
