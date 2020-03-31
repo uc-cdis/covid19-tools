@@ -87,7 +87,7 @@ class JonhsHopkinsETL:
             "Long",
             "1/22/20",
         ]
-        self.existing_data = self.metadata_helper.get_existing_data()
+        self.existing_data = {}
 
     def files_to_submissions(self):
         """
