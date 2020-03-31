@@ -235,8 +235,9 @@ class JonhsHopkinsETL:
         for location in self.location_data.values():
             record = {"type": "summary_location"}
             record.update(location)
-            self.metadata_helper.add_record_to_submit(record)
-        self.metadata_helper.batch_submit_records()
+            print(record)
+            #self.metadata_helper.add_record_to_submit(record)
+        #self.metadata_helper.batch_submit_records()
 
         print("Submitting time_series data")
         for location_submitter_id, time_series in self.time_series_data.items():
@@ -252,8 +253,9 @@ class JonhsHopkinsETL:
                 }
                 for data_type, value in data.items():
                     record[data_type] = value
-                self.metadata_helper.add_record_to_submit(record)
-        self.metadata_helper.batch_submit_records()
+                print(record)
+                #self.metadata_helper.add_record_to_submit(record)
+        #self.metadata_helper.batch_submit_records()
 
 
 class MetadataHelper:
