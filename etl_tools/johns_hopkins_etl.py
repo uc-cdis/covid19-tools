@@ -19,17 +19,18 @@ PROJECT_CODE = "JHU"
 SUBMIT_BATCH_SIZE = 100
 
 
-# TODO remove
-# def get_token():
-#     with open("credentials.json", "r") as f:
-#         creds = json.load(f)
-#     token_url = BASE_URL + "/user/credentials/api/access_token"
-#     token = requests.post(token_url, json=creds).json()["access_token"]
-#     return token
+def get_token():
+    with open("credentials.json", "r") as f:
+        creds = json.load(f)
+    token_url = BASE_URL + "/user/credentials/api/access_token"
+    res = requests.post(token_url, json=creds).json()
+    if not "access_token" in res:
+        print(res)
+    return res["access_token"]
 
 
 def main():
-    # token = get_token()
+    # token = get_token()  # TODO remove
     token = os.environ.get("ACCESS_TOKEN")
     if not token:
         raise Exception(
@@ -43,11 +44,13 @@ def main():
     etl.submit_metadata()
 
 
-def format_location_submitter_id(country, province):
-    """summary_location_<country><state>"""
+def format_location_submitter_id(country, province, county=None):
+    """summary_location_<country>_<province>_<county>"""
     submitter_id = "summary_location_{}".format(country)
     if province:
         submitter_id += "_{}".format(province)
+    if county:
+        submitter_id += "_{}".format(county)
 
     submitter_id = submitter_id.lower().replace(", ", "_")
     submitter_id = re.sub("[^a-z0-9-_]+", "-", submitter_id)
@@ -68,8 +71,8 @@ def get_unified_date_format(date):
     return "-".join((year, month, day))
 
 
-def format_time_series_submitter_id(location_submitter_id, date):
-    """summary_report_<country>_<state>_<date>"""
+def format_report_submitter_id(location_submitter_id, date):
+    """summary_report_<country>_<province>_<county>_<date>"""
     sub_id = location_submitter_id.replace("summary_location", "summary_report")
     return "{}_{}".format(sub_id, date)
 
@@ -83,13 +86,75 @@ class JonhsHopkinsETL:
         self.location_data = {}
         self.time_series_data = defaultdict(lambda: defaultdict(dict))
         self.metadata_helper = MetadataHelper(access_token=access_token)
-        self.expected_csv_headers = [
-            "Province/State",
-            "Country/Region",
-            "Lat",
-            "Long",
-            "1/22/20",
-        ]
+        self.expected_csv_headers = {
+            "global": ["Province/State", "Country/Region", "Lat", "Long", "1/22/20"],
+            "US_counties": {
+                "confirmed": [
+                    "UID",
+                    "iso2",
+                    "iso3",
+                    "code3",
+                    "FIPS",
+                    "Admin2",
+                    "Province_State",
+                    "Country_Region",
+                    "Lat",
+                    "Long_",
+                    "Combined_Key",
+                    "1/22/2020",
+                ],
+                "deaths": [
+                    "UID",
+                    "iso2",
+                    "iso3",
+                    "code3",
+                    "FIPS",
+                    "Admin2",
+                    "Province_State",
+                    "Country_Region",
+                    "Lat",
+                    "Long_",
+                    "Combined_Key",
+                    "Population",  # TODO use this
+                    "1/22/2020",
+                ],
+            },
+        }
+        self.header_to_column = {
+            "global": {
+                "province": 0,
+                "country": 1,
+                "latitude": 2,
+                "longitude": 3,
+                "dates_start": 4,
+            },
+            "US_counties": {
+                "confirmed": {
+                    "iso2": 1,
+                    "iso3": 2,
+                    "code3": 3,
+                    "FIPS": 4,
+                    "county": 5,
+                    "province": 6,
+                    "country": 7,
+                    "latitude": 8,
+                    "longitude": 9,
+                    "dates_start": 11,
+                },
+                "deaths": {
+                    "iso2": 1,
+                    "iso3": 2,
+                    "code3": 3,
+                    "FIPS": 4,
+                    "county": 5,
+                    "province": 6,
+                    "country": 7,
+                    "latitude": 8,
+                    "longitude": 9,
+                    "dates_start": 12,
+                },
+            },
+        }
         self.existing_data = self.metadata_helper.get_existing_data()
 
     def files_to_submissions(self):
@@ -105,21 +170,17 @@ class JonhsHopkinsETL:
                 "recovered": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv",
                 "testing": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_testing_global.csv",
             },
-            "US_states": {
+            "US_counties": {
                 "confirmed": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv",
                 "deaths": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv",
-                "testing": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_testing_US.csv",
             },
         }
 
-        for data_type, url in urls["global"].items():
-            self.parse_file(data_type, url)
+        for file_type in ["global", "US_counties"]:
+            for data_type, url in urls[file_type].items():
+                self.parse_file(file_type, data_type, url)
 
-        # TODO: enable this when the files are available and test
-        # for data_type, url in urls["US_states"].items():
-        #     self.parse_file(data_type, url)
-
-    def parse_file(self, data_type, url):
+    def parse_file(self, file_type, data_type, url):
         """
         Converts a CSV file to data we can submit via Sheepdog. Stores the
         records to submit in `self.location_data` and `self.time_series_data`.
@@ -142,14 +203,20 @@ class JonhsHopkinsETL:
                 print("  Unable to get file contents, received {}.".format(headers))
                 return
 
+            expected_h = self.expected_csv_headers[file_type]
+            if isinstance(expected_h, dict):
+                expected_h = expected_h[data_type]
+            obtained_h = headers[: len(expected_h)]
             assert (
-                headers[:5] == self.expected_csv_headers
+                obtained_h == expected_h
             ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
-                headers[:5], self.expected_csv_headers
+                expected_h, obtained_h
             )
 
             for row in reader:
-                location, date_to_value = self.parse_row(headers, row)
+                location, date_to_value = self.parse_row(
+                    file_type, data_type, headers, row
+                )
                 if not location:
                     # We are using US data by state instead of global
                     continue
@@ -163,7 +230,7 @@ class JonhsHopkinsETL:
                     self.location_data[location_submitter_id] = location
 
                 for date, value in date_to_value.items():
-                    date_submitter_id = format_time_series_submitter_id(
+                    date_submitter_id = format_report_submitter_id(
                         location_submitter_id, date
                     )
                     # do not re-submit time_series data that already exist
@@ -174,7 +241,7 @@ class JonhsHopkinsETL:
                             data_type
                         ] = value
 
-    def parse_row(self, headers, row):
+    def parse_row(self, file_type, data_type, headers, row):
         """
         Converts a row of a CSV file to data we can submit via Sheepdog
 
@@ -187,28 +254,55 @@ class JonhsHopkinsETL:
                 - location data, in a format ready to be submitted to Sheepdog
                 - { "date1": <value>, "date2": <value> } from the row data
         """
-        province = row[0]
-        country = row[1]
+        header_to_column = self.header_to_column[file_type]
+        if "country" not in header_to_column:
+            header_to_column = header_to_column[data_type]
+
+        country = row[header_to_column["country"]]
+        province = row[header_to_column["province"]]
+        latitude = row[header_to_column["latitude"]]
+        longitude = row[header_to_column["longitude"]]
+
+        if country == "US" and province == "":
+            # We are using US data by state instead of global
+            return None, None
+
+        if latitude == "0" and longitude == "0":
+            # Data with "Out of <state>" or "Unassigned" county value have
+            # unknown coordinates of (0,0). We don't submit them for now
+            return None, None
+
         submitter_id = format_location_submitter_id(country, province)
-
-        # TODO: enable this AND DELETE THE GLOBAL US DATA when the
-        # state-level data files are available
-        # if country == "US" and province == "":
-        #     # We are using US data by state instead of global
-        #     return None, None
-
         location = {
             "country_region": country,
-            "latitude": row[2],
-            "longitude": row[3],
-            "submitter_id": submitter_id,
+            "latitude": latitude,
+            "longitude": longitude,
             "projects": [{"code": PROJECT_CODE}],
         }
         if province:
             location["province_state"] = province
+        if file_type == "US_counties":
+            county = row[header_to_column["county"]]
+            iso2 = row[header_to_column["iso2"]]
+            iso3 = row[header_to_column["iso3"]]
+            code3 = row[header_to_column["code3"]]
+            fips = row[header_to_column["FIPS"]]
+            if county:
+                location["county"] = county
+                submitter_id = format_location_submitter_id(country, province, county)
+            if iso2:
+                location["iso2"] = iso2
+            if iso3:
+                location["iso3"] = iso3
+            if code3:
+                location["code3"] = int(code3)
+            if fips:
+                location["FIPS"] = int(fips)
+        location["submitter_id"] = submitter_id
 
         date_to_value = {}
-        for i in range(4, len(headers)):
+        dates_start = header_to_column["dates_start"]
+        for i in range(dates_start, len(headers)):
             date = headers[i]
             date = get_unified_date_format(date)
 
@@ -216,7 +310,7 @@ class JonhsHopkinsETL:
                 continue
             try:
                 val = int(row[i])
-            except:
+            except ValueError:
                 print(
                     'Unable to convert {} to int for "{}", "{}" at {}'.format(
                         row[i], province, country, date
@@ -234,23 +328,21 @@ class JonhsHopkinsETL:
         all records in `self.location_data` and `self.time_series_data`
         """
 
-        print("Submitting location data")
+        print("Submitting summary_location data")
         for location in self.location_data.values():
             record = {"type": "summary_location"}
             record.update(location)
             self.metadata_helper.add_record_to_submit(record)
         self.metadata_helper.batch_submit_records()
 
-        print("Submitting time_series data")
+        print("Submitting summary_report data")
         for location_submitter_id, time_series in self.time_series_data.items():
             for date, data in time_series.items():
-                submitter_id = format_time_series_submitter_id(
-                    location_submitter_id, date
-                )
+                submitter_id = format_report_submitter_id(location_submitter_id, date)
                 record = {
                     "type": "summary_report",
                     "submitter_id": submitter_id,
-                    "locations": [{"submitter_id": location_submitter_id}],
+                    "summary_locations": [{"submitter_id": location_submitter_id}],
                     "date": format_time_series_date(date),
                 }
                 for data_type, value in data.items():
@@ -276,14 +368,16 @@ class MetadataHelper:
         locations (historically not true), and use the following query to
         retrieve the dates we already have data for:
         { location (first: 1, project_id: <...>) { time_seriess (first: 0) { date } } }
-        We could also get the existing data directly from the DB instead of
-        querying Peregrine.
+        Or use the `first` and `offset` Peregrine parameters
+        We could also query Guppy instead (assuming the Guppy ETL ran since
+        last time this ETL ran), or get the existing data directly from the DB.
         """
         print("Getting existing data from Peregrine...")
+        print("  summary_location data...")
         query_string = (
             '{ summary_location (first: 0, project_id: "'
             + self.project_id
-            + '") { submitter_id, summary_reports (first: 0) { submitter_id } } }'
+            + '") { submitter_id } }'
         )
         response = requests.post(
             "{}/api/v0/submission/graphql".format(self.base_url),
@@ -292,7 +386,33 @@ class MetadataHelper:
         )
         assert (
             response.status_code == 200
-        ), "Unable to query Peregrine for existing data: {}\n{}".format(
+        ), "Unable to query Peregrine for existing 'summary_location' data: {}\n{}".format(
+            response.status_code, response.text
+        )
+        try:
+            query_res = json.loads(response.text)
+        except:
+            print("Peregrine did not return JSON")
+            raise
+        json_res = {
+            location["submitter_id"]: []
+            for location in query_res["data"]["summary_location"]
+        }
+
+        print("  summary_report data...")
+        query_string = (
+            '{ summary_report (first: 0, project_id: "'
+            + self.project_id
+            + '") { submitter_id } }'
+        )
+        response = requests.post(
+            "{}/api/v0/submission/graphql".format(self.base_url),
+            json={"query": query_string, "variables": None},
+            headers=self.headers,
+        )
+        assert (
+            response.status_code == 200
+        ), "Unable to query Peregrine for existing 'summary_report' data: {}\n{}".format(
             response.status_code, response.text
         )
         try:
@@ -301,12 +421,12 @@ class MetadataHelper:
             print("Peregrine did not return JSON")
             raise
 
-        json_res = {}
-        for location in query_res["data"]["summary_location"]:
-            json_res[location["submitter_id"]] = [
-                time_series["submitter_id"]
-                for time_series in location.get("summary_reports")
-            ]
+        for report in query_res["data"]["summary_report"]:
+            report_id = report["submitter_id"]
+            location_id = report_id.replace("summary_report", "summary_location")
+            location_id = "_".join(location_id.split("_")[:-1])  # remove the date
+            json_res[location_id].append(report_id)
+
         return json_res
 
     def add_record_to_submit(self, record):
@@ -331,7 +451,7 @@ class MetadataHelper:
                 )
             )
             # self.records_to_submit = []  # TODO remove
-            # return  # TODO remove
+            # return
 
             response = requests.put(
                 "{}/api/v0/submission/{}/{}".format(
@@ -350,24 +470,36 @@ class MetadataHelper:
 
     # TODO remove
     def delete_tmp(self):
+
+        return
+
         for i in range(3):
             print(i)
             query_string = (
-                '{ location (first: 200, project_id: "'
+                '{ summary_location (first: 200, project_id: "'
                 + self.project_id
                 + '") { submitter_id, id } }'
             )
             # query_string = (
-            #     '{ time_series (first: 200, project_id: "'
+            #     '{ summary_report (first: 200, project_id: "'
             #     + self.project_id
             #     + '") { submitter_id, id } }'
+            # )
+            # query_string = (
+            #     '{ summary_report (first: 200, project_id: "'
+            #     + self.project_id
+            #     + '"with_path_to: { type: "summary_location", country_region: "US" }) { submitter_id, id } }'
             # )
             response = requests.post(
                 "{}/api/v0/submission/graphql".format(self.base_url),
                 json={"query": query_string, "variables": None},
                 headers=self.headers,
             )
-            ids = [loc["id"] for loc in json.loads(response.text)["data"]["location"]]
+            ids = [
+                loc["id"]
+                for loc in json.loads(response.text)["data"]["summary_location"]
+            ]
+            # ids = [loc["id"] for loc in json.loads(response.text)["data"]["summary_report"]]
             url = (
                 self.base_url
                 + "/api/v0/submission/{}/{}".format(PROGRAM_NAME, PROJECT_CODE)
