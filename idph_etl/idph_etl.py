@@ -79,7 +79,12 @@ class IllinoisDPHETL:
         today_str = today.strftime("%Y%m%d")
         print(f"Getting data for date: {today_str}")
         state = "IL"
-        url = f"https://www.dph.illinois.gov/sites/default/files/COVID19/COVID19CountyResults{today_str}.json"
+
+        # they changed the URL on April 1, 2020
+        if today > datetime.date(2020, 3, 31):
+            url = "http://www.dph.illinois.gov/sitefiles/COVIDTestResults.json"
+        else:    
+            url = f"https://www.dph.illinois.gov/sites/default/files/COVID19/COVID19CountyResults{today_str}.json"
         self.parse_file(state, url)
 
     def parse_file(self, state, url):
