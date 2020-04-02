@@ -101,7 +101,7 @@ class JonhsHopkinsETL:
                     "Lat",
                     "Long_",
                     "Combined_Key",
-                    "1/22/2020",
+                    "1/22/20",
                 ],
                 "deaths": [
                     "UID",
@@ -116,7 +116,7 @@ class JonhsHopkinsETL:
                     "Long_",
                     "Combined_Key",
                     "Population",  # TODO use this
-                    "1/22/2020",
+                    "1/22/20",
                 ],
             },
         }
@@ -267,7 +267,7 @@ class JonhsHopkinsETL:
             # We are using US data by state instead of global
             return None, None
 
-        if latitude == "0" and longitude == "0":
+        if int(float(latitude)) == 0 and int(float(longitude)) == 0:
             # Data with "Out of <state>" or "Unassigned" county value have
             # unknown coordinates of (0,0). We don't submit them for now
             return None, None
@@ -297,7 +297,7 @@ class JonhsHopkinsETL:
             if code3:
                 location["code3"] = int(code3)
             if fips:
-                location["FIPS"] = int(fips)
+                location["FIPS"] = int(float(fips))
         location["submitter_id"] = submitter_id
 
         date_to_value = {}
@@ -476,9 +476,9 @@ class MetadataHelper:
         for i in range(3):
             print(i)
             query_string = (
-                '{ summary_location (first: 200, project_id: "'
+                '{ summary_location (first: 0, project_id: "'
                 + self.project_id
-                + '") { submitter_id, id } }'
+                + '") { id, summary_reports (first: 0) { id } } }'
             )
             # query_string = (
             #     '{ summary_report (first: 200, project_id: "'
