@@ -101,7 +101,7 @@ class JonhsHopkinsETL:
                     "Lat",
                     "Long_",
                     "Combined_Key",
-                    "1/22/2020",
+                    "1/22/20",
                 ],
                 "deaths": [
                     "UID",
@@ -116,7 +116,7 @@ class JonhsHopkinsETL:
                     "Long_",
                     "Combined_Key",
                     "Population",  # TODO use this
-                    "1/22/2020",
+                    "1/22/20",
                 ],
             },
         }
@@ -297,7 +297,7 @@ class JonhsHopkinsETL:
             if code3:
                 location["code3"] = int(code3)
             if fips:
-                location["FIPS"] = int(fips)
+                location["FIPS"] = int(float(fips))
         location["submitter_id"] = submitter_id
 
         date_to_value = {}
