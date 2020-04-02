@@ -1,0 +1,8 @@
+FROM python:3.8-slim-buster
+
+RUN pip3 install --upgrade pip==20.0.*
+RUN pip3 install requests==2.23.*
+
+COPY ./ctp_etl.py /ctp_etl.py
+
+ENTRYPOINT [ "python3", "/ctp_etl.py" ]
