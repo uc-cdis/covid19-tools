@@ -46,7 +46,6 @@ class IDPH(base.BaseETL):
             counties = counties[1:]
             counties = map(lambda l: l.strip().split("\t"), counties)
 
-        county_dict = {}
         for county, lat, lon in counties:
             self.county_dict[county] = {'lat': lat, 'lon': lon}
 
