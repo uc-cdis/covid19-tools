@@ -9,15 +9,6 @@ import requests
 from etl import base
 from helper.metadata_helper import MetadataHelper
 
-BASE_URL = "https://covid19.datacommons.io"
-PROGRAM_NAME = "open"
-PROJECT_CODE = "JHU"
-
-# Note: if we end up having too much data, Sheepdog submissions may
-# time out. We'll have to use a smaller batch size and hope that's enough
-SUBMIT_BATCH_SIZE = 100
-
-
 def format_location_submitter_id(country, province, county=None):
     """summary_location_<country>_<province>_<county>"""
     submitter_id = "summary_location_{}".format(country)
