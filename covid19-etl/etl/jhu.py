@@ -1,48 +1,13 @@
+import csv
+import re
 from collections import defaultdict
 from contextlib import closing
-import csv
 from datetime import datetime
-import enum
-import json
-import os
-from math import ceil
-import re
+
 import requests
 
-
-BASE_URL = "https://covid19.datacommons.io"
-PROGRAM_NAME = "open"
-PROJECT_CODE = "JHU"
-
-# Note: if we end up having too much data, Sheepdog submissions may
-# time out. We'll have to use a smaller batch size and hope that's enough
-SUBMIT_BATCH_SIZE = 100
-
-
-def get_token():
-    with open("credentials.json", "r") as f:
-        creds = json.load(f)
-    token_url = BASE_URL + "/user/credentials/api/access_token"
-    res = requests.post(token_url, json=creds).json()
-    if not "access_token" in res:
-        print(res)
-    return res["access_token"]
-
-
-def main():
-    # token = get_token()  # TODO remove
-    token = os.environ.get("ACCESS_TOKEN")
-    if not token:
-        raise Exception(
-            "Need ACCESS_TOKEN environment variable (token for user with read and write access to {}-{})".format(
-                PROGRAM_NAME, PROJECT_CODE
-            )
-        )
-
-    etl = JonhsHopkinsETL(token)
-    etl.files_to_submissions()
-    etl.submit_metadata()
-
+from etl import base
+from helper.metadata_helper import MetadataHelper
 
 def format_location_submitter_id(country, province, county=None):
     """summary_location_<country>_<province>_<county>"""
@@ -81,11 +46,17 @@ def format_time_series_date(date):
     return datetime.strptime(date, "%Y-%m-%d").isoformat("T")
 
 
-class JonhsHopkinsETL:
-    def __init__(self, access_token):
+class JHU(base.BaseETL):
+    def __init__(self, base_url, access_token):
+        super().__init__(base_url, access_token)
         self.location_data = {}
         self.time_series_data = defaultdict(lambda: defaultdict(dict))
-        self.metadata_helper = MetadataHelper(access_token=access_token)
+        self.program_name = "open"
+        self.project_code = "JHU"
+        self.metadata_helper = MetadataHelper(base_url=self.base_url,
+                                              program_name=self.program_name,
+                                              project_code=self.project_code,
+                                              access_token=access_token)
         self.expected_csv_headers = {
             "global": ["Province/State", "Country/Region", "Lat", "Long", "1/22/20"],
             "US_counties": {
@@ -155,7 +126,7 @@ class JonhsHopkinsETL:
                 },
             },
         }
-        self.existing_data = self.metadata_helper.get_existing_data()
+        self.existing_data = self.metadata_helper.get_existing_data_jhu()
 
     def files_to_submissions(self):
         """
@@ -208,7 +179,7 @@ class JonhsHopkinsETL:
                 expected_h = expected_h[data_type]
             obtained_h = headers[: len(expected_h)]
             assert (
-                obtained_h == expected_h
+                    obtained_h == expected_h
             ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
                 expected_h, obtained_h
             )
@@ -223,9 +194,9 @@ class JonhsHopkinsETL:
 
                 location_submitter_id = location["submitter_id"]
                 if (
-                    location_submitter_id not in self.location_data
-                    # do not re-submit location data that already exist
-                    and location_submitter_id not in self.existing_data
+                        location_submitter_id not in self.location_data
+                        # do not re-submit location data that already exist
+                        and location_submitter_id not in self.existing_data
                 ):
                     self.location_data[location_submitter_id] = location
 
@@ -235,7 +206,7 @@ class JonhsHopkinsETL:
                     )
                     # do not re-submit time_series data that already exist
                     if date_submitter_id not in self.existing_data.get(
-                        location_submitter_id, []
+                            location_submitter_id, []
                     ):
                         self.time_series_data[location_submitter_id][date][
                             data_type
@@ -277,7 +248,7 @@ class JonhsHopkinsETL:
             "country_region": country,
             "latitude": latitude,
             "longitude": longitude,
-            "projects": [{"code": PROJECT_CODE}],
+            "projects": [{"code": self.project_code}],
         }
         if province:
             location["province_state"] = province
@@ -349,166 +320,3 @@ class JonhsHopkinsETL:
                     record[data_type] = value
                 self.metadata_helper.add_record_to_submit(record)
         self.metadata_helper.batch_submit_records()
-
-
-class MetadataHelper:
-    def __init__(self, access_token):
-        self.base_url = BASE_URL
-        self.headers = {"Authorization": "bearer " + access_token}
-        self.project_id = "{}-{}".format(PROGRAM_NAME, PROJECT_CODE)
-        self.records_to_submit = []
-
-    def get_existing_data(self):
-        """
-        Queries Peregrine for the existing `location` and `time_series` data. Returns a dict in format { "location1": [ "date1", "date2" ] }
-
-        Note: if we end up having too much data, the query may timeout. We
-        could simplify this by assuming that any `time_series` date that
-        already exists for one location also already exists for all other
-        locations (historically not true), and use the following query to
-        retrieve the dates we already have data for:
-        { location (first: 1, project_id: <...>) { time_seriess (first: 0) { date } } }
-        Or use the `first` and `offset` Peregrine parameters
-        We could also query Guppy instead (assuming the Guppy ETL ran since
-        last time this ETL ran), or get the existing data directly from the DB.
-        """
-        print("Getting existing data from Peregrine...")
-        print("  summary_location data...")
-        query_string = (
-            '{ summary_location (first: 0, project_id: "'
-            + self.project_id
-            + '") { submitter_id } }'
-        )
-        response = requests.post(
-            "{}/api/v0/submission/graphql".format(self.base_url),
-            json={"query": query_string, "variables": None},
-            headers=self.headers,
-        )
-        assert (
-            response.status_code == 200
-        ), "Unable to query Peregrine for existing 'summary_location' data: {}\n{}".format(
-            response.status_code, response.text
-        )
-        try:
-            query_res = json.loads(response.text)
-        except:
-            print("Peregrine did not return JSON")
-            raise
-        json_res = {
-            location["submitter_id"]: []
-            for location in query_res["data"]["summary_location"]
-        }
-
-        print("  summary_report data...")
-        query_string = (
-            '{ summary_report (first: 0, project_id: "'
-            + self.project_id
-            + '") { submitter_id } }'
-        )
-        response = requests.post(
-            "{}/api/v0/submission/graphql".format(self.base_url),
-            json={"query": query_string, "variables": None},
-            headers=self.headers,
-        )
-        assert (
-            response.status_code == 200
-        ), "Unable to query Peregrine for existing 'summary_report' data: {}\n{}".format(
-            response.status_code, response.text
-        )
-        try:
-            query_res = json.loads(response.text)
-        except:
-            print("Peregrine did not return JSON")
-            raise
-
-        for report in query_res["data"]["summary_report"]:
-            report_id = report["submitter_id"]
-            location_id = report_id.replace("summary_report", "summary_location")
-            location_id = "_".join(location_id.split("_")[:-1])  # remove the date
-            json_res[location_id].append(report_id)
-
-        return json_res
-
-    def add_record_to_submit(self, record):
-        self.records_to_submit.append(record)
-
-    def batch_submit_records(self):
-        """
-        Submits Sheepdog records in batch
-        """
-        if not self.records_to_submit:
-            print("  Nothing new to submit")
-            return
-
-        n_batches = ceil(len(self.records_to_submit) / SUBMIT_BATCH_SIZE)
-        for i in range(n_batches):
-            records = self.records_to_submit[
-                i * SUBMIT_BATCH_SIZE : (i + 1) * SUBMIT_BATCH_SIZE
-            ]
-            print(
-                "  Submitting {} records: {}".format(
-                    len(records), [r["submitter_id"] for r in records]
-                )
-            )
-            # self.records_to_submit = []  # TODO remove
-            # return
-
-            response = requests.put(
-                "{}/api/v0/submission/{}/{}".format(
-                    self.base_url, PROGRAM_NAME, PROJECT_CODE
-                ),
-                headers=self.headers,
-                data=json.dumps(records),
-            )
-            assert (
-                response.status_code == 200
-            ), "Unable to submit to Sheepdog: {}\n{}".format(
-                response.status_code, response.text
-            )
-
-        self.records_to_submit = []
-
-    # TODO remove
-    def delete_tmp(self):
-
-        return
-
-        for i in range(3):
-            print(i)
-            query_string = (
-                '{ summary_location (first: 0, project_id: "'
-                + self.project_id
-                + '") { id, summary_reports (first: 0) { id } } }'
-            )
-            # query_string = (
-            #     '{ summary_report (first: 200, project_id: "'
-            #     + self.project_id
-            #     + '") { submitter_id, id } }'
-            # )
-            # query_string = (
-            #     '{ summary_report (first: 200, project_id: "'
-            #     + self.project_id
-            #     + '"with_path_to: { type: "summary_location", country_region: "US" }) { submitter_id, id } }'
-            # )
-            response = requests.post(
-                "{}/api/v0/submission/graphql".format(self.base_url),
-                json={"query": query_string, "variables": None},
-                headers=self.headers,
-            )
-            ids = [
-                loc["id"]
-                for loc in json.loads(response.text)["data"]["summary_location"]
-            ]
-            # ids = [loc["id"] for loc in json.loads(response.text)["data"]["summary_report"]]
-            url = (
-                self.base_url
-                + "/api/v0/submission/{}/{}".format(PROGRAM_NAME, PROJECT_CODE)
-                + "/entities/"
-                + ",".join(ids)
-            )
-            resp = requests.delete(url, headers=self.headers)
-            assert resp.status_code == 200, resp.status_code
-
-
-if __name__ == "__main__":
-    main()
