@@ -248,7 +248,7 @@ class JHU(base.BaseETL):
             "country_region": country,
             "latitude": latitude,
             "longitude": longitude,
-            "projects": [{"code": PROJECT_CODE}],
+            "projects": [{"code": self.project_code}],
         }
         if province:
             location["province_state"] = province

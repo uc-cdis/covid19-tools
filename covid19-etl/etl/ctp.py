@@ -170,7 +170,7 @@ class CTP(base.BaseETL):
         summary_location = {
             "country_region": country,
             "submitter_id": summary_location_submitter_id,
-            "projects": [{"code": PROJECT_CODE}],
+            "projects": [{"code": self.project_code}],
             "province_state": state,
         }
 
