@@ -101,9 +101,9 @@ class MetadataHelper:
         """
         print("Getting latest date from Peregrine...")
         query_string = (
-                '{ summary_report (first: 1, order_by_desc: "date", project_id: "'
-                + self.project_id
-                + '") { submitter_id date } }'
+            '{ summary_report (first: 1, order_by_desc: "date", project_id: "'
+            + self.project_id
+            + '") { submitter_id date } }'
         )
         response = requests.post(
             "{}/api/v0/submission/graphql".format(self.base_url),
@@ -111,7 +111,7 @@ class MetadataHelper:
             headers=self.headers,
         )
         assert (
-                response.status_code == 200
+            response.status_code == 200
         ), "Unable to query Peregrine for existing data: {}\n{}".format(
             response.status_code, response.text
         )
@@ -122,8 +122,7 @@ class MetadataHelper:
             raise
 
         report = query_res["data"]["summary_report"][0]
-        latest_submitted_date = datetime.datetime.strptime(
-            report["date"], "%Y-%m-%d")
+        latest_submitted_date = datetime.datetime.strptime(report["date"], "%Y-%m-%d")
         return latest_submitted_date.date()
 
     def add_record_to_submit(self, record):
@@ -140,8 +139,8 @@ class MetadataHelper:
         n_batches = ceil(len(self.records_to_submit) / self.submit_batch_size)
         for i in range(n_batches):
             records = self.records_to_submit[
-                      i * self.submit_batch_size: (i + 1) * self.submit_batch_size
-                      ]
+                i * self.submit_batch_size : (i + 1) * self.submit_batch_size
+            ]
             print(
                 "  Submitting {} records: {}".format(
                     len(records), [r["submitter_id"] for r in records]
@@ -156,7 +155,7 @@ class MetadataHelper:
                 data=json.dumps(records),
             )
             assert (
-                    response.status_code == 200
+                response.status_code == 200
             ), "Unable to submit to Sheepdog: {}\n{}".format(
                 response.status_code, response.text
             )
