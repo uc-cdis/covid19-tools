@@ -28,7 +28,9 @@ def format_location_submitter_id(country, province, county=None):
 
 
 def format_summary_report_submitter_id(location_submitter_id, date):
-    return "{}_{}".format(location_submitter_id.replace("summary_location_", "summary_report_"), date)
+    return "{}_{}".format(
+        location_submitter_id.replace("summary_location_", "summary_report_"), date
+    )
 
 
 def get_unified_date_format(date):
@@ -47,8 +49,7 @@ def get_unified_date_format(date):
 
 def format_report_submitter_id(location_submitter_id, date):
     """summary_report_<country>_<province>_<county>_<date>"""
-    sub_id = location_submitter_id.replace(
-        "summary_location", "summary_report")
+    sub_id = location_submitter_id.replace("summary_location", "summary_report")
     return "{}_{}".format(sub_id, date)
 
 
@@ -64,10 +65,12 @@ class CTP(base.BaseETL):
 
         self.program_name = "open"
         self.project_code = "CTP"
-        self.metadata_helper = MetadataHelper(base_url=self.base_url,
-                                              program_name=self.program_name,
-                                              project_code=self.project_code,
-                                              access_token=access_token)
+        self.metadata_helper = MetadataHelper(
+            base_url=self.base_url,
+            program_name=self.program_name,
+            project_code=self.project_code,
+            access_token=access_token,
+        )
 
         self.expected_csv_headers = [
             "date",
@@ -97,8 +100,9 @@ class CTP(base.BaseETL):
             "totalTestResultsIncrease",
         ]
 
-        self.header_to_column = {k: self.expected_csv_headers.index(
-            k) for k in self.expected_csv_headers}
+        self.header_to_column = {
+            k: self.expected_csv_headers.index(k) for k in self.expected_csv_headers
+        }
 
     def files_to_submissions(self):
         """
@@ -133,7 +137,7 @@ class CTP(base.BaseETL):
             expected_h = self.expected_csv_headers
             obtained_h = headers[: len(expected_h)]
             assert (
-                    obtained_h == expected_h
+                obtained_h == expected_h
             ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
                 expected_h, obtained_h
             )
@@ -164,8 +168,7 @@ class CTP(base.BaseETL):
 
         country = "US"
         state = row[self.header_to_column["state"]]
-        summary_location_submitter_id = format_location_submitter_id(
-            country, state)
+        summary_location_submitter_id = format_location_submitter_id(country, state)
 
         summary_location = {
             "country_region": country,

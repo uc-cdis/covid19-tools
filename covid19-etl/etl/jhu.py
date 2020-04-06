@@ -9,6 +9,7 @@ import requests
 from etl import base
 from helper.metadata_helper import MetadataHelper
 
+
 def format_location_submitter_id(country, province, county=None):
     """summary_location_<country>_<province>_<county>"""
     submitter_id = "summary_location_{}".format(country)
@@ -53,10 +54,12 @@ class JHU(base.BaseETL):
         self.time_series_data = defaultdict(lambda: defaultdict(dict))
         self.program_name = "open"
         self.project_code = "JHU"
-        self.metadata_helper = MetadataHelper(base_url=self.base_url,
-                                              program_name=self.program_name,
-                                              project_code=self.project_code,
-                                              access_token=access_token)
+        self.metadata_helper = MetadataHelper(
+            base_url=self.base_url,
+            program_name=self.program_name,
+            project_code=self.project_code,
+            access_token=access_token,
+        )
         self.expected_csv_headers = {
             "global": ["Province/State", "Country/Region", "Lat", "Long", "1/22/20"],
             "US_counties": {
@@ -179,7 +182,7 @@ class JHU(base.BaseETL):
                 expected_h = expected_h[data_type]
             obtained_h = headers[: len(expected_h)]
             assert (
-                    obtained_h == expected_h
+                obtained_h == expected_h
             ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
                 expected_h, obtained_h
             )
@@ -194,9 +197,9 @@ class JHU(base.BaseETL):
 
                 location_submitter_id = location["submitter_id"]
                 if (
-                        location_submitter_id not in self.location_data
-                        # do not re-submit location data that already exist
-                        and location_submitter_id not in self.existing_data
+                    location_submitter_id not in self.location_data
+                    # do not re-submit location data that already exist
+                    and location_submitter_id not in self.existing_data
                 ):
                     self.location_data[location_submitter_id] = location
 
@@ -206,7 +209,7 @@ class JHU(base.BaseETL):
                     )
                     # do not re-submit time_series data that already exist
                     if date_submitter_id not in self.existing_data.get(
-                            location_submitter_id, []
+                        location_submitter_id, []
                     ):
                         self.time_series_data[location_submitter_id][date][
                             data_type

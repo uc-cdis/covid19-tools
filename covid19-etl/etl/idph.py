@@ -21,7 +21,9 @@ def format_summary_location_submitter_id(country, state, county):
 
 
 def format_summary_report_submitter_id(location_submitter_id, date):
-    return "{}_{}".format(location_submitter_id.replace("summary_location_", "summary_report_"), date)
+    return "{}_{}".format(
+        location_submitter_id.replace("summary_location_", "summary_report_"), date
+    )
 
 
 class IDPH(base.BaseETL):
@@ -30,10 +32,12 @@ class IDPH(base.BaseETL):
 
         self.program_name = "open"
         self.project_code = "IDPH"
-        self.metadata_helper = MetadataHelper(base_url=self.base_url,
-                                              program_name=self.program_name,
-                                              project_code=self.project_code,
-                                              access_token=access_token)
+        self.metadata_helper = MetadataHelper(
+            base_url=self.base_url,
+            program_name=self.program_name,
+            project_code=self.project_code,
+            access_token=access_token,
+        )
 
         self.county_dict = {}
 
@@ -47,7 +51,7 @@ class IDPH(base.BaseETL):
             counties = map(lambda l: l.strip().split("\t"), counties)
 
         for county, lat, lon in counties:
-            self.county_dict[county] = {'lat': lat, 'lon': lon}
+            self.county_dict[county] = {"lat": lat, "lon": lon}
 
     def files_to_submissions(self):
         """
@@ -88,12 +92,15 @@ class IDPH(base.BaseETL):
             date = self.get_date(data)
 
             if date == latest_submitted_date.strftime("%Y-%m-%d"):
-                print("Nothing to submit: today and latest submitted date are the same.")
+                print(
+                    "Nothing to submit: today and latest submitted date are the same."
+                )
                 return
 
             for county in data["characteristics_by_county"]["values"]:
                 summary_location, summary_report = self.parse_county(
-                    date, state, county)
+                    date, state, county
+                )
 
                 # drop the Illinois summary data
                 if summary_location["county"] == "Illinois":
@@ -110,7 +117,8 @@ class IDPH(base.BaseETL):
         county = county_json["County"]
 
         summary_location_submitter_id = format_summary_location_submitter_id(
-            country, state, county)
+            country, state, county
+        )
 
         summary_location = {
             "country_region": country,
@@ -148,7 +156,7 @@ class IDPH(base.BaseETL):
         """
         Converts JSON with "year", "month" and "day" to formatted date string.
         """
-        date_json = county_json['LastUpdateDate']
+        date_json = county_json["LastUpdateDate"]
         date = datetime.date(**date_json)
         return date.strftime("%Y-%m-%d")
 
