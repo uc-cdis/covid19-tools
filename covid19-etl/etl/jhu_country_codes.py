@@ -26,6 +26,7 @@ COUNTRY_NAME_MAPPING = {
     "Korea, South": "South Korea",
     "North Macedonia": "Macedonia",
     "Saint Vincent and the Grenadines": "St. Vincent & Grenadines",
+    "Sao Tome and Principe": "São Tomé & Príncipe",
     "United Kingdom": "UK",
 }
 ISO_CODES_MAPPING = {
@@ -124,7 +125,7 @@ class JHU_COUNTRY_CODES(base.BaseETL):
         if data:
             return data
 
-        data = ISO_CODES_MAPPING[country_name]
+        data = ISO_CODES_MAPPING.get(country_name)
         if data:
             return data
 
