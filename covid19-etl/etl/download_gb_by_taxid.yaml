@@ -1,0 +1,11 @@
+---
+taxid: 694009
+email: briano@bioteam.net
+min_len: 25000
+max_len: 100000
+recurse: True
+retmax: 100
+split: False
+verbose: True
+program_name: open?
+project_code: GENOME?
