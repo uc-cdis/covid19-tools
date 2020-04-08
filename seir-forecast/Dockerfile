@@ -1,9 +1,7 @@
 FROM python:3.8-slim-buster
 
-RUN apt-get update && \
-    apt-get install --no-install-recommends -y awscli=1.16.*
-
 RUN pip3 install --upgrade pip==20.0.*
+RUN pip3 install awscli==1.18.*
 WORKDIR /seir-forecast
 
 COPY ./requirements.txt /seir-forecast/requirements.txt
