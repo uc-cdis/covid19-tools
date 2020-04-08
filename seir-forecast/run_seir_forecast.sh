@@ -15,6 +15,6 @@ cat simulated_seir.txt
 
 echo "Copying to S3 bucket..."
 
-if [[ -z "${S3_BUCKET}" ]]; then
-  aws s3 cp "$FILE" "$S3_BUCKET"
+if [[ -n "$S3_BUCKET" ]]; then
+  aws s3 cp "$FILE" "$S3_BUCKET/$FILE"
 fi
