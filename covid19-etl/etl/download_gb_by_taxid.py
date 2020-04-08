@@ -21,6 +21,7 @@ To Do
 - Logging. Note that the code just does print()
 - Errors. Note that we just do an except()
 - Deleting data sets from last job (don't think we need results from every job)
+- Retrieving data from S3 for next steps - or do we execute the whole workflow here?
 
 '''
 
