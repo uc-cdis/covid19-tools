@@ -18,10 +18,11 @@ See https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?lvl=0&id=694009
 
 To Do
 
+- Associate data with DD
 - Logging. Note that the code just does print()
 - Errors. Note that we just do an except()
-- Deleting data sets from last job (don't think we need results from every job)
-- Retrieving data from S3 for next steps - or do we execute the whole workflow here?
+- Deleting data sets from last job (don't think we need save results from every job)
+- Retrieving data from storage for next steps - or do we execute the whole workflow here?
 
 '''
 
@@ -30,6 +31,7 @@ class DOWNLOAD_GB_BY_TAXID(base.BaseETL):
     def __init__(self, base_url, access_token):
         super().__init__(base_url, access_token)
         script = os.path.splitext(os.path.basename(__file__))[0]
+        # Get all constants from YAML, including program_name, project_code
         with open('{}.yaml'.format(script)) as f:
             config = yaml.load(f, Loader=yaml.FullLoader)
         self.email = config['email']
@@ -41,7 +43,6 @@ class DOWNLOAD_GB_BY_TAXID(base.BaseETL):
         self.taxid = config['taxid']
         self.seq_format = config['seq_format']
         self.retmax = config['retmax']
-        # Getting name and code from the YAML
         self.program_name = config['program_name']
         self.project_code = config['project_code']
 
