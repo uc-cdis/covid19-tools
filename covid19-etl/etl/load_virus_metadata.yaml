@@ -1,7 +1,7 @@
 ---
 verbose: True
 program_name: open
-project_code: VIRAL_GENOME
+project_code: Sars-cov2
 virus_genome_data_category: Annotated Sequence
 virus_genome_data_type: Complete Genomic Sequence
 virus_genome_data_format: gb
