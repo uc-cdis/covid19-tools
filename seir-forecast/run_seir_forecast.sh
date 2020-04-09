@@ -11,8 +11,6 @@ fi
 echo "Running notebook $FILE..."
 jupyter nbconvert --to notebook --inplace --execute "$FILE"
 
-cat simulated_seir.txt
-
 echo "Copying to S3 bucket..."
 if [[ -n "$S3_BUCKET" ]]; then
   aws s3 cp "simulated_cases.txt" "$S3_BUCKET/simulated_cases.txt"
