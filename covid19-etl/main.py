@@ -3,7 +3,7 @@ import os
 from importlib import import_module
 
 if __name__ == "__main__":
-    base_url = "https://covid19.datacommons.io"
+    base_url = "http://revproxy-service"
     token = os.environ.get("ACCESS_TOKEN")
     if not token:
         raise Exception(
