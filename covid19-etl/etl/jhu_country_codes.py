@@ -10,7 +10,7 @@ from etl import base
 from helper.metadata_helper import MetadataHelper
 
 
-BASE_URL = "https://covid19.datacommons.io"
+BASE_URL = "https://chicagoland.pandemicresponsecommons.org"
 PROGRAM_NAME = "open"
 PROJECT_CODE = "JHU"
 COUNTRY_NAME_MAPPING = {
