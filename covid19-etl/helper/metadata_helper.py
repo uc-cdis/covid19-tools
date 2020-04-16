@@ -62,28 +62,38 @@ class MetadataHelper:
         }
 
         print("  summary_report data...")
-        query_string = (
-            '{ summary_report (first: 0, project_id: "'
-            + self.project_id
-            + '") { submitter_id } }'
-        )
-        response = requests.post(
-            "{}/api/v0/submission/graphql".format(self.base_url),
-            json={"query": query_string, "variables": None},
-            headers=self.headers,
-        )
-        assert (
-            response.status_code == 200
-        ), "Unable to query Peregrine for existing 'summary_report' data: {}\n{}".format(
-            response.status_code, response.text
-        )
-        try:
-            query_res = json.loads(response.text)
-        except:
-            print("Peregrine did not return JSON")
-            raise
 
-        for report in query_res["data"]["summary_report"]:
+        summary_reports = []
+        data = None
+        offset = 0
+        first = 10000
+        while data != []:  # don't change, it's explicitly checks for empty list
+            print("    Getting data with offset: " + str(offset))
+            query_string = (
+                '{ summary_report (first: ' + str(first) + ', offset: ' + str(offset) + ', order_by_desc: "date", project_id: "'
+                + self.project_id
+                + '") { submitter_id } }'
+            )
+            response = requests.post(
+                "{}/api/v0/submission/graphql".format(self.base_url),
+                json={"query": query_string, "variables": None},
+                headers=self.headers,
+            )
+            assert (
+                response.status_code == 200
+            ), "Unable to query Peregrine for existing 'summary_report' data: {}\n{}".format(
+                response.status_code, response.text
+            )
+            try:
+                query_res = json.loads(response.text)
+            except:
+                print("Peregrine did not return JSON")
+                raise
+            data = query_res["data"]["summary_report"]
+            summary_reports.extend(data)
+            offset += first
+
+        for report in summary_reports:
             report_id = report["submitter_id"]
             location_id = report_id.replace("summary_report", "summary_location")
             location_id = "_".join(location_id.split("_")[:-1])  # remove the date
