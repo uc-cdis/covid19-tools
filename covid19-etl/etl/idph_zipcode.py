@@ -179,7 +179,7 @@ class IDPH_ZIPCODE(base.BaseETL):
             "Black": "race_black",
             "Left Blank": "race_left_blank",
             "Other": "race_other",
-            "Asian": "",
+            "Asian": "race_asian",
             "NH/PI*": "race_nh_pi",
             "AI/AN**": "race_ai_an",
         }
@@ -196,103 +196,19 @@ class IDPH_ZIPCODE(base.BaseETL):
             "80+": "age_group_greater_80",
         }
 
-        fields_mapping = {"age": age_missing, "gender": gender_mapping, "race": race_mapping}
+        fields_mapping = {"age": ("age_group", age_missing),
+                          "gender": ("description", gender_mapping),
+                          "race": ("description", race_mapping)}
+
+        demographic = zipcode_values["demographics"]
 
         for k, v in fields_mapping.items():
-            zipcode_values["demographic"]
-
-        # {
-        #     "zip": "60615",
-        #     "confirmed_cases": 144,
-        #     "demographics": {
-        #         "age": [
-        #             {
-        #                 "age_group": "Unknown",
-        #                 "count": 0
-        #             },
-        #             {
-        #                 "age_group": "<20",
-        #                 "count": 0
-        #             },
-        #             {
-        #                 "age_group": "20-29",
-        #                 "count": 14
-        #             },
-        #             {
-        #                 "age_group": "30-39",
-        #                 "count": 24
-        #             },
-        #             {
-        #                 "age_group": "40-49",
-        #                 "count": 24
-        #             },
-        #             {
-        #                 "age_group": "50-59",
-        #                 "count": 32
-        #             },
-        #             {
-        #                 "age_group": "60-69",
-        #                 "count": 29
-        #             },
-        #             {
-        #                 "age_group": "70-79",
-        #                 "count": 7
-        #             },
-        #             {
-        #                 "age_group": "80+",
-        #                 "count": 11
-        #             }
-        #         ],
-        #         "race": [
-        #             {
-        #                 "description": "White",
-        #                 "count": 7
-        #             },
-        #             {
-        #                 "description": "Black",
-        #                 "count": 93
-        #             },
-        #             {
-        #                 "description": "Left Blank",
-        #                 "count": 37
-        #             },
-        #             {
-        #                 "description": "Other",
-        #                 "count": 0
-        #             },
-        #             {
-        #                 "description": "Asian",
-        #                 "count": 0
-        #             },
-        #             {
-        #                 "description": "Hispanic",
-        #                 "count": 0
-        #             },
-        #             {
-        #                 "description": "NH/PI*",
-        #                 "count": 0
-        #             },
-        #             {
-        #                 "description": "AI/AN**",
-        #                 "count": 0
-        #             }
-        #         ],
-        #         "gender": [
-        #             {
-        #                 "description": "Male",
-        #                 "count": 67
-        #             },
-        #             {
-        #                 "description": "Female",
-        #                 "count": 75
-        #             },
-        #             {
-        #                 "description": "Unknown/Left Blank",
-        #                 "count": 0
-        #             }
-        #         ]
-        #     }
-        # }
+            field, mapping = v
+            demographic_group = demographic[k]
+            for item in demographic_group:
+                dst_field = mapping[item[field]]
+                if dst_field:
+                    summary_demographic[mapping[item[field]]] = item["count"]
 
         return summary_location, summary_report, summary_demographic
 
@@ -313,16 +229,16 @@ class IDPH_ZIPCODE(base.BaseETL):
 
         # Commented
         # Only required for one time submission of summary_location
-        # print("Submitting summary_location data")
-        # for loc in self.summary_locations:
-        #     loc_record = {"type": "summary_location"}
-        #     loc_record.update(loc)
-        #     self.metadata_helper.add_record_to_submit(loc_record)
-        # self.metadata_helper.batch_submit_records()
-        # 
-        # print("Submitting summary_report data")
-        # for rep in self.summary_reports:
-        #     rep_record = {"type": "summary_report"}
-        #     rep_record.update(rep)
-        #     self.metadata_helper.add_record_to_submit(rep_record)
-        # self.metadata_helper.batch_submit_records()
+        print("Submitting summary_location data")
+        for loc in self.summary_locations:
+            loc_record = {"type": "summary_location"}
+            loc_record.update(loc)
+            self.metadata_helper.add_record_to_submit(loc_record)
+        self.metadata_helper.batch_submit_records()
+
+        print("Submitting summary_report data")
+        for rep in self.summary_reports:
+            rep_record = {"type": "summary_report"}
+            rep_record.update(rep)
+            self.metadata_helper.add_record_to_submit(rep_record)
+        self.metadata_helper.batch_submit_records()
