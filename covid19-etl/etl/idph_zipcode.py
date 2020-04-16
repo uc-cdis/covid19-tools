@@ -27,6 +27,11 @@ def format_summary_report_submitter_id(location_submitter_id, date):
         location_submitter_id.replace("summary_location_", "summary_report_"), date
     )
 
+def format_summary_demographic_submitter_id(location_submitter_id, date):
+    return "{}_{}".format(
+        location_submitter_id.replace("summary_location_", "summary_demographic_"), date
+    )
+
 
 class IDPH_ZIPCODE(base.BaseETL):
     def __init__(self, base_url, access_token):
@@ -46,6 +51,7 @@ class IDPH_ZIPCODE(base.BaseETL):
 
         self.summary_locations = []
         self.summary_reports = []
+        self.summary_demographics = []
 
     def il_counties(self):
         with open("etl/IL_counties_central_coords_lat_long.tsv") as f:
@@ -95,13 +101,15 @@ class IDPH_ZIPCODE(base.BaseETL):
             #     return
 
             for zipcode_values in data["zip_values"]:
-                summary_location, summary_report = self.parse_zipcode(date, state, zipcode_values)
+                summary_location, summary_report, summary_demographic = self.parse_zipcode(date, state, zipcode_values)
 
                 self.summary_locations.append(summary_location)
                 self.summary_reports.append(summary_report)
+                self.summary_demographics.append(summary_demographic)
 
                 print(summary_location)
                 print(summary_report)
+                print(summary_demographic)
 
     def parse_zipcode(self, date, state, zipcode_values):
         """
@@ -132,7 +140,161 @@ class IDPH_ZIPCODE(base.BaseETL):
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
 
-        return summary_location, summary_report
+        summary_demographic_submitter_id = format_summary_demographic_submitter_id(
+            summary_location_submitter_id, date
+        )
+        summary_demographic = {
+            "submitter_id": summary_demographic_submitter_id,
+            "date": date,
+            "summary_locations": [{"submitter_id": summary_location_submitter_id}],
+            # "race_white": null,
+            # "race_hispanic": null,
+            # "race_black": null,
+            # "race_ai_an": null,
+            # "race_nh_pi": null,
+            # "race_other": null,
+            # "race_left_blank": null,
+            # "age_group_less_20": null,
+            # "age_group_20_29": null,
+            # "age_group_30_39": null,
+            # "age_group_40_49": null,
+            # "age_group_50_59": null,
+            # "age_group_60_69": null,
+            # "age_group_70_79": null,
+            # "age_group_greater_80": null,
+            # "gender_male": null,
+            # "gender_female": null,
+            # "gender_unknown_left_blank": null,
+        }
+
+        gender_mapping = {
+            "Male": "gender_male",
+            "Female": "gender_female",
+            "Unknown/Left Blank": "gender_unknown_left_blank"
+        }
+
+        race_mapping = {
+            "White": "race_white",
+            "Hispanic": "race_hispanic",
+            "Black": "race_black",
+            "Left Blank": "race_left_blank",
+            "Other": "race_other",
+            "Asian": "",
+            "NH/PI*": "race_nh_pi",
+            "AI/AN**": "race_ai_an",
+        }
+
+        age_missing = {
+            "Unknown": "",
+            "<20": "age_group_less_20",
+            "20-29": "age_group_20_29",
+            "30-39": "age_group_30_39",
+            "40-49": "age_group_40_49",
+            "50-59": "age_group_50_59",
+            "60-69": "age_group_60_69",
+            "70-79": "age_group_70_79",
+            "80+": "age_group_greater_80",
+        }
+
+        fields_mapping = {"age": age_missing, "gender": gender_mapping, "race": race_mapping}
+
+        for k, v in fields_mapping.items():
+            zipcode_values["demographic"]
+
+        # {
+        #     "zip": "60615",
+        #     "confirmed_cases": 144,
+        #     "demographics": {
+        #         "age": [
+        #             {
+        #                 "age_group": "Unknown",
+        #                 "count": 0
+        #             },
+        #             {
+        #                 "age_group": "<20",
+        #                 "count": 0
+        #             },
+        #             {
+        #                 "age_group": "20-29",
+        #                 "count": 14
+        #             },
+        #             {
+        #                 "age_group": "30-39",
+        #                 "count": 24
+        #             },
+        #             {
+        #                 "age_group": "40-49",
+        #                 "count": 24
+        #             },
+        #             {
+        #                 "age_group": "50-59",
+        #                 "count": 32
+        #             },
+        #             {
+        #                 "age_group": "60-69",
+        #                 "count": 29
+        #             },
+        #             {
+        #                 "age_group": "70-79",
+        #                 "count": 7
+        #             },
+        #             {
+        #                 "age_group": "80+",
+        #                 "count": 11
+        #             }
+        #         ],
+        #         "race": [
+        #             {
+        #                 "description": "White",
+        #                 "count": 7
+        #             },
+        #             {
+        #                 "description": "Black",
+        #                 "count": 93
+        #             },
+        #             {
+        #                 "description": "Left Blank",
+        #                 "count": 37
+        #             },
+        #             {
+        #                 "description": "Other",
+        #                 "count": 0
+        #             },
+        #             {
+        #                 "description": "Asian",
+        #                 "count": 0
+        #             },
+        #             {
+        #                 "description": "Hispanic",
+        #                 "count": 0
+        #             },
+        #             {
+        #                 "description": "NH/PI*",
+        #                 "count": 0
+        #             },
+        #             {
+        #                 "description": "AI/AN**",
+        #                 "count": 0
+        #             }
+        #         ],
+        #         "gender": [
+        #             {
+        #                 "description": "Male",
+        #                 "count": 67
+        #             },
+        #             {
+        #                 "description": "Female",
+        #                 "count": 75
+        #             },
+        #             {
+        #                 "description": "Unknown/Left Blank",
+        #                 "count": 0
+        #             }
+        #         ]
+        #     }
+        # }
+
+        return summary_location, summary_report, summary_demographic
 
     def get_date(self, county_json):
         """
@@ -151,16 +313,16 @@ class IDPH_ZIPCODE(base.BaseETL):
 
         # Commented
         # Only required for one time submission of summary_location
-        print("Submitting summary_location data")
-        for loc in self.summary_locations:
-            loc_record = {"type": "summary_location"}
-            loc_record.update(loc)
-            self.metadata_helper.add_record_to_submit(loc_record)
-        self.metadata_helper.batch_submit_records()
-
-        print("Submitting summary_report data")
-        for rep in self.summary_reports:
-            rep_record = {"type": "summary_report"}
-            rep_record.update(rep)
-            self.metadata_helper.add_record_to_submit(rep_record)
-        self.metadata_helper.batch_submit_records()
+        # print("Submitting summary_location data")
+        # for loc in self.summary_locations:
+        #     loc_record = {"type": "summary_location"}
+        #     loc_record.update(loc)
+        #     self.metadata_helper.add_record_to_submit(loc_record)
+        # self.metadata_helper.batch_submit_records()
+        # 
+        # print("Submitting summary_report data")
+        # for rep in self.summary_reports:
+        #     rep_record = {"type": "summary_report"}
+        #     rep_record.update(rep)
+        #     self.metadata_helper.add_record_to_submit(rep_record)
+        # self.metadata_helper.batch_submit_records()
