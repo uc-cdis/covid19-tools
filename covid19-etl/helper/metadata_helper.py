@@ -66,7 +66,7 @@ class MetadataHelper:
         summary_reports = []
         data = None
         offset = 0
-        first = 10000
+        first = 100000
         while data != []:  # don't change, it's explicitly checks for empty list
             print("    Getting data with offset: " + str(offset))
             query_string = (
