@@ -283,7 +283,7 @@ class JHU(base.BaseETL):
             if row[i] == "":  # ignore empty values
                 continue
             try:
-                val = int(row[i])
+                val = int(float(row[i]))
             except ValueError:
                 print(
                     'Unable to convert {} to int for "{}", "{}" at {}'.format(
