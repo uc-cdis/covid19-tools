@@ -7,5 +7,9 @@ recurse: True
 retmax: 100
 split: False
 verbose: True
-program_name: open?
-project_code: GENOME?
+program_name: open
+project_code: VIRAL_GENOME
+data_category: Annotated Sequence
+data_type: Complete Genomic Sequence
+data_format: gb
+source: NCBI

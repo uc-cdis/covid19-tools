@@ -5,6 +5,7 @@ import numpy
 import yaml
 from Bio import Entrez
 from Bio import SeqIO
+import hashlib
 
 from etl import base
 from helper.metadata_helper import MetadataHelper
@@ -26,12 +27,13 @@ To Do
 
 '''
 
+
 class DOWNLOAD_GB_BY_TAXID(base.BaseETL):
 
     def __init__(self, base_url, access_token):
         super().__init__(base_url, access_token)
         script = os.path.splitext(os.path.basename(__file__))[0]
-        # Get all constants from YAML, including program_name, project_code
+        # Get all input strings from YAML, including program_name, project_code
         with open('{}.yaml'.format(script)) as f:
             config = yaml.load(f, Loader=yaml.FullLoader)
         self.email = config['email']
@@ -41,23 +43,39 @@ class DOWNLOAD_GB_BY_TAXID(base.BaseETL):
         self.recurse = config['recurse']
         self.verbose = config['verbose']
         self.taxid = config['taxid']
-        self.seq_format = config['seq_format']
         self.retmax = config['retmax']
         self.program_name = config['program_name']
         self.project_code = config['project_code']
+        self.data_category = config['data_category']
+        self.data_type = config['data_type']
+        self.data_format = config['data_format']
+        self.source = config['source']
+        self.virus_genomes = []
 
         self.metadata_helper = MetadataHelper(
             base_url=self.base_url,
             program_name=self.program_name,
             project_code=self.project_code,
-            access_token=access_token,
+            access_token=access_token
         )
 
     def files_to_submissions(self):
+        latest_submitted_date = self.metadata_helper.get_latest_submitted_data_virus_genome()
+        today = datetime.date.today()
+        if latest_submitted_date == today:
+            print("Nothing to submit: today and latest submitted date are the same.")
+            return
+
         self.search()
         self.filter()
 
     def submit_metadata(self):
+        latest_submitted_date = self.metadata_helper.get_latest_submitted_data_virus_genome()
+        today = datetime.date.today()
+        if latest_submitted_date == today:
+            print("Nothing to submit: today and latest submitted date are the same.")
+            return
+
         self.write()
 
     def search(self):
@@ -71,9 +89,9 @@ class DOWNLOAD_GB_BY_TAXID(base.BaseETL):
 
         if self.recurse == True:
             try:
-                handle = Entrez.esearch(db="nuccore", 
+                handle = Entrez.esearch(db="nuccore",
                                         idtype="acc",
-                                        retmax=5000, 
+                                        retmax=10000,
                                         term="txid{}[Organism:exp]".format(self.taxid))
                 records = Entrez.read(handle)
                 handle.close()
@@ -110,21 +128,21 @@ class DOWNLOAD_GB_BY_TAXID(base.BaseETL):
     def efetch(self):
         Entrez.email = self.email
         # Split the list of ids into batches of 'retmax' size for Entrez
-        num_chunks = int(len(self.nt_ids)/self.retmax) + 1
+        num_batches = int(len(self.nt_ids)/self.retmax) + 1
 
         try:
-            for id_chunk in numpy.array_split(numpy.array(self.nt_ids), num_chunks):
+            for id_batch in numpy.array_split(numpy.array(self.nt_ids), num_batches):
                 if self.verbose:
-                    print("Going to download records: {}".format(id_chunk))
+                    print("Going to download records: {}".format(id_batch))
                 handle = Entrez.efetch(
                     db="nucleotide",
-                    rettype=self.seq_format,
+                    rettype=self.data_format,
                     retmode="text",
-                    id=','.join(id_chunk)
+                    id=','.join(id_batch)
                 )
                 # Creating the SeqRecord objects here makes filter() easier
                 self.records = itertools.chain(
-                    self.records, SeqIO.parse(handle, self.seq_format))
+                    self.records, SeqIO.parse(handle, self.data_format))
         except (RuntimeError) as exception:
             print("Error retrieving sequences using id '" +
                   str(self.taxid) + "':" + str(exception))
@@ -139,15 +157,28 @@ class DOWNLOAD_GB_BY_TAXID(base.BaseETL):
             self.records = filtered
 
     def write(self):
-        if self.split:
-            for record in self.records:
-                seqfile = record.name + '.' + self.seq_format
-                #SeqIO.write(record, seqfile, self.seq_format)
-                self.metadata_helper.add_record_to_submit(seqfile)
-            self.metadata_helper.batch_submit_records()
-        else:
-            seqfile = 'taxid-' + str(self.taxid) + '.' + self.seq_format
-            #SeqIO.write(self.records, seqfile, self.seq_format)
-            self.metadata_helper.add_record_to_submit(seqfile)
-            self.metadata_helper.batch_submit_records()
+        virus_genome_submitter_id = format_virus_genome_submitter_id(
+            data_category, data_type, data_format, source, type,
+            file_name, file_size, md5sum
+        )
 
+        for record in self.records:
+            virus_genome = {
+                "data_category": self.data_category,
+                "data_type": self.data_type,
+                "data_format": self.data_format,
+                "source": self.source,
+                "submitter_id": virus_genome_submitter_id,
+                "file_name": record.id,
+                "md5sum": hashlib.md5(record.format(self.data_format)).hexdigest(),
+                "file_size": len(record.format(self.data_format).encode('utf-8')),
+                "projects": [{"code": self.project_code}]
+            }
+            self.virus_genomes.append(virus_genome)
+
+        print("Submitting virus_genome data")
+        for genome in self.virus_genomes:
+            genome_record = {"type": "virus_genome"}
+            genome_record.update(genome)
+            self.metadata_helper.add_record_to_submit(genome_record)
+        self.metadata_helper.batch_submit_records()
