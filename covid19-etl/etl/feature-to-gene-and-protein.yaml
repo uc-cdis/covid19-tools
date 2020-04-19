@@ -1,11 +1,7 @@
 ---
-taxid: 694009
-email: briano@bioteam.net
-min_len: 25000
-max_len: 100000
-recurse: True
-retmax: 100
+format: fasta
 split: False
+analyze: False
 verbose: True
 program_name: open
 project_code: VIRAL_GENOME
@@ -13,4 +9,4 @@ data_category: Annotated Sequence
 data_type: Complete Genomic Sequence
 data_format: gb
 source: NCBI
-type: virus_genome
+type: virus_sequence

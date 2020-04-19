@@ -1,16 +1,12 @@
 ---
-taxid: 694009
-email: briano@bioteam.net
-min_len: 25000
-max_len: 100000
-recurse: True
-retmax: 100
-split: False
-verbose: True
+aligner: muscle
+hmmbuild: hmmbuild
+verbose: False
 program_name: open
 project_code: VIRAL_GENOME
 data_category: Annotated Sequence
 data_type: Complete Genomic Sequence
 data_format: gb
 source: NCBI
-type: virus_genome
+alignment_type: virus_sequence_alignment
+hmm_type: virus_sequence_hmm

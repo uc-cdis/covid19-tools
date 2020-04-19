@@ -27,6 +27,11 @@ To Do
 
 '''
 
+def main():
+    entrez = DOWNLOAD_GB_BY_TAXID()
+    entrez.search()
+    entrez.filter()
+    entrez.write()
 
 class DOWNLOAD_GB_BY_TAXID(base.BaseETL):
 
@@ -50,6 +55,7 @@ class DOWNLOAD_GB_BY_TAXID(base.BaseETL):
         self.data_type = config['data_type']
         self.data_format = config['data_format']
         self.source = config['source']
+        self.type = config['type']
         self.virus_genomes = []
 
         self.metadata_helper = MetadataHelper(
@@ -178,7 +184,7 @@ class DOWNLOAD_GB_BY_TAXID(base.BaseETL):
 
         print("Submitting virus_genome data")
         for genome in self.virus_genomes:
-            genome_record = {"type": "virus_genome"}
+            genome_record = {"type": self.type}
             genome_record.update(genome)
             self.metadata_helper.add_record_to_submit(genome_record)
         self.metadata_helper.batch_submit_records()
