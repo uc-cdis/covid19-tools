@@ -1,0 +1,10 @@
+FROM python:3.8-slim-buster
+
+RUN pip3 install --upgrade pip==20.0.*
+RUN pip3 install awscli==1.18.*
+RUN pip3 install requests==2.23.*
+WORKDIR /covid19-etl
+
+COPY ./covid19-etl /covid19-etl
+
+CMD [ "bash", "/covid19-etl/s3_etl.sh" ]

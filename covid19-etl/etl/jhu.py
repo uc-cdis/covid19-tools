@@ -1,10 +1,9 @@
 import csv
 import re
+import requests
 from collections import defaultdict
 from contextlib import closing
 from datetime import datetime
-
-import requests
 
 from etl import base
 from helper.metadata_helper import MetadataHelper
@@ -162,6 +161,8 @@ class JHU(base.BaseETL):
         `submitter_id` to check)
 
         Args:
+            file_type (str): type of this file - one
+                of ["global", "US_counties"]
             data_type (str): type of the data in this file - one
                 of ["confirmed", "deaths", "recovered"]
             url (str): URL at which the CSV file is available
@@ -220,6 +221,10 @@ class JHU(base.BaseETL):
         Converts a row of a CSV file to data we can submit via Sheepdog
 
         Args:
+            file_type (str): type of this file - one
+                of ["global", "US_counties"]
+            data_type (str): type of the data in this file - one
+                of ["confirmed", "deaths", "recovered"]
             headers (list(str)): CSV file headers (first row of the file)
             row (list(str)): row of data
 
