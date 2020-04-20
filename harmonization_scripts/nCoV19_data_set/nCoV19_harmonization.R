@@ -1,9 +1,9 @@
 library(tidyverse)
 library(readr)
 
-df=tbl_df(read.csv(file = "COVID19/nCoV19_data_set/COVID19_line_list_data_manual_editing.csv", stringsAsFactors = F))
+df=tbl_df(read.csv(file = "COVID19_line_list_data_manual_editing.csv", stringsAsFactors = F))
 
-ttable=read_tsv("COVID19/nCoV19_data_set/nCoV2019_symptoms_harmonization/Symptoms Harmonization - Sheet1.tsv")
+ttable=read_tsv("Symptoms Harmonization - Sheet1.tsv")
 
 df <- df[,colSums(is.na(df))<nrow(df)]
 
@@ -62,6 +62,6 @@ subjects$if_onset_approximated[grep(pattern = 0,x = subjects$if_onset_approximat
 subjects$if_onset_approximated[grep(pattern = 1,x = subjects$if_onset_approximated)]<-"True"
 
 
-write_tsv(x = subjects, path = "COVID19/nCoV19_data_set/COVID19_line_list_subject_submission.tsv",na="")
+write_tsv(x = subjects, path = "COVID19_line_list_subject_submission.tsv",na="")
 
-write_tsv(x = demo, path = "COVID19/nCoV19_data_set/COVID19_line_list_demo_submission.tsv",na="")
+write_tsv(x = demo, path = "COVID19_line_list_demo_submission.tsv",na="")
