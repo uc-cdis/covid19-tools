@@ -102,8 +102,8 @@ class IDPH(base.BaseETL):
                 self.summary_locations.append(summary_location)
                 self.summary_reports.append(summary_report)
 
-            for illinois_date in data["state_testing_results"]["values"]:
-                illinois_historic_data = self.parse_historical_data(illinois_date)
+            for illinois_data in data["state_testing_results"]["values"]:
+                illinois_historic_data = self.parse_historical_data(illinois_data)
                 self.summary_reports.append(illinois_historic_data)
 
     def parse_historical_data(self, illinois_data):
@@ -148,6 +148,8 @@ class IDPH(base.BaseETL):
             "province_state": state,
         }
 
+        # the IDPH data use Illinois in "County" field for aggregated data
+        # in Gen3 it would equal to location with "province_state" equal to "IL" and no "County" field
         if county != "Illinois":
             summary_location["county"] = county
 
