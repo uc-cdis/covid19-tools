@@ -40,12 +40,13 @@ class IDPH(base.BaseETL):
         )
 
         self.county_dict = {}
+        self.il_counties()
 
         self.summary_locations = []
         self.summary_reports = []
 
     def il_counties(self):
-        with open("IL_counties_central_coords_lat_long.tsv") as f:
+        with open("etl/IL_counties_central_coords_lat_long.tsv") as f:
             counties = f.readlines()
             counties = counties[1:]
             counties = map(lambda l: l.strip().split("\t"), counties)
@@ -92,22 +93,42 @@ class IDPH(base.BaseETL):
             date = self.get_date(data)
 
             if date == latest_submitted_date.strftime("%Y-%m-%d"):
-                print(
-                    "Nothing to submit: today and latest submitted date are the same."
-                )
+                print("Nothing to submit: today and latest submitted date are the same.")
                 return
 
             for county in data["characteristics_by_county"]["values"]:
-                summary_location, summary_report = self.parse_county(
-                    date, state, county
-                )
-
-                # drop the Illinois summary data
-                if summary_location["county"] == "Illinois":
-                    continue
+                summary_location, summary_report = self.parse_county(date, state, county)
 
                 self.summary_locations.append(summary_location)
                 self.summary_reports.append(summary_report)
+
+            for illinois_date in data["state_testing_results"]["values"]:
+                illinois_historic_data = self.parse_historical_data(illinois_date)
+                self.summary_reports.append(illinois_historic_data)
+
+    def parse_historical_data(self, illinois_data):
+        country = "US"
+        state = "IL"
+        county = "Illinois"
+
+        date = datetime.datetime.strptime(illinois_data["testDate"], "%m/%d/%Y").strftime("%Y-%m-%d")
+
+        summary_location_submitter_id = format_summary_location_submitter_id(
+            country, state, county)
+
+        summary_report_submitter_id = format_summary_report_submitter_id(
+            summary_location_submitter_id, date
+        )
+        summary_report = {
+            "confirmed": illinois_data["confirmed_cases"],
+            "submitter_id": summary_report_submitter_id,
+            "testing": illinois_data["total_tested"],
+            "date": date,
+            "deaths": illinois_data["deaths"],
+            "summary_locations": [{"submitter_id": summary_location_submitter_id}],
+        }
+
+        return summary_report
 
     def parse_county(self, date, state, county_json):
         """
@@ -122,11 +143,13 @@ class IDPH(base.BaseETL):
 
         summary_location = {
             "country_region": country,
-            "county": county,
             "submitter_id": summary_location_submitter_id,
             "projects": [{"code": self.project_code}],
             "province_state": state,
         }
+
+        if county != "Illinois":
+            summary_location["county"] = county
 
         if county in self.county_dict:
             summary_location["latitude"] = self.county_dict[county]["lat"]
