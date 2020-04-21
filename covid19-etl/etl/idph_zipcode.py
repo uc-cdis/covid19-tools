@@ -24,12 +24,15 @@ def format_summary_location_submitter_id(country, state=None, county=None, zipco
 
 def format_summary_report_submitter_id(location_submitter_id, date):
     return "{}_{}".format(
-        location_submitter_id.replace("summary_location_", "summary_report_"), date
+        location_submitter_id.replace(
+            "summary_location_", "summary_report_"), date
     )
+
 
 def format_summary_demographic_submitter_id(location_submitter_id, date):
     return "{}_{}".format(
-        location_submitter_id.replace("summary_location_", "summary_demographic_"), date
+        location_submitter_id.replace(
+            "summary_location_", "summary_demographic_"), date
     )
 
 
@@ -67,12 +70,11 @@ class IDPH_ZIPCODE(base.BaseETL):
         Reads JSON file and convert the data to Sheepdog records
         """
 
-        # latest_submitted_date = self.metadata_helper.get_latest_submitted_data_idph()
-        latest_submitted_date = None
+        latest_submitted_date = self.metadata_helper.get_latest_submitted_data_idph()
         today = datetime.date.today()
-        # if latest_submitted_date == today:
-        #     print("Nothing to submit: today and latest submitted date are the same.")
-        #     return
+        if latest_submitted_date == today:
+            print("Nothing to submit: today and latest submitted date are the same.")
+            return
 
         today_str = today.strftime("%Y%m%d")
         print(f"Getting data for date: {today_str}")
@@ -96,20 +98,17 @@ class IDPH_ZIPCODE(base.BaseETL):
             data = r.json()
             date = self.get_date(data)
 
-            # if date == latest_submitted_date.strftime("%Y-%m-%d"):
-            #     print("Nothing to submit: today and latest submitted date are the same.")
-            #     return
+            if date == latest_submitted_date.strftime("%Y-%m-%d"):
+                print("Nothing to submit: today and latest submitted date are the same.")
+                return
 
             for zipcode_values in data["zip_values"]:
-                summary_location, summary_report, summary_demographic = self.parse_zipcode(date, state, zipcode_values)
+                summary_location, summary_report, summary_demographic = self.parse_zipcode(
+                    date, state, zipcode_values)
 
                 self.summary_locations.append(summary_location)
                 self.summary_reports.append(summary_report)
                 self.summary_demographics.append(summary_demographic)
-
-                print(summary_location)
-                print(summary_report)
-                print(summary_demographic)
 
     def parse_zipcode(self, date, state, zipcode_values):
         """
@@ -147,24 +146,6 @@ class IDPH_ZIPCODE(base.BaseETL):
             "submitter_id": summary_demographic_submitter_id,
             "date": date,
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
-            # "race_white": null,
-            # "race_hispanic": null,
-            # "race_black": null,
-            # "race_ai_an": null,
-            # "race_nh_pi": null,
-            # "race_other": null,
-            # "race_left_blank": null,
-            # "age_group_less_20": null,
-            # "age_group_20_29": null,
-            # "age_group_30_39": null,
-            # "age_group_40_49": null,
-            # "age_group_50_59": null,
-            # "age_group_60_69": null,
-            # "age_group_70_79": null,
-            # "age_group_greater_80": null,
-            # "gender_male": null,
-            # "gender_female": null,
-            # "gender_unknown_left_blank": null,
         }
 
         gender_mapping = {
@@ -184,7 +165,7 @@ class IDPH_ZIPCODE(base.BaseETL):
             "AI/AN**": "race_ai_an",
         }
 
-        age_missing = {
+        age_mapping = {
             "Unknown": "",
             "<20": "age_group_less_20",
             "20-29": "age_group_20_29",
@@ -196,7 +177,7 @@ class IDPH_ZIPCODE(base.BaseETL):
             "80+": "age_group_greater_80",
         }
 
-        fields_mapping = {"age": ("age_group", age_missing),
+        fields_mapping = {"age": ("age_group", age_mapping),
                           "gender": ("description", gender_mapping),
                           "race": ("description", race_mapping)}
 
@@ -229,12 +210,12 @@ class IDPH_ZIPCODE(base.BaseETL):
 
         # Commented
         # Only required for one time submission of summary_location
-        print("Submitting summary_location data")
-        for loc in self.summary_locations:
-            loc_record = {"type": "summary_location"}
-            loc_record.update(loc)
-            self.metadata_helper.add_record_to_submit(loc_record)
-        self.metadata_helper.batch_submit_records()
+        # print("Submitting summary_location data")
+        # for loc in self.summary_locations:
+        #     loc_record = {"type": "summary_location"}
+        #     loc_record.update(loc)
+        #     self.metadata_helper.add_record_to_submit(loc_record)
+        # self.metadata_helper.batch_submit_records()
 
         print("Submitting summary_report data")
         for rep in self.summary_reports:
