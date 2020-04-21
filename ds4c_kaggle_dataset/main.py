@@ -1,4 +1,5 @@
 import csv
+import os
 
 from metadata_helper import MetadataHelper
 
@@ -6,6 +7,11 @@ if __name__ == "__main__":
     base_url = "https://chicagoland.pandemicresponsecommons.org"
     program_name = "open"
     project_code = "DS4C"
+    token = os.environ.get("ACCESS_TOKEN")
+    if not token:
+        raise Exception(
+            "Need ACCESS_TOKEN environment variable (token for user with read and write access)"
+        )
     metadata_helper = MetadataHelper(base_url, program_name=program_name, project_code=project_code, access_token=token)
 
     with open('PatientInfo.csv', newline='') as csvfile:
@@ -67,9 +73,9 @@ if __name__ == "__main__":
 
             # print(subject)
 
-            loc_record = {"type": "subject"}
-            loc_record.update(subject)
-            metadata_helper.add_record_to_submit(loc_record)
+            subject_record = {"type": "subject"}
+            subject_record.update(subject)
+            metadata_helper.add_record_to_submit(subject_record)
 
             demographic = {
                 "submitter_id": f'demographic_{row[header["patient_id"]]}',
@@ -90,9 +96,9 @@ if __name__ == "__main__":
 
             # print(demographic)
 
-            loc_record = {"type": "demographic"}
-            loc_record.update(demographic)
-            metadata_helper.add_record_to_submit(loc_record)
+            demographic_record = {"type": "demographic"}
+            demographic_record.update(demographic)
+            metadata_helper.add_record_to_submit(demographic_record)
 
             # break
 
