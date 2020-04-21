@@ -23,6 +23,7 @@ where `%date%` is in format `YYYYMMDD`, e.g. `20200330` for March 30, 2020.
 The ETL for Kaggle dataset from [here](https://www.kaggle.com/kimjihoo/coronavirusdataset#PatientInfo.csv).
 
 It requires `ACCESS_TOKEN` to run.
+
 #### Zipcode-level data
 
 Parses the JSON file located [here](http://dph.illinois.gov/sitefiles/COVIDZip.json?nocache=1).

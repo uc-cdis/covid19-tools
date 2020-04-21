@@ -35,6 +35,11 @@ def format_summary_demographic_submitter_id(location_submitter_id, date):
             "summary_location_", "summary_demographic_"), date
     )
 
+def format_summary_demographic_submitter_id(location_submitter_id, date):
+    return "{}_{}".format(
+        location_submitter_id.replace("summary_location_", "summary_demographic_"), date
+    )
+
 
 class IDPH_ZIPCODE(base.BaseETL):
     def __init__(self, base_url, access_token):
