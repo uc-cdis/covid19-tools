@@ -15,3 +15,9 @@ Before April 1, 2020 the URL has daily format like this:
     https://www.dph.illinois.gov/sites/default/files/COVID19/COVID19CountyResults%date%.json
 
 where `%date%` is in format `YYYYMMDD`, e.g. `20200330` for March 30, 2020.
+
+### Data Science for Korea dataset
+
+The ETL for Kaggle dataset from [here](https://www.kaggle.com/kimjihoo/coronavirusdataset#PatientInfo.csv).
+
+It requires `ACCESS_TOKEN` to run.
