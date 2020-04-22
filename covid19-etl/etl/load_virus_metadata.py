@@ -28,12 +28,12 @@ To Do
 '''
 
 def main():
-    entrez = DOWNLOAD_GB_BY_TAXID()
+    entrez = LOAD_VIRUS_METADATA()
     entrez.search()
     entrez.filter()
     entrez.write()
 
-class DOWNLOAD_GB_BY_TAXID(base.BaseETL):
+class LOAD_VIRUS_METADATA(base.BaseETL):
 
     def __init__(self, base_url, access_token):
         super().__init__(base_url, access_token)

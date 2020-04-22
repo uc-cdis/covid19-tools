@@ -16,6 +16,7 @@ def main():
     builder.read()
     builder.make_align()
     builder.make_hmm()
+    builder.write()
 
 class SEQS_TO_ALIGNS_AND_HMMS:
 
@@ -113,6 +114,34 @@ class SEQS_TO_ALIGNS_AND_HMMS:
             opt = '--amino' if '-aa' in name else '--dna'
             subprocess.run([self.hmmbuild, opt, name + '.hmm', self.alns[name]])
             self.hmms[name] = name + '.hmm'
+
+    def write(self):
+        virus_sequence_alignment_id = format_virus_sequence_alignment_submitter_id(
+            data_category, data_type, data_format, source, type,
+            file_name, file_size, md5sum
+        )
+
+        for record in self.alns:
+            virus_sequence_alignment = {
+                "data_category": self.data_category,
+                "data_type": self.data_type,
+                "data_format": self.data_format,
+                "source": self.source,
+                "submitter_id": virus_sequence_alignment_id,
+                "file_name": record.id,
+                "md5sum": hashlib.md5(record.format(self.data_format)).hexdigest(),
+                "file_size": len(record.format(self.data_format).encode('utf-8')),
+                "projects": [{"code": self.project_code}]
+            }
+            self.virus_sequence_alignment.append(virus_sequence_alignment)
+
+        print("Submitting virus_sequence_alignment data")
+        for aln in self.virus_sequence_alignment:
+            aln_record = {"type": self.type}
+            aln_record.update(aln)
+            self.metadata_helper.add_record_to_submit(aln_record)
+        self.metadata_helper.batch_submit_records()
+
 
 if __name__ == "__main__":
     main()
