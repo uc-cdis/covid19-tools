@@ -1,16 +1,19 @@
 ---
-taxid: 694009
-email: briano@bioteam.net
-min_len: 25000
-max_len: 100000
-recurse: True
-retmax: 100
-split: False
 verbose: True
 program_name: open
 project_code: VIRAL_GENOME
-data_category: Annotated Sequence
-data_type: Complete Genomic Sequence
-data_format: gb
-source: NCBI
-type: virus_genome
+virus_genome_data_category: Annotated Sequence
+virus_genome_data_type: Complete Genomic Sequence
+virus_genome_data_format: gb
+virus_genome_source: NCBI
+virus_genome_type: virus_genome
+virus_sequence_type: virus_sequence
+virus_sequence_data_type: Sequence
+virus_sequence_data_format: fasta
+virus_sequence_alignment_type: virus_sequence_alignment
+virus_sequence_alignment_data_type: Sequence Alignment
+virus_sequence_alignment_data_format: fasta
+virus_sequence_alignment_tool: muscle
+virus_sequence_hmm_type: virus_sequence_hmm
+virus_sequence_hmm_data_type: Sequence HMM
+virus_sequence_hmm_data_format: hmmer
