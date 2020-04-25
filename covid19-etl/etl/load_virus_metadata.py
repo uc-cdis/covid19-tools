@@ -6,6 +6,18 @@ import hashlib
 from etl import base
 from helper.metadata_helper import MetadataHelper
 
+'''
+This script assumes you have a collection of Genbank-format "genome" files (*.gb),
+fasta-format sequence files (*.fasta), fasta-format alignment files (*.aln),
+and HMM files (*.hmm). You could create these files using these scripts:
+
+https://github.com/bioteam/covid-bioinformatics
+
+Execute this script within the dir containing this collection of files.
+(or modify the read() method). This script reads metadata values from the
+load_virus_metadata.yaml file which should be in the same directory as this script.
+'''
+
 class LOAD_VIRUS_METADATA(base.BaseETL):
     def __init__(self, base_url, access_token):
         super().__init__(base_url, access_token)
@@ -75,7 +87,7 @@ class LOAD_VIRUS_METADATA(base.BaseETL):
     def write(self):
         # Genomes
         for genome in self.genomes:
-            virus_genome_submitter_id = genome.split('.')[0]
+            virus_genome_submitter_id = genome.replace('.','_')
             virus_genome = {
                 "data_category": self.virus_genome_data_category,
                 "data_type": self.virus_genome_data_type,
@@ -99,7 +111,7 @@ class LOAD_VIRUS_METADATA(base.BaseETL):
 
         # Sequences
         for seq in self.seqs:
-            virus_sequence_id = seq.split('.')[0]
+            virus_sequence_id = seq.replace('.','_')
             # Data Category: Protein or Nucleotide
             seqtype = 'Protein' if '-aa.fasta' in seq else 'Nucleotide'
             virus_sequence = {
@@ -124,7 +136,7 @@ class LOAD_VIRUS_METADATA(base.BaseETL):
 
         # Alignments
         for aln in self.alns:
-            virus_sequence_alignment_id = aln.split('.')[0]
+            virus_sequence_alignment_id = aln.replace('.','_')
             # Data Category: Protein or Nucleotide
             seqtype = 'Protein' if '-aa.aln' in aln else 'Nucleotide'
             virus_sequence_alignment = {
@@ -150,7 +162,7 @@ class LOAD_VIRUS_METADATA(base.BaseETL):
 
         # HMMs
         for hmm in self.hmms:
-            virus_sequence_hmm_id = hmm.split('.')[0]
+            virus_sequence_hmm_id = hmm.replace('.','_')
             # Data Category: Protein or Nucleotide
             seqtype = 'Protein' if '-aa.hmm' in hmm else 'Nucleotide'
             virus_sequence_hmm = {
