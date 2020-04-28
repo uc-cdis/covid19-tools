@@ -81,7 +81,7 @@ def get_unified_date_format(date):
     return "-".join((year, month, day))
 
 
-class JHU_TO_GEOJSON:#(base.BaseETL):
+class JHUTOGEOJSON:#(base.BaseETL):
     # TODO check if can be merged to original JHU ETL
     def __init__(self, base_url):
         # super().__init__(base_url, access_token=None)

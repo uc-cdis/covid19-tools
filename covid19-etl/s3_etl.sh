@@ -2,7 +2,7 @@
 
 set -euxo pipefail
 
-JOB_NAME=jhu_to_geojson python3 s3_etl_main.py
+python3 s3_etl_main.py
 
 echo "Copying to S3 bucket..."
 if [[ -n "$S3_BUCKET" ]]; then
