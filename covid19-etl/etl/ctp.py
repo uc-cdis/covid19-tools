@@ -85,6 +85,8 @@ class CTP(base.BaseETL):
             "onVentilatorCurrently",
             "onVentilatorCumulative",
             "recovered",
+            "dataQualityGrade",
+            "lastUpdateEt",
             "hash",
             "dateChecked",
             "death",
