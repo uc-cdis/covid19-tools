@@ -198,6 +198,14 @@ class CTP(base.BaseETL):
             if row[self.header_to_column[v]]:
                 summary_report[k] = int(row[self.header_to_column[v]])
 
+        dataQualityGrade = row[self.header_to_column["dataQualityGrade"]]
+        if dataQualityGrade:
+            summary_report["dataQualityGrade"] = dataQualityGrade
+
+        lastUpdateEt = row[self.header_to_column["lastUpdateEt"]]
+        if lastUpdateEt:
+            summary_report["lastUpdateEt"] = lastUpdateEt
+
         return summary_location, summary_report
 
     def submit_metadata(self):
