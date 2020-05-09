@@ -1,0 +1,212 @@
+---
+title: "A Live View of COVID-19's Global Presence"
+author: "Fan Wang"
+date: "4/21/2020"
+output: html_document
+---
+
+### Setup notebook
+If you need to install these libraries, uncomment and run this cell:
+
+```{r setup, include=FALSE}
+# install.packages("tidyr")
+# install.packages("leaflet")
+# install.packages("RCurl")
+# install.packages("httr")
+library(RCurl)
+library(httr)
+library(tidyverse)
+library(leaflet)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Format the Date in the JHU dataframe as a date compatible with `as.Date()` in R:
+
+
+```{r}
+reformat.date <- function(data, col) {
+    date_split <- str_split_fixed(data[[col]], "/", 3)
+    storage.mode(date_split) <- "numeric"
+    date_split <- as.data.frame(date_split)
+    colnames(date_split) <- c("month", "day", "year")
+    date_split <- date_split %>%
+        mutate(
+            month = str_pad(month, width = 2, pad = "0"),
+            day = str_pad(day, width = 2, pad = "0"),
+            year = paste0("20", year)
+        )
+    data[col] <- date_split %>% unite(col = "date", year, month, day, sep = "/", remove = TRUE, na.rm = FALSE)
+    data[[col]] <- as.Date.character(data[[col]])
+    data
+}
+```
+
+
+### Loading in the Data
+
+Data Source: COVID-19 Data Repository by the CSSE at Johns Hopkins University.
+
+```{r, message=FALSE}
+# world data
+confirmed_table <-read.csv(text = getURL("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"),check.names=FALSE)
+
+deaths_table <- read.csv(text = getURL("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv"),check.names=FALSE)
+
+recovered_table <- read.csv(text = getURL("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv"),check.names=FALSE)
+
+pattern_date <- "^[[:digit:]]+/[[:digit:]]+/[[:digit:]]{2}$"
+confirmed_table <- confirmed_table %>%
+    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>% 
+    subset(!is.na(Cases))
+
+confirmed_table <- reformat.date(confirmed_table, "Date")
+
+deaths_table <- deaths_table %>%
+    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>% 
+    subset(!is.na(Cases))
+
+deaths_table <- reformat.date(deaths_table, "Date")
+
+recovered_table <- recovered_table %>%
+    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>% 
+    subset(!is.na(Cases))
+
+recovered_table <- reformat.date(recovered_table, "Date")
+
+# US data
+confirmed_us_table <- read.csv(text = getURL("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"),check.names=FALSE)
+
+deaths_us_table <- read.csv(text = getURL("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"),check.names=FALSE)
+
+confirmed_us_table <- confirmed_us_table %>%
+    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>% 
+    subset(!is.na(Cases))
+
+deaths_us_table <- deaths_us_table %>%
+    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>% 
+    subset(!is.na(Cases))
+
+confirmed_us_table <- reformat.date(confirmed_us_table, "Date")
+
+deaths_us_table <- reformat.date(deaths_us_table, "Date")
+```
+
+### Setup data and parameters for plotting World Map
+
+```{r, message=FALSE}
+data_table <- merge(
+    confirmed_table %>% rename(Confirmed = "Cases"),
+    deaths_table %>% rename(Deaths = "Cases"),
+    all = TRUE
+) %>% select(-`Province/State`)
+data_table <- merge(
+    data_table,
+    recovered_table %>% rename(Recovered = "Cases"),
+    all = TRUE
+) %>% select(-`Province/State`)
+data_table <- data_table %>% mutate(
+    Confirmed = ifelse(is.na(Confirmed), 0, Confirmed),
+    Deaths = ifelse(is.na(Deaths), 0, Deaths),
+    Recovered = ifelse(is.na(Recovered), 0, Recovered)
+)
+data_table <- data_table %>% mutate(Active = Confirmed - Deaths - Recovered)
+plot_data <- data_table %>%
+    subset(Date == max(Date)) %>%
+    group_by(`Country/Region`) %>%
+    summarise(
+        Date = max(Date),
+        Latitude = Lat[Confirmed == max(Confirmed)],
+        Longitude = Long[Confirmed == max(Confirmed)],
+        Confirmed = sum(Confirmed),
+        Active = sum(Active),
+        Deaths = sum(Deaths),
+        Recovered = sum(Recovered)
+    )
+
+# Adjust the maximum multiplier to fix the maximum radius limit
+radius_multiplier <- 6E5 / max(sqrt(plot_data$Confirmed), na.rm = TRUE)
+```
+
+
+
+### COVID-19 World Map at the latest time point
+
+Click on the circles to open a popup with the latest COVID-19-related cases, deaths and recovered in country level.
+(Note: the circle area is proportional to the confirmed cases.)
+
+```{r, fig.width=8, fig.height=5, results='asis', warning=FALSE}
+leaflet(plot_data) %>%
+    addProviderTiles(providers$Esri.WorldImagery, group = "World Imagery") %>%
+    addProviderTiles(providers$Stamen.TonerLite, group = "Toner Lite") %>%
+    addTiles() %>%
+    addCircles(
+        color = "red", lng = ~Longitude, lat = ~Latitude, weight = 1,
+        radius = ~ sqrt(Confirmed) * radius_multiplier,
+        popup = sprintf(
+            paste(
+                "<strong>%s</strong>",
+                "<i>%s</i>",
+                "Confirmed cases: %s",
+                "Active cases: %s",
+                "Death: %s",
+                "Recovered: %s",
+                sep = "</br>"
+            ),
+            format(plot_data$Date, "%a %b %d"),
+            plot_data$`Country/Region`,
+            format(plot_data$Confirmed, big.mark = ","),
+            format(plot_data$Active, big.mark = ","),
+            format(plot_data$Deaths, big.mark = ","),
+            format(plot_data$Recovered, big.mark = ",")
+        )
+    )
+```
+
+
+### Setup data and parameters for plotting US Map
+
+```{r, message=FALSE}
+data_table <- merge(
+    confirmed_us_table %>% rename(Confirmed = "Cases"),
+    deaths_us_table %>% rename(Deaths = "Cases"),
+    all = TRUE
+) %>% select(-Province_State)
+data_table <- data_table %>% mutate(
+    Confirmed = ifelse(is.na(Confirmed), 0, Confirmed),
+    Deaths = ifelse(is.na(Deaths), 0, Deaths)
+)
+data_table <- data_table %>%
+    subset(Date == max(Date))
+
+# Adjust the maximum multiplier to fix the maximum radius limit
+radius_multiplier <- 2E5 / max(sqrt(data_table$Confirmed), na.rm = TRUE)
+```
+
+### COVID-19 U.S. Map at the latest time point
+
+Click on the circles to open a popup with the latest COVID-19-related cases and deaths in county/region level.
+(Note: the circle area is proportional to the confirmed cases.)
+
+```{r, fig.width=8, fig.height=5, results='asis', warning=FALSE}
+leaflet(data_table) %>%
+    addProviderTiles(providers$Esri.WorldImagery, group = "World Imagery") %>%
+    addProviderTiles(providers$Stamen.TonerLite, group = "Toner Lite") %>%
+    addTiles() %>%
+    addCircles(
+        color = "red", lng = ~Long_, lat = ~Lat, weight = 1,
+        radius = ~ sqrt(Confirmed) * radius_multiplier,
+        popup = sprintf(
+            paste(
+                "<strong>%s</strong>",
+                "<i>%s</i>",
+                "Confirmed cases: %s",
+                "Death: %s",
+                sep = "</br>"
+            ),
+            format(data_table$Date, "%a %b %d"),
+            data_table$Admin2,
+            format(data_table$Confirmed, big.mark = ","),
+            format(data_table$Deaths, big.mark = ",")
+        )
+    )
+```
