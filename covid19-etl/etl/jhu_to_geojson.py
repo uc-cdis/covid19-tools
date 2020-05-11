@@ -1,3 +1,4 @@
+import boto3
 from copy import deepcopy
 import csv
 import json
@@ -9,12 +10,29 @@ from collections import defaultdict
 from contextlib import closing
 from datetime import datetime
 
-from utils.country_codes_utils import (
-    get_codes_dictionary,
-    get_codes_for_country_name )
+from etl import base
+from utils.country_codes_utils import get_codes_dictionary, get_codes_for_country_name
 
 
 """
+    First, we use the raw CSV data to generate self.nestedDict.
+    It contains the data for all dates.
+
+    Then, we use self.nestedDict to generate a GeoJson file.
+    It only contains the data for the latest available date.
+    It's used to display the density map.
+
+    Then, we use self.nestedDict to generate a JSON file. TODO
+    It only contains the data for the latest available date.
+    The data is organized by country, state and county.
+    It's used to display the choropleth map.
+
+    Finally, we use self.nestedDict to generate JSON files with
+    all the dates, sorted by country or state. TODO
+    They are used to display the time series plots.
+
+    All these data files are pushed to S3.
+
     self.nestedDict:
     {
         <country ISO3>: {
@@ -62,7 +80,7 @@ from utils.country_codes_utils import (
 # TODO describe the 2 other formats
 
 
-GEOJSON_FILENAME = "jhu_geojson.json"
+GEOJSON_FILENAME = "jhu_geojson_latest.json"
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -81,11 +99,10 @@ def get_unified_date_format(date):
     return "-".join((year, month, day))
 
 
-class JHUTOGEOJSON:#(base.BaseETL):
-    # TODO check if can be merged to original JHU ETL
-    def __init__(self, base_url):
-        # super().__init__(base_url, access_token=None)
-        self.base_url = base_url
+# TODO: merge it with existing JHU ETL
+class JHU_TO_GEOJSON(base.BaseETL):
+    def __init__(self, base_url, access_token, s3_bucket):
+        super().__init__(base_url, access_token, s3_bucket)
         self.nestedDict = {}
         self.codes_dict = get_codes_dictionary()
         self.expected_csv_headers = {
@@ -157,6 +174,7 @@ class JHUTOGEOJSON:#(base.BaseETL):
                 },
             },
         }
+        self.latest_date = None
 
     def files_to_submissions(self):
         """
@@ -168,7 +186,7 @@ class JHUTOGEOJSON:#(base.BaseETL):
                 "confirmed": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
                 "deaths": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv",
                 "recovered": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv",
-                "testing": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_testing_global.csv",
+                # "testing": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_testing_global.csv",
             },
             "US_counties": {
                 "confirmed": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv",
@@ -185,7 +203,8 @@ class JHUTOGEOJSON:#(base.BaseETL):
         self.nested_dict_to_geojson()
         self.nested_dict_to_data_by_level()
 
-        print("Done in {} secs".format(int(time.time() - start)))
+        print("Generated files in {} secs".format(int(time.time() - start)))
+        print("Latest date: {}".format(self.latest_date))
 
     def parse_file_to_nexted_dict(self, file_type, data_type, url):
         """
@@ -219,6 +238,12 @@ class JHUTOGEOJSON:#(base.BaseETL):
             ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
                 expected_h, obtained_h
             )
+
+            file_latest_date = get_unified_date_format(headers[-1])
+            if not self.latest_date or datetime.strptime(
+                self.latest_date, "%Y-%m-%d"
+            ) > datetime.strptime(file_latest_date, "%Y-%m-%d"):
+                self.latest_date = file_latest_date
 
             for row in reader:
                 self.parse_row(file_type, data_type, headers, row)
@@ -333,6 +358,7 @@ class JHUTOGEOJSON:#(base.BaseETL):
         province-level data. Same for province-level data when county-level
         data is available.
         """
+        LATEST_DATE_ONLY = True
         features = []
         for country_data in self.nestedDict.values():
 
@@ -354,6 +380,8 @@ class JHUTOGEOJSON:#(base.BaseETL):
 
             # country-level time_series data
             for date, ts in country_data["time_series"].items():
+                if LATEST_DATE_ONLY and date != self.latest_date:
+                    continue
                 feat_country = deepcopy(feat_base)
                 feat_country["properties"]["date"] = date
                 feat_country["properties"].update(ts)
@@ -363,6 +391,8 @@ class JHUTOGEOJSON:#(base.BaseETL):
                 # province-level time_series data
                 # and update coordinates to the province's coordinates
                 for date, ts in province_data["time_series"].items():
+                    if LATEST_DATE_ONLY and date != self.latest_date:
+                        continue
                     feat_prov = deepcopy(feat_base)
                     feat_prov["geometry"]["coordinates"] = [
                         province_data["longitude"],
@@ -380,6 +410,8 @@ class JHUTOGEOJSON:#(base.BaseETL):
                     # and update coordinates to the county's coordinates
                     # we don't overwrite the country's ISO2-3 with the county's
                     for date, ts in county_data["time_series"].items():
+                        if LATEST_DATE_ONLY and date != self.latest_date:
+                            continue
                         feat_county = deepcopy(feat_prov)
                         feat_county["geometry"]["coordinates"] = [
                             county_data["longitude"],
@@ -397,9 +429,17 @@ class JHUTOGEOJSON:#(base.BaseETL):
 
         geojson = {"type": "FeatureCollection", "features": features}
         with open(os.path.join(CURRENT_DIR, GEOJSON_FILENAME), "w") as f:
-            # json.dump(geojson, f, indent=2)  # TODO remove indent
             json.dump(geojson, f)
 
     def nested_dict_to_data_by_level(self):
         # TODO
         pass
+
+    def submit_metadata(self):
+        print("Uploading to S3...")
+        s3 = boto3.resource("s3")
+        s3.Bucket(self.s3_bucket).upload_file(
+            os.path.join(CURRENT_DIR, GEOJSON_FILENAME),
+            "map_data/{}".format(GEOJSON_FILENAME),
+        )
+        print("Done!")

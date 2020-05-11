@@ -6,19 +6,17 @@ import requests
 
 from etl import base
 from helper.metadata_helper import MetadataHelper
-from utils.country_codes_utils import (
-    get_codes_dictionary,
-    get_codes_for_country_name,
-)
+from utils.country_codes_utils import get_codes_dictionary, get_codes_for_country_name
 
 
 BASE_URL = "https://chicagoland.pandemicresponsecommons.org"
 PROGRAM_NAME = "open"
 PROJECT_CODE = "JHU"
 
+
 class JHU_COUNTRY_CODES(base.BaseETL):
-    def __init__(self, base_url, access_token):
-        super().__init__(base_url, access_token)
+    def __init__(self, base_url, access_token, s3_bucket):
+        super().__init__(base_url, access_token, s3_bucket)
         self.program_name = "open"
         self.project_code = "JHU"
         self.metadata_helper = MetadataHelper(

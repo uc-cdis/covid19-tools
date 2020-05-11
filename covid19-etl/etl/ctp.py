@@ -58,8 +58,8 @@ def format_time_series_date(date):
 
 
 class CTP(base.BaseETL):
-    def __init__(self, base_url, access_token):
-        super().__init__(base_url, access_token)
+    def __init__(self, base_url, access_token, s3_bucket):
+        super().__init__(base_url, access_token, s3_bucket)
         self.summary_locations = []
         self.summary_reports = []
 
