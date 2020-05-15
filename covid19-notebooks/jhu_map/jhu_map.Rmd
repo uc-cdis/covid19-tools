@@ -8,7 +8,7 @@ output: html_document
 ### Setup notebook
 If you need to install these libraries, uncomment and run this cell:
 
-```{r setup, include=FALSE}
+```{r setup, include=TRUE, message=FALSE}
 # install.packages("tidyr")
 # install.packages("leaflet")
 # install.packages("RCurl")
