@@ -70,7 +70,11 @@ class MetadataHelper:
         while data != []:  # don't change, it's explicitly checks for empty list
             print("    Getting data with offset: " + str(offset))
             query_string = (
-                '{ summary_report (first: ' + str(first) + ', offset: ' + str(offset) + ', order_by_desc: "date", project_id: "'
+                "{ summary_report (first: "
+                + str(first)
+                + ", offset: "
+                + str(offset)
+                + ', order_by_desc: "date", project_id: "'
                 + self.project_id
                 + '") { submitter_id } }'
             )

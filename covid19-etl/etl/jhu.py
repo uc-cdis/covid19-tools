@@ -1,10 +1,9 @@
 import csv
 import re
+import requests
 from collections import defaultdict
 from contextlib import closing
 from datetime import datetime
-
-import requests
 
 from etl import base
 from helper.metadata_helper import MetadataHelper
@@ -48,8 +47,8 @@ def format_time_series_date(date):
 
 
 class JHU(base.BaseETL):
-    def __init__(self, base_url, access_token):
-        super().__init__(base_url, access_token)
+    def __init__(self, base_url, access_token, s3_bucket):
+        super().__init__(base_url, access_token, s3_bucket)
         self.location_data = {}
         self.time_series_data = defaultdict(lambda: defaultdict(dict))
         self.program_name = "open"
@@ -142,7 +141,7 @@ class JHU(base.BaseETL):
                 "confirmed": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
                 "deaths": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv",
                 "recovered": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv",
-                "testing": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_testing_global.csv",
+                # "testing": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_testing_global.csv",
             },
             "US_counties": {
                 "confirmed": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv",

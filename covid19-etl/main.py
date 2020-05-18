@@ -16,12 +16,18 @@ if __name__ == "__main__":
             "Need JOB_NAME environment variable (specification on which ETL job to run)"
         )
 
+    s3_bucket = os.environ.get("S3_BUCKET")
+    if not s3_bucket:
+        print(
+            "WARNING: Missing S3_BUCKET environment variable - ETL jobs that push data to S3 will fail"
+        )
+
     job_module = job_name.lower()
     job_class = job_name.upper()
 
     etl_module = import_module(f"etl.{job_module}")
     etl = getattr(etl_module, job_class)
 
-    job = etl(base_url, token)
+    job = etl(base_url, token, s3_bucket)
     job.files_to_submissions()
     job.submit_metadata()

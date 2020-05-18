@@ -72,7 +72,7 @@ data = average_table[poi]
 
 for i in data.columns:
     fig.add_trace(
-        go.Scatter(x=data.index, y=data[i], mode="lines", name=i, connectgaps=True,)
+        go.Scatter(x=data.index, y=data[i], mode="lines", name=i, connectgaps=True)
     )
 
 fig.update_layout(
@@ -83,11 +83,11 @@ fig.update_layout(
         linecolor="rgb(204, 204, 204)",
         linewidth=2,
         ticks="outside",
-        tickfont=dict(family="Arial", size=12, color="rgb(82, 82, 82)",),
+        tickfont=dict(family="Arial", size=12, color="rgb(82, 82, 82)"),
     ),
-    yaxis=dict(showgrid=False, zeroline=False, showline=False, showticklabels=False,),
+    yaxis=dict(showgrid=False, zeroline=False, showline=False, showticklabels=False),
     autosize=False,
-    margin=dict(autoexpand=False, l=100, r=20, t=110,),
+    margin=dict(autoexpand=False, l=100, r=20, t=110),
     showlegend=False,
     plot_bgcolor="white",
 )
@@ -175,7 +175,7 @@ fig = go.Figure()
 for i in data_day.columns:
     fig.add_trace(
         go.Scatter(
-            x=data_day.index, y=data_day[i], mode="lines", name=i, connectgaps=True,
+            x=data_day.index, y=data_day[i], mode="lines", name=i, connectgaps=True
         )
     )
 
@@ -187,11 +187,11 @@ fig.update_layout(
         linecolor="rgb(204, 204, 204)",
         linewidth=2,
         ticks="outside",
-        tickfont=dict(family="Arial", size=12, color="rgb(82, 82, 82)",),
+        tickfont=dict(family="Arial", size=12, color="rgb(82, 82, 82)"),
     ),
-    yaxis=dict(showgrid=False, zeroline=False, showline=False, showticklabels=False,),
+    yaxis=dict(showgrid=False, zeroline=False, showline=False, showticklabels=False),
     autosize=False,
-    margin=dict(autoexpand=False, l=100, r=20, t=110,),
+    margin=dict(autoexpand=False, l=100, r=20, t=110),
     showlegend=False,
     plot_bgcolor="white",
 )
