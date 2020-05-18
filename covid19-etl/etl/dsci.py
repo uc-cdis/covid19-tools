@@ -5,8 +5,8 @@ from helper.metadata_helper import MetadataHelper
 
 
 class DS4C(base.BaseETL):
-    def __init__(self, base_url, access_token):
-        super().__init__(base_url, access_token)
+    def __init__(self, base_url, access_token, s3_bucket):
+        super().__init__(base_url, access_token, s3_bucket)
 
         self.program_name = "open"
         self.project_code = "DSCI"
