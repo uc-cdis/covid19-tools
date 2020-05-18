@@ -134,7 +134,7 @@ class CTP(base.BaseETL):
             expected_h = self.expected_csv_headers
             obtained_h = headers[: len(expected_h)]
             assert (
-                    obtained_h == expected_h
+                obtained_h == expected_h
             ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
                 expected_h, obtained_h
             )

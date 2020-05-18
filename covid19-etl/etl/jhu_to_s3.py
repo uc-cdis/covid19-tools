@@ -1,8 +1,10 @@
 import boto3
 from copy import deepcopy
+from collections import defaultdict
 import csv
 import json
 import os
+import pathlib
 import re
 import requests
 import time
@@ -28,7 +30,7 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
     It's used to display the choropleth map.
 
     Finally, we use self.nested_dict to generate JSON files with
-    all the dates, sorted by country or state. TODO (4)
+    all the dates, sorted by country, state or county. (4)
     They are used to display the time series plots.
 
     All these data files are pushed to S3.
@@ -56,6 +58,7 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
                                 <date>: {
                                     "confirmed": 0,
                                     "deaths": 0,
+                                    "recovered": <optional>,
                                 }
                             },
                         }
@@ -64,6 +67,7 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
                         <date>: {
                             "confirmed": 0,
                             "deaths": 0,
+                            "recovered": <optional>,
                         }
                     },
                 }
@@ -72,6 +76,7 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
                 <date>: {
                     "confirmed": 0,
                     "deaths": 0,
+                    "recovered": <optional>,
                 }
             },
         }
@@ -111,7 +116,7 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
             <country ISO3>: {
                 "confirmed": 0,
                 "deaths": 0,
-                "recovered": 0,
+                "recovered": <optional>,
                 "country_region": <country name>,
             },
             ...
@@ -121,7 +126,7 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
             <US state name>: {
                 "confirmed": 0,
                 "deaths": 0,
-                "recovered": 0,
+                "recovered": <optional>,
                 "country_region": <country name>,
                 "province_state": <state name>,
             },
@@ -132,7 +137,7 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
             <US county FIPS>: {
                 "confirmed": 0,
                 "deaths": 0,
-                "recovered": 0,
+                "recovered": <optional>,
                 "country_region": <country name>,
                 "province_state": <state name>,
                 "county": <county name>,
@@ -141,12 +146,26 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
         },
     }
 
-    (4) TODO
+    (4) Times series data:
+    In TIME_SERIES_DATA_FOLDER, the "country" folder contains one JSON file
+    per country (<country ISO3 code>.json), the "state" folder one file per US
+    state (<state name>.json) and the "county" folder one file per US county
+    (<county FIPS>.json). Each JSON file is in the following format:
+    {
+        <date (YYYY-MM-DD)>: {
+            confirmed: 0,
+            "deaths": 0,
+            "recovered": <optional>,
+        },
+        ...
+    }
 """
 
 
+MAP_DATA_FOLDER = "map_data"
 GEOJSON_FILENAME = "jhu_geojson_latest.json"
 JSON_BY_LEVEL_FILENAME = "jhu_json_by_level_latest.json"
+TIME_SERIES_DATA_FOLDER = "time_series"
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -265,8 +284,21 @@ class JHU_TO_S3(base.BaseETL):
             for data_type, url in urls[file_type].items():
                 self.parse_file_to_nexted_dict(file_type, data_type, url)
 
+        # create data folders
+        data_folders = [
+            os.path.join(CURRENT_DIR, MAP_DATA_FOLDER),
+            os.path.join(CURRENT_DIR, TIME_SERIES_DATA_FOLDER),
+            os.path.join(CURRENT_DIR, TIME_SERIES_DATA_FOLDER, "country"),
+            os.path.join(CURRENT_DIR, TIME_SERIES_DATA_FOLDER, "state"),
+            os.path.join(CURRENT_DIR, TIME_SERIES_DATA_FOLDER, "county"),
+        ]
+        for path in data_folders:
+            pathlib.Path(path).mkdir(exist_ok=True)
+
+        # generate data files
         self.nested_dict_to_geojson()
         self.nested_dict_to_data_by_level()
+        self.nested_dict_to_time_series_by_level()
 
         print("Generated files in {} secs".format(int(time.time() - start)))
         print("Latest date: {}".format(self.latest_date))
@@ -512,7 +544,9 @@ class JHU_TO_S3(base.BaseETL):
                         features.append(feat_county)
 
         geojson = {"type": "FeatureCollection", "features": features}
-        with open(os.path.join(CURRENT_DIR, GEOJSON_FILENAME), "w") as f:
+        with open(
+            os.path.join(CURRENT_DIR, MAP_DATA_FOLDER, GEOJSON_FILENAME), "w"
+        ) as f:
             json.dump(geojson, f)
 
     def nested_dict_to_data_by_level(self):
@@ -598,18 +632,103 @@ class JHU_TO_S3(base.BaseETL):
                                 "county": county_data["county"],
                             }
 
-        with open(os.path.join(CURRENT_DIR, JSON_BY_LEVEL_FILENAME), "w") as f:
+        with open(
+            os.path.join(CURRENT_DIR, MAP_DATA_FOLDER, JSON_BY_LEVEL_FILENAME), "w"
+        ) as f:
             json.dump(js, f)
+
+    def nested_dict_to_time_series_by_level(self):
+        tmp = {"country": {}, "state": {}, "county": {}}
+        for country_data in self.nested_dict.values():
+            iso3 = country_data["iso3"]
+            if iso3 not in tmp["country"]:
+                # add this country if it's not already there
+                tmp["country"][iso3] = defaultdict(
+                    lambda: {"confirmed": 0, "deaths": 0, "recovered": 0}
+                )
+
+            # country-level time_series data
+            for date, ts in country_data["time_series"].items():
+                if country_data["country_region"] not in ["US", "Canada"]:
+                    tmp["country"][iso3][date]["confirmed"] += ts["confirmed"]
+                    tmp["country"][iso3][date]["deaths"] += ts["deaths"]
+                    tmp["country"][iso3][date]["recovered"] += ts.get("recovered", 0)
+
+            for province_data in country_data.get("provinces", {}).values():
+                state_name = province_data["province_state"]
+                if (
+                    country_data["country_region"] == "US"
+                    and state_name not in tmp["state"]
+                ):
+                    # add this US state if it's not already there
+                    tmp["state"][state_name] = defaultdict(
+                        lambda: {"confirmed": 0, "deaths": 0, "recovered": 0}
+                    )
+
+                # add province-level time_series data for all countries + US states
+                for date, ts in province_data["time_series"].items():
+                    tmp["country"][iso3][date]["confirmed"] += ts["confirmed"]
+                    tmp["country"][iso3][date]["deaths"] += ts["deaths"]
+                    tmp["country"][iso3][date]["recovered"] += ts.get("recovered", 0)
+                    if country_data["country_region"] == "US":
+                        tmp["state"][state_name][date]["confirmed"] += ts["confirmed"]
+                        tmp["state"][state_name][date]["deaths"] += ts["deaths"]
+                        tmp["state"][state_name][date]["recovered"] += ts.get(
+                            "recovered", 0
+                        )
+
+                for county_data in province_data.get("counties", {}).values():
+                    county_fips = county_data["fips"]
+                    if country_data["country_region"] == "US":
+                        # add this US county. it shouldn't already be there
+                        assert county_fips not in tmp["county"]
+                        tmp["county"][county_fips] = {}
+
+                    # add county-level time_series data for all countries + US states + US counties
+                    for date, ts in county_data["time_series"].items():
+                        tmp["country"][iso3][date]["confirmed"] += ts["confirmed"]
+                        tmp["country"][iso3][date]["deaths"] += ts["deaths"]
+                        tmp["country"][iso3][date]["recovered"] += ts.get(
+                            "recovered", 0
+                        )
+                        if country_data["country_region"] == "US":
+                            tmp["state"][state_name][date]["confirmed"] += ts[
+                                "confirmed"
+                            ]
+                            tmp["state"][state_name][date]["deaths"] += ts["deaths"]
+                            tmp["state"][state_name][date]["recovered"] += ts.get(
+                                "recovered", 0
+                            )
+
+                            tmp["county"][county_fips][date] = {
+                                "confirmed": ts["confirmed"],
+                                "deaths": ts["deaths"],
+                                "recovered": ts.get("recovered", 0),
+                            }
+
+        # save as JSON files
+        for data_level in ["country", "state", "county"]:
+            for location_id, data in tmp[data_level].items():
+                file_name = "{}.json".format(location_id)
+                with open(
+                    os.path.join(
+                        CURRENT_DIR, TIME_SERIES_DATA_FOLDER, data_level, file_name
+                    ),
+                    "w",
+                ) as f:
+                    json.dump(data, f)
 
     def submit_metadata(self):
         print("Uploading to S3...")
-        s3 = boto3.resource("s3")
-        s3.Bucket(self.s3_bucket).upload_file(
-            os.path.join(CURRENT_DIR, GEOJSON_FILENAME),
-            "map_data/{}".format(GEOJSON_FILENAME),
-        )
-        s3.Bucket(self.s3_bucket).upload_file(
-            os.path.join(CURRENT_DIR, JSON_BY_LEVEL_FILENAME),
-            "map_data/{}".format(JSON_BY_LEVEL_FILENAME),
-        )
+        start = time.time()
+
+        s3_client = boto3.client("s3")
+        for folder in [MAP_DATA_FOLDER, TIME_SERIES_DATA_FOLDER]:
+            for abs_path, _, files in os.walk(os.path.join(CURRENT_DIR, folder)):
+                for file_name in files:
+                    local_path = os.path.join(abs_path, file_name)
+                    s3_path = os.path.relpath(local_path, CURRENT_DIR)
+                    s3_client.upload_file(local_path, self.s3_bucket, s3_path)
+
+        print("Uploaded to S3 in {} secs".format(int(time.time() - start)))
         print("Done!")
