@@ -27,3 +27,8 @@ In this notebook, we demonstrate the visualization of the Johns Hopkins COVID-19
 ### "kaggle_data_analysis_04072020" notebook:
 
 In this notebook, we explore some of the demographic data associated with COVID-19 cases in the Chicagoland Pandemic Response Commons. Specifically, we focus on the individual-level dataset from Kaggle stratified by age and gender, which allows us to explore the demographic composition of the infected population, specifically gender and age structure.
+
+### "extended-seir" notebook:
+
+In this notebook we implement an extended SEIR model of the COVID-19 outbreak, 
+fit probability distributions to model parameters, and apply monte carlo methods to the resulting stochastic model.
