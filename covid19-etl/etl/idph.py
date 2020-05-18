@@ -60,7 +60,6 @@ class IDPH(base.BaseETL):
         """
 
         latest_submitted_date = self.metadata_helper.get_latest_submitted_data_idph()
-        latest_submitted_date = None
         today = datetime.date.today()
         if latest_submitted_date == today:
             print("Nothing to submit: today and latest submitted date are the same.")
