@@ -59,12 +59,12 @@ class IDPH(base.BaseETL):
         Reads JSON file and convert the data to Sheepdog records
         """
 
-        # latest_submitted_date = self.metadata_helper.get_latest_submitted_data_idph()
+        latest_submitted_date = self.metadata_helper.get_latest_submitted_data_idph()
         latest_submitted_date = None
         today = datetime.date.today()
-        # if latest_submitted_date == today:
-        #     print("Nothing to submit: today and latest submitted date are the same.")
-        #     return
+        if latest_submitted_date == today:
+            print("Nothing to submit: today and latest submitted date are the same.")
+            return
 
         today_str = today.strftime("%Y%m%d")
         print(f"Getting data for date: {today_str}")
@@ -93,9 +93,9 @@ class IDPH(base.BaseETL):
             data = r.json()
             date = self.get_date(data)
 
-            # if date == latest_submitted_date.strftime("%Y-%m-%d"):
-            #     print("Nothing to submit: today and latest submitted date are the same.")
-            #     return
+            if date == latest_submitted_date.strftime("%Y-%m-%d"):
+                print("Nothing to submit: today and latest submitted date are the same.")
+                return
 
             for county in data["characteristics_by_county"]["values"]:
                 summary_location, summary_report = self.parse_county(date, state, county)
