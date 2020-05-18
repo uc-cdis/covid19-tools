@@ -5,13 +5,8 @@ from datetime import datetime
 
 import requests
 
-
 from etl import base
 from helper.metadata_helper import MetadataHelper
-
-# Note: if we end up having too much data, Sheepdog submissions may
-# time out. We'll have to use a smaller batch size and hope that's enough
-SUBMIT_BATCH_SIZE = 100
 
 
 def format_location_submitter_id(country, province, county=None):
@@ -139,7 +134,7 @@ class CTP(base.BaseETL):
             expected_h = self.expected_csv_headers
             obtained_h = headers[: len(expected_h)]
             assert (
-                obtained_h == expected_h
+                    obtained_h == expected_h
             ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
                 expected_h, obtained_h
             )

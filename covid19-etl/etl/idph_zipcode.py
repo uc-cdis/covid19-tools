@@ -207,20 +207,13 @@ class IDPH_ZIPCODE(base.BaseETL):
         return date.strftime("%Y-%m-%d")
 
     def submit_metadata(self):
-        """
-        Submits the data in `self.summary_locations` and `self.summary_reports` to Sheepdog.
-        """
-
         print("Submitting data")
-
-        # Commented
-        # Only required for one time submission of summary_location
-        # print("Submitting summary_location data")
-        # for loc in self.summary_locations:
-        #     loc_record = {"type": "summary_location"}
-        #     loc_record.update(loc)
-        #     self.metadata_helper.add_record_to_submit(loc_record)
-        # self.metadata_helper.batch_submit_records()
+        print("Submitting summary_location data")
+        for loc in self.summary_locations:
+            loc_record = {"type": "summary_location"}
+            loc_record.update(loc)
+            self.metadata_helper.add_record_to_submit(loc_record)
+        self.metadata_helper.batch_submit_records()
 
         print("Submitting summary_report data")
         for rep in self.summary_reports:
