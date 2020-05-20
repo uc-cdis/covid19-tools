@@ -7,4 +7,7 @@ RUN pip3 install -r covid19-etl-requirements.txt
 COPY ./covid19-etl /covid19-etl
 WORKDIR /covid19-etl
 
+# output logs while running job
+ENV PYTHONUNBUFFERED=1
+
 CMD [ "python3", "/covid19-etl/main.py" ]

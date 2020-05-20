@@ -8,7 +8,9 @@ from etl import base
 from helper.metadata_helper import MetadataHelper
 
 
-def format_summary_location_submitter_id(country, state=None, county=None, zipcode=None):
+def format_summary_location_submitter_id(
+    country, state=None, county=None, zipcode=None
+):
     submitter_id = "summary_location_{}".format(country)
     if state:
         submitter_id += "_{}".format(state)
@@ -24,16 +26,15 @@ def format_summary_location_submitter_id(country, state=None, county=None, zipco
 
 def format_summary_report_submitter_id(location_submitter_id, date):
     return "{}_{}".format(
-        location_submitter_id.replace(
-            "summary_location_", "summary_report_"), date
+        location_submitter_id.replace("summary_location_", "summary_report_"), date
     )
 
 
 def format_summary_demographic_submitter_id(location_submitter_id, date):
     return "{}_{}".format(
-        location_submitter_id.replace(
-            "summary_location_", "summary_demographic_"), date
+        location_submitter_id.replace("summary_location_", "summary_demographic_"), date
     )
+
 
 def format_summary_demographic_submitter_id(location_submitter_id, date):
     return "{}_{}".format(
@@ -104,12 +105,17 @@ class IDPH_ZIPCODE(base.BaseETL):
             date = self.get_date(data)
 
             if date == latest_submitted_date.strftime("%Y-%m-%d"):
-                print("Nothing to submit: today and latest submitted date are the same.")
+                print(
+                    "Nothing to submit: today and latest submitted date are the same."
+                )
                 return
 
             for zipcode_values in data["zip_values"]:
-                summary_location, summary_report, summary_demographic = self.parse_zipcode(
-                    date, state, zipcode_values)
+                (
+                    summary_location,
+                    summary_report,
+                    summary_demographic,
+                ) = self.parse_zipcode(date, state, zipcode_values)
 
                 self.summary_locations.append(summary_location)
                 self.summary_reports.append(summary_report)
@@ -131,7 +137,7 @@ class IDPH_ZIPCODE(base.BaseETL):
             "submitter_id": summary_location_submitter_id,
             "projects": [{"code": self.project_code}],
             "province_state": state,
-            "zipcode": zipcode
+            "zipcode": zipcode,
         }
 
         summary_report_submitter_id = format_summary_report_submitter_id(
@@ -156,7 +162,7 @@ class IDPH_ZIPCODE(base.BaseETL):
         gender_mapping = {
             "Male": "gender_male",
             "Female": "gender_female",
-            "Unknown/Left Blank": "gender_unknown_left_blank"
+            "Unknown/Left Blank": "gender_unknown_left_blank",
         }
 
         race_mapping = {
@@ -182,9 +188,11 @@ class IDPH_ZIPCODE(base.BaseETL):
             "80+": "age_group_greater_80",
         }
 
-        fields_mapping = {"age": ("age_group", age_mapping),
-                          "gender": ("description", gender_mapping),
-                          "race": ("description", race_mapping)}
+        fields_mapping = {
+            "age": ("age_group", age_mapping),
+            "gender": ("description", gender_mapping),
+            "race": ("description", race_mapping),
+        }
 
         demographic = zipcode_values["demographics"]
 

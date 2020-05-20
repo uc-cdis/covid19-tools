@@ -21,14 +21,14 @@ class DS4C(base.BaseETL):
         self.demographics = []
 
     def files_to_submissions(self):
-        with open('etl/data/patient.csv', newline='') as csvfile:
-            reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        with open("etl/data/patient.csv", newline="") as csvfile:
+            reader = csv.reader(csvfile, delimiter=",", quotechar="|")
             header = next(reader)
             print(header)
             header = {k: v for v, k in enumerate(header)}
 
             for row in reader:
-                print(', '.join(row))
+                print(", ".join(row))
 
                 subject = {
                     "submitter_id": f'subject_{row[header["patient_id"]]}',
@@ -36,24 +36,26 @@ class DS4C(base.BaseETL):
                     "date_confirmation": row[header["confirmed_date"]],
                 }
 
-                cols = {'age': 'age',
-                        'province': 'province',
-                        'current_state': 'current_state',
-                        'contacted_with': 'infected_by',
-                        'released_date': 'released_date',
-                        'deceased_date': 'date_death_or_discharge',
-                        'hospital': 'hospital'}
+                cols = {
+                    "age": "age",
+                    "province": "province",
+                    "current_state": "current_state",
+                    "contacted_with": "infected_by",
+                    "released_date": "released_date",
+                    "deceased_date": "date_death_or_discharge",
+                    "hospital": "hospital",
+                }
 
                 for k, v in cols.items():
                     value = row[header[k]]
                     if value:
                         subject[v] = value
 
-                if 'age' in subject:
-                    subject['age'] = int(subject['age'])
+                if "age" in subject:
+                    subject["age"] = int(subject["age"])
 
-                if 'infected_by' in subject:
-                    subject['infected_by'] = int(subject['infected_by'])
+                if "infected_by" in subject:
+                    subject["infected_by"] = int(subject["infected_by"])
 
                 self.subjects.append(subject)
 
@@ -64,8 +66,7 @@ class DS4C(base.BaseETL):
                     },
                 }
 
-                cols = {'gender': 'gender',
-                        'nationality': 'nationality', }
+                cols = {"gender": "gender", "nationality": "nationality"}
 
                 for k, v in cols.items():
                     value = row[header[k]]

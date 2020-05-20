@@ -21,8 +21,8 @@ class DS4C(base.BaseETL):
         self.demographics = []
 
     def files_to_submissions(self):
-        with open('etl/data/PatientInfo.csv', newline='') as csvfile:
-            reader = csv.reader(csvfile, delimiter=',')
+        with open("etl/data/PatientInfo.csv", newline="") as csvfile:
+            reader = csv.reader(csvfile, delimiter=",")
             header = next(reader)
             print(header)
             header = {k: v for v, k in enumerate(header)}
@@ -65,9 +65,9 @@ class DS4C(base.BaseETL):
 
                 disease = row[header["disease"]]
                 if disease:
-                    subject["disease"] = 'True'
+                    subject["disease"] = "True"
                 else:
-                    subject["disease"] = 'False'
+                    subject["disease"] = "False"
 
                 released_date = row[header["released_date"]]
                 if released_date:
@@ -90,9 +90,7 @@ class DS4C(base.BaseETL):
 
                 demographic = {
                     "submitter_id": f'demographic_{row[header["patient_id"]]}',
-                    "subjects": {
-                        "submitter_id": row[header["patient_id"]]
-                    },
+                    "subjects": {"submitter_id": row[header["patient_id"]]},
                 }
 
                 gender = row[header["sex"]]

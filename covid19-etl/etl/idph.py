@@ -93,11 +93,15 @@ class IDPH(base.BaseETL):
             date = self.get_date(data)
 
             if date == latest_submitted_date.strftime("%Y-%m-%d"):
-                print("Nothing to submit: today and latest submitted date are the same.")
+                print(
+                    "Nothing to submit: today and latest submitted date are the same."
+                )
                 return
 
             for county in data["characteristics_by_county"]["values"]:
-                summary_location, summary_report = self.parse_county(date, state, county)
+                summary_location, summary_report = self.parse_county(
+                    date, state, county
+                )
 
                 self.summary_locations.append(summary_location)
                 self.summary_reports.append(summary_report)
@@ -111,10 +115,13 @@ class IDPH(base.BaseETL):
         state = "IL"
         county = "Illinois"
 
-        date = datetime.datetime.strptime(illinois_data["testDate"], "%m/%d/%Y").strftime("%Y-%m-%d")
+        date = datetime.datetime.strptime(
+            illinois_data["testDate"], "%m/%d/%Y"
+        ).strftime("%Y-%m-%d")
 
         summary_location_submitter_id = format_summary_location_submitter_id(
-            country, state, county)
+            country, state, county
+        )
 
         summary_report_submitter_id = format_summary_report_submitter_id(
             summary_location_submitter_id, date
