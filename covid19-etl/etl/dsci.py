@@ -4,7 +4,7 @@ from etl import base
 from helper.metadata_helper import MetadataHelper
 
 
-class DS4C(base.BaseETL):
+class DSCI(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
 
