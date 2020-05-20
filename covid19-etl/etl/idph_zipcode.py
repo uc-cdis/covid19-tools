@@ -43,7 +43,7 @@ def format_summary_demographic_submitter_id(location_submitter_id, date):
 
 
 class IDPH_ZIPCODE(base.BaseETL):
-    def __init__(self, base_url, access_token):
+    def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token)
 
         self.program_name = "open"
