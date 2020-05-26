@@ -5,44 +5,72 @@
     <title>Welcome Page</title>
     <style>
         .header {
-            padding: 40px;
+            font-family: "Source Sans Pro", sans-serif;
+            padding: 20px;
             background : black;
             color : white;
         }
         .header h1 {
+            font-family: "Source Sans Pro", sans-serif;
             align : left;
             font-size: 45px;
         }
-        .nav-bar {
+
+        .bar {
             width: 100%;
-            overflow: hidden;
-            background-color: rebeccapurple;
+            height: 30px;
+            background-color: #421C52
         }
-        .nav-bar a {
-            float: left;
-            display: block;
-            color: white;
-            padding: 14px 20px;
+        .content {
+            padding-left: 10px;
+            font-family: "Source Sans Pro", sans-serif;
         }
+
+        .footer {
+            width: 99%;
+            height: 30px;
+            background-color: #421C52;
+            position: fixed;
+            bottom: 0pt
+        }
+        /*.nav-bar {*/
+        /*    width: 100%;*/
+        /*    overflow: hidden;*/
+        /*    background-color: #421C52;*/
+        /*}*/
+        /*.nav-bar a {*/
+        /*    float: left;*/
+        /*    display: block;*/
+        /*    color: white;*/
+        /*    padding: 14px 20px;*/
+        /*}*/
     </style>
 </head>
 <body>
 <div class="header">
-    <img src = "#image" width="100" height="100" align="right">
+    <img src = "../gitops-logo.png" width="500" height="100" align="right">
     <h1><b>Welcome to the Chicagoland COVID-19 Data Commons</b></h1>
 </div>
 
-<div class="nav-bar">
-    <a href="#" target="_self" style="color: white"><h3>Home</h3></a>
-    <a href="https://jupyterlab.readthedocs.io/en/stable/getting_started/overview.html" target="_blank" style="color: white"><h3>Documentation</h3></a>
+<div class="bar">
 </div>
 
-<div class="content">
-    <h2>
-        This is your personal workspace. The “pd” folder represents your persistent drive: the files you save there will still be available when you come back after terminating your workspace session. Any personal files outside of this folder may be lost.
+<!--<div class="nav-bar">-->
+<!--    <a href="/" target="_self" style="color: white"><h3>Home</h3></a>-->
+<!--    <a href="https://jupyterlab.readthedocs.io/en/stable/getting_started/overview.html" target="_blank" style="color: white"><h3>Documentation</h3></a>-->
+<!--</div>-->
 
-        Please use the launcher tab to create a new notebook, or explore one of our existing notebooks by navigating to the “covid19-notebook” folder and double-clicking on the notebook of your choice. Feel free to edit and experiment with these premade notebooks: they are your personal copies!
-    </h2>
+<div class="content">
+    <h3>
+        This is your personal workspace. The “pd” folder represents your persistent drive: the files you save there will still be available when
+        you come back after terminating your workspace session. Any personal files outside of this folder may be lost.
+        <p>Please use the launcher tab to create a new notebook, or explore one of our existing notebooks by navigating
+            to the “covid19-notebook” folder and double-clicking on the notebook of your choice. Feel free to edit and experiment with these premade
+            notebooks: They are your personal copies! </p>
+    </h3>
+</div>
+
+<div class="footer">
 </div>
 
 </body>
