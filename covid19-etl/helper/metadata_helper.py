@@ -23,16 +23,6 @@ class MetadataHelper:
     def get_existing_data_jhu(self):
         """
         Queries Peregrine for the existing `location` and `time_series` data. Returns a dict in format { "location1": [ "date1", "date2" ] }
-
-        Note: if we end up having too much data, the query may timeout. We
-        could simplify this by assuming that any `time_series` date that
-        already exists for one location also already exists for all other
-        locations (historically not true), and use the following query to
-        retrieve the dates we already have data for:
-        { location (first: 1, project_id: <...>) { time_seriess (first: 0) { date } } }
-        Or use the `first` and `offset` Peregrine parameters
-        We could also query Guppy instead (assuming the Guppy ETL ran since
-        last time this ETL ran), or get the existing data directly from the DB.
         """
         print("Getting existing data from Peregrine...")
         print("  summary_location data...")
@@ -66,7 +56,7 @@ class MetadataHelper:
         summary_reports = []
         data = None
         offset = 0
-        first = 100000
+        first = 50000
         while data != []:  # don't change, it's explicitly checks for empty list
             print("    Getting data with offset: " + str(offset))
             query_string = (
