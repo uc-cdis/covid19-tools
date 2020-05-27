@@ -140,7 +140,7 @@ class MetadataHelper:
             print("  Nothing new to submit")
             return
         print(
-            "Submitting {} records in batches of {}".format(
+            "  Submitting {} records in batches of {}".format(
                 len(self.records_to_submit), self.submit_batch_size
             )
         )
