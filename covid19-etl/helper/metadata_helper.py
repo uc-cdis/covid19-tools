@@ -139,9 +139,11 @@ class MetadataHelper:
         if not self.records_to_submit:
             print("  Nothing new to submit")
             return
-        print("Submitting {} records in batches of {}".format(
-            len(self.records_to_submit), self.submit_batch_size
-        ))
+        print(
+            "Submitting {} records in batches of {}".format(
+                len(self.records_to_submit), self.submit_batch_size
+            )
+        )
 
         n_batches = ceil(len(self.records_to_submit) / self.submit_batch_size)
         for i in range(n_batches):
