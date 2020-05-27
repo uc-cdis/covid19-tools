@@ -95,7 +95,7 @@ class MetadataHelper:
 
         return json_res
 
-    def get_latest_submitted_data_idph(self):
+    def get_latest_submitted_date_idph(self):
         """
         Queries Peregrine for the existing `summary_report` data.
 
@@ -124,6 +124,9 @@ class MetadataHelper:
         except:
             print("Peregrine did not return JSON")
             raise
+
+        if len(query_res["data"]["summary_report"]) < 1:
+            return None
 
         report = query_res["data"]["summary_report"][0]
         latest_submitted_date = datetime.datetime.strptime(report["date"], "%Y-%m-%d")
