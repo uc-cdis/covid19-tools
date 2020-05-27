@@ -63,7 +63,7 @@ class IDPH_ZIPCODE(base.BaseETL):
         self.summary_demographics = []
 
     def il_counties(self):
-        with open("etl/IL_counties_central_coords_lat_long.tsv") as f:
+        with open("etl/data/IL_counties_central_coords_lat_long.tsv") as f:
             counties = f.readlines()
             counties = counties[1:]
             counties = map(lambda l: l.strip().split("\t"), counties)
