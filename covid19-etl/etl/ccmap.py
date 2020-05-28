@@ -132,13 +132,15 @@ class CCMAP(base.BaseETL):
             expected_h = list(self.headers_mapping[csv_type].keys())
             obtained_h = headers[: len(expected_h)]
             assert (
-                    obtained_h == expected_h
+                obtained_h == expected_h
             ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
                 expected_h, obtained_h
             )
 
             for row in reader:
-                summary_location, summary_report = self.parse_row(row, self.headers_mapping[csv_type])
+                summary_location, summary_report = self.parse_row(
+                    row, self.headers_mapping[csv_type]
+                )
 
                 self.summary_locations.append(summary_location)
                 self.summary_reports.append(summary_report)
@@ -164,8 +166,13 @@ class CCMAP(base.BaseETL):
         summary_location["submitter_id"] = summary_location_submitter_id
         summary_location["projects"] = [{"code": self.project_code}]
 
-        summary_report["submitter_id"] = format_summary_report_submitter_id(summary_location_submitter_id, date=datetime.date.today().strftime("%Y-%m-%d"))
-        summary_report["summary_locations"] = [{"submitter_id": summary_location_submitter_id}]
+        summary_report["submitter_id"] = format_summary_report_submitter_id(
+            summary_location_submitter_id,
+            date=datetime.date.today().strftime("%Y-%m-%d"),
+        )
+        summary_report["summary_locations"] = [
+            {"submitter_id": summary_location_submitter_id}
+        ]
 
         return summary_location, summary_report
 
