@@ -12,13 +12,16 @@ from helper.metadata_helper import MetadataHelper
 def format_location_submitter_id(in_json):
     """summary_location_<country>_<province>_<county>"""
     country = in_json["country_region"]
-    submitter_id = "summary_location_{}".format(country)
+    submitter_id = "summary_location_ccmap_{}".format(country)
     if "province_state" in in_json:
         province = in_json["province_state"]
         submitter_id += "_{}".format(province)
     if "county" in in_json:
         county = in_json["county"]
         submitter_id += "_{}".format(county)
+    if "FIPS" in in_json:
+        fips = in_json["FIPS"]
+        submitter_id += "_{}".format(fips)
 
     submitter_id = submitter_id.lower().replace(", ", "_")
     submitter_id = re.sub("[^a-z0-9-_]+", "-", submitter_id)
@@ -47,52 +50,52 @@ class CCMAP(base.BaseETL):
         )
 
         county_fields = [
-            ("fips_code", ("summary_location", "FIPS")),
-            ("State", ("summary_location", "province_state")),
-            ("County Name", ("summary_location", "county")),
-            ("Staffed All Beds", ("summary_report", "staffed_all_beds")),
-            ("Staffed ICU Beds", ("summary_report", "staffed_icu_beds")),
-            ("Licensed All Beds", ("summary_report", "licensed_all_beds")),
-            ("All Bed Occupancy Rate", ("summary_report", "all_bed_occupancy_rate")),
-            ("ICU Bed Occupancy Rate", ("summary_report", "icu_bed_occupancy_rate")),
-            ("Population", ("summary_report", "population")),
-            ("Population (20+)", ("summary_report", "population_gtr_20")),
-            ("Population (65+)", ("summary_report", "population_gtr_65")),
-            ("Staffed All Beds [Per 1000 People]", ("summary_report", "staffed_all_beds_per_1000")),
-            ("Staffed All Beds [Per 1000 Adults (20+)]", ("summary_report", "staffed_all_beds_per_1000_gtr_20")),
-            ("Staffed All Beds [Per 1000 Elderly (65+)]", ("summary_report", "staffed_all_beds_per_1000_gtr_65")),
-            ("Staffed ICU Beds [Per 1000 People]", ("summary_report", "staffed_icu_beds_per_1000")),
-            ("Staffed ICU Beds [Per 1000 Adults (20+)]", ("summary_report", "staffed_icu_beds_per_1000_gtr_20")),
-            ("Staffed ICU Beds [Per 1000 Elderly (65+)]", ("summary_report", "staffed_icu_beds_per_1000_gtr_65")),
-            ("Licensed All Beds [Per 1000 People]", ("summary_report", "licensed_all_beds_per_1000")),
-            ("Licensed All Beds [Per 1000 Adults (20+)]", ("summary_report", "licensed_all_beds_per_1000_gtr_20")),
-            ("Licensed All Beds [Per 1000 Elderly (65+)]", ("summary_report", "licensed_all_beds_per_1000_gtr_65")),
+            ("fips_code", ("summary_location", "FIPS", int)),
+            ("State", ("summary_location", "province_state", str)),
+            ("County Name", ("summary_location", "county", str)),
+            ("Staffed All Beds", ("summary_report", "staffed_all_beds", int)),
+            ("Staffed ICU Beds", ("summary_report", "staffed_icu_beds", int)),
+            ("Licensed All Beds", ("summary_report", "licensed_all_beds", int)),
+            ("All Bed Occupancy Rate", ("summary_report", "all_bed_occupancy_rate", float)),
+            ("ICU Bed Occupancy Rate", ("summary_report", "icu_bed_occupancy_rate", float)),
+            ("Population", ("summary_report", "population", int)),
+            ("Population (20+)", ("summary_report", "population_gtr_20", int)),
+            ("Population (65+)", ("summary_report", "population_gtr_65", int)),
+            ("Staffed All Beds [Per 1000 People]", ("summary_report", "staffed_all_beds_per_1000", float)),
+            ("Staffed All Beds [Per 1000 Adults (20+)]", ("summary_report", "staffed_all_beds_per_1000_gtr_20", float)),
+            ("Staffed All Beds [Per 1000 Elderly (65+)]", ("summary_report", "staffed_all_beds_per_1000_gtr_65", float)),
+            ("Staffed ICU Beds [Per 1000 People]", ("summary_report", "staffed_icu_beds_per_1000", float)),
+            ("Staffed ICU Beds [Per 1000 Adults (20+)]", ("summary_report", "staffed_icu_beds_per_1000_gtr_20", float)),
+            ("Staffed ICU Beds [Per 1000 Elderly (65+)]", ("summary_report", "staffed_icu_beds_per_1000_gtr_65", float)),
+            ("Licensed All Beds [Per 1000 People]", ("summary_report", "licensed_all_beds_per_1000", float)),
+            ("Licensed All Beds [Per 1000 Adults (20+)]", ("summary_report", "licensed_all_beds_per_1000_gtr_20", float)),
+            ("Licensed All Beds [Per 1000 Elderly (65+)]", ("summary_report", "licensed_all_beds_per_1000_gtr_65", float)),
         ]
 
         state_fields = [
-            ("State", ("summary_location", None)),
-            ("State Name", ("summary_location", "province_state")),
-            ("Staffed All Beds", ("summary_report", "staffed_all_beds")),
-            ("Staffed ICU Beds", ("summary_report", "staffed_icu_beds")),
-            ("Licensed All Beds", ("summary_report", "licensed_all_beds")),
-            ("All Bed Occupancy Rate", ("summary_report", "all_bed_occupancy_rate")),
-            ("ICU Bed Occupancy Rate", ("summary_report", "icu_bed_occupancy_rate")),
-            ("Population", ("summary_report", "population")),
-            ("Population (20+)", ("summary_report", "population_gtr_20")),
-            ("Population (65+)", ("summary_report", "population_gtr_65")),
-            ("Staffed All Beds [Per 1000 People]", ("summary_report", "staffed_all_beds_per_1000")),
-            ("Staffed All Beds [Per 1000 Adults (20+)]", ("summary_report", "staffed_all_beds_per_1000_gtr_20")),
-            ("Staffed All Beds [Per 1000 Elderly (65+)]", ("summary_report", "staffed_all_beds_per_1000_gtr_65")),
-            ("Staffed ICU Beds [Per 1000 People]", ("summary_report", "staffed_icu_beds_per_1000")),
-            ("Staffed ICU Beds [Per 1000 Adults (20+)]", ("summary_report", "staffed_icu_beds_per_1000_gtr_20")),
-            ("Staffed ICU Beds [Per 1000 Elderly (65+)]", ("summary_report", "staffed_icu_beds_per_1000_gtr_65")),
-            ("Licensed All Beds [Per 1000 People]", ("summary_report", "licensed_all_beds_per_1000")),
-            ("Licensed All Beds [Per 1000 Adults (20+)]", ("summary_report", "licensed_all_beds_per_1000_gtr_20")),
-            ("Licensed All Beds [Per 1000 Elderly (65+)]", ("summary_report", "licensed_all_beds_per_1000_gtr_65")),
-            ("Estimated No. Full-Featured Mechanical Ventilators (2010 study estimate)", ("summary_report", "estimated_full_mech_ventilators")),
-            ("Estimated No. Full-Featured Mechanical Ventilators per 100,000 Population (2010 study estimate)", ("summary_report", "estimated_full_mech_ventilators_per_100000")),
-            ("Estimated No. Pediatrics-Capable Full-Feature Mechanical Ventilators (2010 study estimate)", ("summary_report", "estimated_full_mech_pediatric_ventilators")),
-            ("Estimated No. Full-Feature Mechanical Ventilators, Pediatrics Capable per 100,000 Population <14 y (2010 study estimate)", ("summary_report", "estimated_full_mech_pediatric_ventilators_per_100000")),
+            ("State", ("summary_location", None, int)),
+            ("State Name", ("summary_location", "province_state", str)),
+            ("Staffed All Beds", ("summary_report", "staffed_all_beds", int)),
+            ("Staffed ICU Beds", ("summary_report", "staffed_icu_beds", int)),
+            ("Licensed All Beds", ("summary_report", "licensed_all_beds", int)),
+            ("All Bed Occupancy Rate", ("summary_report", "all_bed_occupancy_rate", float)),
+            ("ICU Bed Occupancy Rate", ("summary_report", "icu_bed_occupancy_rate", float)),
+            ("Population", ("summary_report", "population", int)),
+            ("Population (20+)", ("summary_report", "population_gtr_20", int)),
+            ("Population (65+)", ("summary_report", "population_gtr_65", int)),
+            ("Staffed All Beds [Per 1000 People]", ("summary_report", "staffed_all_beds_per_1000", float)),
+            ("Staffed All Beds [Per 1000 Adults (20+)]", ("summary_report", "staffed_all_beds_per_1000_gtr_20", float)),
+            ("Staffed All Beds [Per 1000 Elderly (65+)]", ("summary_report", "staffed_all_beds_per_1000_gtr_65", float)),
+            ("Staffed ICU Beds [Per 1000 People]", ("summary_report", "staffed_icu_beds_per_1000", float)),
+            ("Staffed ICU Beds [Per 1000 Adults (20+)]", ("summary_report", "staffed_icu_beds_per_1000_gtr_20", float)),
+            ("Staffed ICU Beds [Per 1000 Elderly (65+)]", ("summary_report", "staffed_icu_beds_per_1000_gtr_65", float)),
+            ("Licensed All Beds [Per 1000 People]", ("summary_report", "licensed_all_beds_per_1000", float)),
+            ("Licensed All Beds [Per 1000 Adults (20+)]", ("summary_report", "licensed_all_beds_per_1000_gtr_20", float)),
+            ("Licensed All Beds [Per 1000 Elderly (65+)]", ("summary_report", "licensed_all_beds_per_1000_gtr_65", float)),
+            ("Estimated No. Full-Featured Mechanical Ventilators (2010 study estimate)", ("summary_report", "estimated_full_mech_ventilators", int)),
+            ("Estimated No. Full-Featured Mechanical Ventilators per 100,000 Population (2010 study estimate)", ("summary_report", "estimated_full_mech_ventilators_per_100000", float)),
+            ("Estimated No. Pediatrics-Capable Full-Feature Mechanical Ventilators (2010 study estimate)", ("summary_report", "estimated_full_mech_pediatric_ventilators", int)),
+            ("Estimated No. Full-Feature Mechanical Ventilators, Pediatrics Capable per 100,000 Population <14 y (2010 study estimate)", ("summary_report", "estimated_full_mech_pediatric_ventilators_per_100000", float)),
         ]
 
         self.headers_mapping = {
@@ -135,30 +138,30 @@ class CCMAP(base.BaseETL):
             for row in reader:
                 summary_location, summary_report = self.parse_row(row, self.headers_mapping[csv_type])
 
-                print(summary_location)
-                print(summary_report)
-
                 self.summary_locations.append(summary_location)
                 self.summary_reports.append(summary_report)
-
-                break
 
     def parse_row(self, row, mapping):
         summary_location = {"country_region": "US"}
         summary_report = {}
 
-        for k, (i, (node_type, node_field)) in mapping.items():
+        for k, (i, (node_type, node_field, type_conv)) in mapping.items():
             if node_field:
-                if node_type == "summary_location":
-                    summary_location[node_field] = row[i]
-                if node_type == "summary_report":
-                    value = row[i]
-                    if value:
-                        summary_report[node_field] = float(value)
+                value = row[i]
+                if value:
+                    if node_type == "summary_location":
+                        summary_location[node_field] = type_conv(value)
+                    if node_type == "summary_report":
+                        if type_conv == int:
+                            summary_report[node_field] = type_conv(float(value))
+                        else:
+                            summary_report[node_field] = type_conv(value)
 
         summary_location_submitter_id = format_location_submitter_id(summary_location)
 
         summary_location["submitter_id"] = summary_location_submitter_id
+        summary_location["projects"] = [{"code": self.project_code}]
+
         summary_report["submitter_id"] = format_summary_report_submitter_id(summary_location_submitter_id, date=datetime.date.today().strftime("%Y-%m-%d"))
         summary_report["summary_locations"] = [{"submitter_id": summary_location_submitter_id}]
 
@@ -174,13 +177,13 @@ class CCMAP(base.BaseETL):
         # Commented
         # Only required for one time submission of summary_location
         print("Submitting summary_location data")
-        # for loc in self.summary_locations:
-        #     loc_record = {"type": "summary_location"}
-        #     loc_record.update(loc)
-        #     self.metadata_helper.add_record_to_submit(loc_record)
-        # self.metadata_helper.batch_submit_records()
+        for loc in self.summary_locations:
+            loc_record = {"type": "summary_location"}
+            loc_record.update(loc)
+            self.metadata_helper.add_record_to_submit(loc_record)
+        self.metadata_helper.batch_submit_records()
 
-        # print("Submitting summary_report data")
+        print("Submitting summary_report data")
         for rep in self.summary_reports:
             rep_record = {"type": "summary_report"}
             rep_record.update(rep)
