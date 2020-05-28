@@ -104,7 +104,9 @@ class IDPH_ZIPCODE(base.BaseETL):
             data = r.json()
             date = self.get_date(data)
 
-            if date == latest_submitted_date.strftime("%Y-%m-%d"):
+            if latest_submitted_date and date == latest_submitted_date.strftime(
+                "%Y-%m-%d"
+            ):
                 print(
                     "Nothing to submit: today and latest submitted date are the same."
                 )
