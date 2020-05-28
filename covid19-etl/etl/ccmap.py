@@ -49,6 +49,8 @@ class CCMAP(base.BaseETL):
             access_token=access_token,
         )
 
+        # structure is
+        # (csv field name, (node type, node field name, type of field))
         county_fields = [
             ("fips_code", ("summary_location", "FIPS", int)),
             ("State", ("summary_location", "province_state", str)),
@@ -168,14 +170,6 @@ class CCMAP(base.BaseETL):
         return summary_location, summary_report
 
     def submit_metadata(self):
-        """
-        Converts the data in `self.time_series_data` to Sheepdog records.
-        `self.location_data already contains Sheepdog records. Batch submits
-        all records in `self.location_data` and `self.time_series_data`
-        """
-
-        # Commented
-        # Only required for one time submission of summary_location
         print("Submitting summary_location data")
         for loc in self.summary_locations:
             loc_record = {"type": "summary_location"}
