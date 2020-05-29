@@ -1,6 +1,7 @@
 import datetime
 import json
 from math import ceil
+from time import sleep
 
 import requests
 
@@ -57,35 +58,53 @@ class MetadataHelper:
         data = None
         offset = 0
         first = 50000
-        while data != []:  # don't change, it's explicitly checks for empty list
-            print("    Getting data with offset: " + str(offset))
-            query_string = (
-                "{ summary_report (first: "
-                + str(first)
-                + ", offset: "
-                + str(offset)
-                + ', order_by_desc: "date", project_id: "'
-                + self.project_id
-                + '") { submitter_id } }'
-            )
-            response = requests.post(
-                "{}/api/v0/submission/graphql".format(self.base_url),
-                json={"query": query_string, "variables": None},
-                headers=self.headers,
-            )
+        max_retries = 3
+        while data != []:  # don't change, it explicitly checks for empty list
+            tries = 0
+            while tries < max_retries:
+                print(
+                    "    Getting first {} records with offset: {}".format(first, offset)
+                )
+                query_string = (
+                    "{ summary_report (first: "
+                    + str(first)
+                    + ", offset: "
+                    + str(offset)
+                    + ', order_by_desc: "date", project_id: "'
+                    + self.project_id
+                    + '") { submitter_id } }'
+                )
+                response = requests.post(
+                    "{}/api/v0/submission/graphql".format(self.base_url),
+                    json={"query": query_string, "variables": None},
+                    headers=self.headers,
+                )
+
+                query_res = None
+                if response.status_code == 200:
+                    try:
+                        query_res = json.loads(response.text)
+                    except:
+                        print("Peregrine did not return JSON")
+                else:
+                    print(
+                        "    Unable to query Peregrine for existing 'summary_report' data: {}\n{}".format(
+                            response.status_code, response.text
+                        )
+                    )
+
+                if query_res:
+                    data = query_res["data"]["summary_report"]
+                    summary_reports.extend(data)
+                    offset += first
+                    break
+                else:
+                    tries += 1
+                    print("    Trying again (#{})".format(tries))
+                    sleep(2)  # wait 2 seconds - can change to exponential backoff later
             assert (
-                response.status_code == 200
-            ), "Unable to query Peregrine for existing 'summary_report' data: {}\n{}".format(
-                response.status_code, response.text
-            )
-            try:
-                query_res = json.loads(response.text)
-            except:
-                print("Peregrine did not return JSON")
-                raise
-            data = query_res["data"]["summary_report"]
-            summary_reports.extend(data)
-            offset += first
+                tries < max_retries
+            ), "    Unable to query Peregrine for existing 'summary_report' data"
 
         for report in summary_reports:
             report_id = report["submitter_id"]
