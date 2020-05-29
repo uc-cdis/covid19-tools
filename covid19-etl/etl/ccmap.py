@@ -125,9 +125,9 @@ class CCMAP(base.BaseETL):
 
             headers = next(reader)
 
-            if headers[0] == "404: Not Found":
-                print("  Unable to get file contents, received {}.".format(headers))
-                return
+            assert (
+                headers[0] != "404: Not Found"
+            ), "  Unable to get file contents, received {}.".format(headers)
 
             expected_h = list(self.headers_mapping[csv_type].keys())
             obtained_h = headers[: len(expected_h)]
