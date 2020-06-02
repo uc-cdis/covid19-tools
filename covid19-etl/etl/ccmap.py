@@ -58,20 +58,53 @@ class CCMAP(base.BaseETL):
             ("Staffed All Beds", ("summary_clinical", "staffed_all_beds", int)),
             ("Staffed ICU Beds", ("summary_clinical", "staffed_icu_beds", int)),
             ("Licensed All Beds", ("summary_clinical", "licensed_all_beds", int)),
-            ("All Bed Occupancy Rate", ("summary_clinical", "all_bed_occupancy_rate", float)),
-            ("ICU Bed Occupancy Rate", ("summary_clinical", "icu_bed_occupancy_rate", float)),
+            (
+                "All Bed Occupancy Rate",
+                ("summary_clinical", "all_bed_occupancy_rate", float),
+            ),
+            (
+                "ICU Bed Occupancy Rate",
+                ("summary_clinical", "icu_bed_occupancy_rate", float),
+            ),
             ("Population", ("summary_clinical", "population", int)),
             ("Population (20+)", ("summary_clinical", "population_gtr_20", int)),
             ("Population (65+)", ("summary_clinical", "population_gtr_65", int)),
-            ("Staffed All Beds [Per 1000 People]", ("summary_clinical", "staffed_all_beds_per_1000", float)),
-            ("Staffed All Beds [Per 1000 Adults (20+)]", ("summary_clinical", "staffed_all_beds_per_1000_gtr_20", float)),
-            ("Staffed All Beds [Per 1000 Elderly (65+)]", ("summary_clinical", "staffed_all_beds_per_1000_gtr_65", float)),
-            ("Staffed ICU Beds [Per 1000 People]", ("summary_clinical", "staffed_icu_beds_per_1000", float)),
-            ("Staffed ICU Beds [Per 1000 Adults (20+)]", ("summary_clinical", "staffed_icu_beds_per_1000_gtr_20", float)),
-            ("Staffed ICU Beds [Per 1000 Elderly (65+)]", ("summary_clinical", "staffed_icu_beds_per_1000_gtr_65", float)),
-            ("Licensed All Beds [Per 1000 People]", ("summary_clinical", "licensed_all_beds_per_1000", float)),
-            ("Licensed All Beds [Per 1000 Adults (20+)]", ("summary_clinical", "licensed_all_beds_per_1000_gtr_20", float)),
-            ("Licensed All Beds [Per 1000 Elderly (65+)]", ("summary_clinical", "licensed_all_beds_per_1000_gtr_65", float)),
+            (
+                "Staffed All Beds [Per 1000 People]",
+                ("summary_clinical", "staffed_all_beds_per_1000", float),
+            ),
+            (
+                "Staffed All Beds [Per 1000 Adults (20+)]",
+                ("summary_clinical", "staffed_all_beds_per_1000_gtr_20", float),
+            ),
+            (
+                "Staffed All Beds [Per 1000 Elderly (65+)]",
+                ("summary_clinical", "staffed_all_beds_per_1000_gtr_65", float),
+            ),
+            (
+                "Staffed ICU Beds [Per 1000 People]",
+                ("summary_clinical", "staffed_icu_beds_per_1000", float),
+            ),
+            (
+                "Staffed ICU Beds [Per 1000 Adults (20+)]",
+                ("summary_clinical", "staffed_icu_beds_per_1000_gtr_20", float),
+            ),
+            (
+                "Staffed ICU Beds [Per 1000 Elderly (65+)]",
+                ("summary_clinical", "staffed_icu_beds_per_1000_gtr_65", float),
+            ),
+            (
+                "Licensed All Beds [Per 1000 People]",
+                ("summary_clinical", "licensed_all_beds_per_1000", float),
+            ),
+            (
+                "Licensed All Beds [Per 1000 Adults (20+)]",
+                ("summary_clinical", "licensed_all_beds_per_1000_gtr_20", float),
+            ),
+            (
+                "Licensed All Beds [Per 1000 Elderly (65+)]",
+                ("summary_clinical", "licensed_all_beds_per_1000_gtr_65", float),
+            ),
         ]
 
         state_fields = [
@@ -80,29 +113,86 @@ class CCMAP(base.BaseETL):
             ("Staffed All Beds", ("summary_clinical", "staffed_all_beds", int)),
             ("Staffed ICU Beds", ("summary_clinical", "staffed_icu_beds", int)),
             ("Licensed All Beds", ("summary_clinical", "licensed_all_beds", int)),
-            ("All Bed Occupancy Rate", ("summary_clinical", "all_bed_occupancy_rate", float)),
-            ("ICU Bed Occupancy Rate", ("summary_clinical", "icu_bed_occupancy_rate", float)),
+            (
+                "All Bed Occupancy Rate",
+                ("summary_clinical", "all_bed_occupancy_rate", float),
+            ),
+            (
+                "ICU Bed Occupancy Rate",
+                ("summary_clinical", "icu_bed_occupancy_rate", float),
+            ),
             ("Population", ("summary_clinical", "population", int)),
             ("Population (20+)", ("summary_clinical", "population_gtr_20", int)),
             ("Population (65+)", ("summary_clinical", "population_gtr_65", int)),
-            ("Staffed All Beds [Per 1000 People]", ("summary_clinical", "staffed_all_beds_per_1000", float)),
-            ("Staffed All Beds [Per 1000 Adults (20+)]", ("summary_clinical", "staffed_all_beds_per_1000_gtr_20", float)),
-            ("Staffed All Beds [Per 1000 Elderly (65+)]", ("summary_clinical", "staffed_all_beds_per_1000_gtr_65", float)),
-            ("Staffed ICU Beds [Per 1000 People]", ("summary_clinical", "staffed_icu_beds_per_1000", float)),
-            ("Staffed ICU Beds [Per 1000 Adults (20+)]", ("summary_clinical", "staffed_icu_beds_per_1000_gtr_20", float)),
-            ("Staffed ICU Beds [Per 1000 Elderly (65+)]", ("summary_clinical", "staffed_icu_beds_per_1000_gtr_65", float)),
-            ("Licensed All Beds [Per 1000 People]", ("summary_clinical", "licensed_all_beds_per_1000", float)),
-            ("Licensed All Beds [Per 1000 Adults (20+)]", ("summary_clinical", "licensed_all_beds_per_1000_gtr_20", float)),
-            ("Licensed All Beds [Per 1000 Elderly (65+)]", ("summary_clinical", "licensed_all_beds_per_1000_gtr_65", float)),
-            ("Estimated No. Full-Featured Mechanical Ventilators (2010 study estimate)", ("summary_clinical", "estimated_full_mech_ventilators", int)),
-            ("Estimated No. Full-Featured Mechanical Ventilators per 100,000 Population (2010 study estimate)", ("summary_clinical", "estimated_full_mech_ventilators_per_100000", float)),
-            ("Estimated No. Pediatrics-Capable Full-Feature Mechanical Ventilators (2010 study estimate)", ("summary_clinical", "estimated_full_mech_pediatric_ventilators", int)),
-            ("Estimated No. Full-Feature Mechanical Ventilators, Pediatrics Capable per 100,000 Population <14 y (2010 study estimate)", ("summary_clinical", "estimated_full_mech_pediatric_ventilators_per_100000", float)),
+            (
+                "Staffed All Beds [Per 1000 People]",
+                ("summary_clinical", "staffed_all_beds_per_1000", float),
+            ),
+            (
+                "Staffed All Beds [Per 1000 Adults (20+)]",
+                ("summary_clinical", "staffed_all_beds_per_1000_gtr_20", float),
+            ),
+            (
+                "Staffed All Beds [Per 1000 Elderly (65+)]",
+                ("summary_clinical", "staffed_all_beds_per_1000_gtr_65", float),
+            ),
+            (
+                "Staffed ICU Beds [Per 1000 People]",
+                ("summary_clinical", "staffed_icu_beds_per_1000", float),
+            ),
+            (
+                "Staffed ICU Beds [Per 1000 Adults (20+)]",
+                ("summary_clinical", "staffed_icu_beds_per_1000_gtr_20", float),
+            ),
+            (
+                "Staffed ICU Beds [Per 1000 Elderly (65+)]",
+                ("summary_clinical", "staffed_icu_beds_per_1000_gtr_65", float),
+            ),
+            (
+                "Licensed All Beds [Per 1000 People]",
+                ("summary_clinical", "licensed_all_beds_per_1000", float),
+            ),
+            (
+                "Licensed All Beds [Per 1000 Adults (20+)]",
+                ("summary_clinical", "licensed_all_beds_per_1000_gtr_20", float),
+            ),
+            (
+                "Licensed All Beds [Per 1000 Elderly (65+)]",
+                ("summary_clinical", "licensed_all_beds_per_1000_gtr_65", float),
+            ),
+            (
+                "Estimated No. Full-Featured Mechanical Ventilators (2010 study estimate)",
+                ("summary_clinical", "estimated_full_mech_ventilators", int),
+            ),
+            (
+                "Estimated No. Full-Featured Mechanical Ventilators per 100,000 Population (2010 study estimate)",
+                (
+                    "summary_clinical",
+                    "estimated_full_mech_ventilators_per_100000",
+                    float,
+                ),
+            ),
+            (
+                "Estimated No. Pediatrics-Capable Full-Feature Mechanical Ventilators (2010 study estimate)",
+                ("summary_clinical", "estimated_full_mech_pediatric_ventilators", int),
+            ),
+            (
+                "Estimated No. Full-Feature Mechanical Ventilators, Pediatrics Capable per 100,000 Population <14 y (2010 study estimate)",
+                (
+                    "summary_clinical",
+                    "estimated_full_mech_pediatric_ventilators_per_100000",
+                    float,
+                ),
+            ),
         ]
 
         self.headers_mapping = {
-            "county": {field: (k, mapping) for k, (field, mapping) in enumerate(county_fields)},
-            "state": {field: (k, mapping) for k, (field, mapping) in enumerate(state_fields)},
+            "county": {
+                field: (k, mapping) for k, (field, mapping) in enumerate(county_fields)
+            },
+            "state": {
+                field: (k, mapping) for k, (field, mapping) in enumerate(state_fields)
+            },
         }
 
     def files_to_submissions(self):
