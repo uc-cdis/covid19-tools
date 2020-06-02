@@ -11,11 +11,15 @@ from helper.metadata_helper import MetadataHelper
 
 
 def format_subject_submitter_id(country, submitter_id):
-    return "subject_dsfsi_{}_{}".format(country, submitter_id)
+    submitter_id = "subject_dsfsi_{}_{}".format(country.lower(), submitter_id)
+    submitter_id = re.sub("[^a-z0-9-_]+", "-", submitter_id)
+    return submitter_id
 
 
-def format_demographic_submitter_id(country, subject_submitter_id):
-    return "demographic_dsfsi_{}_{}".format(country, subject_submitter_id)
+def format_demographic_submitter_id(subject_submitter_id):
+    return "{}".format(
+        subject_submitter_id.replace("subject_", "demographic_")
+    )
 
 
 def normalize_current_status(status):
@@ -99,13 +103,44 @@ def normalize_date(d):
     return parsed_date.strftime("%m/%d/%y")
 
 
+def normalize_condition(condition):
+    normalized = {
+        "NA": None,
+        "was treated for unspecified underlying condition": None,
+    }
+
+    norm = normalized.get(condition, condition)
+    if norm == condition:
+        return [norm]
+
+    return None
+
+
+def normalize_gender(gender):
+    normalized = {
+        "male": "male",
+        "male ?": "male",
+        "m": "male",
+        "female": "female",
+        "f": "female",
+        "woman": "female",
+        "not specified": "unspecified",
+        "na": None,
+        "x": None,
+        "?": None,
+        "suleja": None,
+    }
+
+    return normalized[gender.lower()]
+
+
 def normalize_age(age):
     if age == "NA":
         return None
 
     if age:
         try:
-            return int(age)
+            return int(float(age))
         except ValueError:
             return None
 
@@ -134,8 +169,8 @@ class DSFSI(base.BaseETL):
             ("origin_case_id", (None, None, None)),
             ("date", ("subject", "reporting_date", normalize_date)),
             ("age", ("subject", "age", normalize_age)),
-            ("gender", ("demographic", "gender", str)),
-            ("city", ("demographic", "city", str)),
+            ("gender", ("demographic", "gender", normalize_gender)),
+            ("city", ("subject", "city", str)),
             ("province/state", ("subject", "province", str)),
             ("country", ("subject", "country", str)),
             ("current_status", ("subject", "current_state", normalize_current_status)),
@@ -144,14 +179,12 @@ class DSFSI(base.BaseETL):
             ("date_onset_symptoms", ("subject", "date_onset_symptoms", normalize_date)),
             ("date_admission_hospital", ("subject", "date_admission_hospital", normalize_date)),
             ("date_confirmation", ("subject", "date_confirmation", normalize_date)),
-            ("underlying_conditions", ("subject", "underlying_conditions", str)),
+            ("underlying_conditions", ("subject", "underlying_conditions", normalize_condition)),
             ("travel_history_dates", ("subject", "travel_history_dates", list)),
             ("travel_history_location", ("subject", "travel_history_location", list)),
             ("death_date", ("subject", "date_death_or_discharge", normalize_date)),
             ("notes_for_discussion", ("subject", "additional_information", str)),
         ]
-
-        # self.headers_mapping = {field: (k, mapping) for k, (field, mapping) in enumerate(countries_fields)}
 
     def files_to_submissions(self):
         """
@@ -169,8 +202,7 @@ class DSFSI(base.BaseETL):
             "Côte d'Ivoire": "https://raw.githubusercontent.com/dsfsi/covid19africa/master/data/line_lists/line-list-cote-divoire.csv",
             "Democratic Republic of the Congo": "https://raw.githubusercontent.com/dsfsi/covid19africa/master/data/line_lists/line-list-democratic-republic-of-the-congo.csv",
             "Djibouti": "https://raw.githubusercontent.com/dsfsi/covid19africa/master/data/line_lists/line-list-djibouti.csv",
-            # "Egypt (deceased)": "https://raw.githubusercontent.com/dsfsi/covid19africa/master/data/line_lists/line-list-egypt-deceased.csv",
-            "Egypt": "https://raw.githubusercontent.com/dsfsi/covid19africa/master/data/line_lists/line-list-egypt.csv",
+            # here should be an Egypt dataset, but it's not useful and omitted on purpose
             "Equatorial Guinea": "https://raw.githubusercontent.com/dsfsi/covid19africa/master/data/line_lists/line-list-equatorial-guinea.csv",
             "Eritrea": "https://raw.githubusercontent.com/dsfsi/covid19africa/master/data/line_lists/line-list-eritrea.csv",
             "Eswatini": "https://raw.githubusercontent.com/dsfsi/covid19africa/master/data/line_lists/line-list-eswatini.csv",
@@ -253,7 +285,6 @@ class DSFSI(base.BaseETL):
             ]
 
             countries_with_mistyped_column = [
-                "Egypt",
                 "South Africa",
 
             ]
@@ -313,7 +344,16 @@ class DSFSI(base.BaseETL):
                 expected_h, obtained_h
             )
 
+            idx = 0
+            last = None
+            if country == "South Africa":
+                last = 275
+
             for row in reader:
+                idx += 1
+                if last and idx == last:
+                    break
+
                 subject, demographic = self.parse_row(
                     country, row, updated_headers_mapping
                 )
@@ -334,11 +374,18 @@ class DSFSI(base.BaseETL):
                     if node_type == "demographic":
                         demographic[node_field] = type_conv(value)
 
-        subject["submitter_id"] = format_subject_submitter_id(country, subject["submitter_id"])
+        case_id = subject["submitter_id"]
+        subject["submitter_id"] = format_subject_submitter_id(subject["country"], subject["submitter_id"])
+
+        if subject["country"] == "South Africa" and case_id == "110":
+            if subject["age"] == 34:
+                subject["submitter_id"] += "_1"
+            if subject["age"] == 27:
+                subject["submitter_id"] += "_2"
+
         subject["projects"] = [{"code": self.project_code}]
 
         demographic["submitter_id"] = format_demographic_submitter_id(
-            country,
             subject["submitter_id"]
         )
         demographic["subjects"] = [
