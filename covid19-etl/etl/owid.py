@@ -12,7 +12,7 @@ from helper.metadata_helper import MetadataHelper
 def format_location_submitter_id(in_json):
     """summary_location_<country>_<province>_<county>"""
     country = in_json["country_region"]
-    submitter_id = "summary_location_ccmap_{}".format(country)
+    submitter_id = "summary_location_owid_{}".format(country)
     if "province_state" in in_json:
         province = in_json["province_state"]
         submitter_id += "_{}".format(province)
@@ -28,10 +28,16 @@ def format_location_submitter_id(in_json):
     return submitter_id.strip("-")
 
 
-def format_summary_report_submitter_id(location_submitter_id, date):
-    return "{}_{}".format(
-        location_submitter_id.replace("summary_location_", "summary_report_"), date
+def format_summary_report_submitter_id(location_submitter_id, test_type, date):
+    return "{}_{}_{}".format(
+        location_submitter_id.replace("summary_location_", "summary_report_"), test_type, date
     )
+
+
+def split_entity(entity):
+    splitted = entity.split(" - ")
+    assert len(splitted) == 2, "incorrect Entity structure"
+    return splitted[0], splitted[1]
 
 
 class OWID(base.BaseETL):
@@ -41,7 +47,7 @@ class OWID(base.BaseETL):
         self.summary_reports = []
 
         self.program_name = "open"
-        self.project_code = "CCMap"
+        self.project_code = "OWID"
         self.metadata_helper = MetadataHelper(
             base_url=self.base_url,
             program_name=self.program_name,
@@ -53,15 +59,15 @@ class OWID(base.BaseETL):
         # (csv field name, (node type, node field name, type of field))
         testing_fields = [
             ("ISO code", ("summary_location", "iso3", str)),
-            ("Entity", (None, None, str)),
+            ("Entity", (None, None, split_entity)),
             ("Date", ("summary_report", "date", str)),
-            ("Source URL", ("project", "url", str)),
+            ("Source URL", ("summary_report", "source_url", str)),
             ("Source label", (None, None, None)),
             ("Notes", (None, None, None)),
             ("Number of observations", (None, None, None)),
-            ("Cumulative total", (None, None, None)),
+            ("Cumulative total", ("summary_report", "testing", int)),
             ("Cumulative total per thousand", (None, None, None)),
-            ("Daily change in cumulative total", (None, None, None)),
+            ("Daily change in cumulative total", ("summary_report", "totalTestResultsIncrease", int)),
             ("Daily change in cumulative total per thousand", (None, None, None)),
             ("7-day smoothed daily change", (None, None, None)),
             ("7-day smoothed daily change per thousand", (None, None, None)),
@@ -105,16 +111,19 @@ class OWID(base.BaseETL):
                     row, self.headers_mapping
                 )
 
-                
-
-                self.summary_locations.append(summary_location)
+                if summary_location not in self.summary_locations:
+                    self.summary_locations.append(summary_location)
                 self.summary_reports.append(summary_report)
 
     def parse_row(self, row, mapping):
-        summary_location = {"country_region": "US"}
+        summary_location = {}
         summary_report = {}
 
         for k, (i, (node_type, node_field, type_conv)) in mapping.items():
+            if k == "Entity":
+                country, test_type = split_entity(row[i])
+                summary_location["country_region"] = country
+                summary_report["test_type"] = test_type
             if node_field:
                 value = row[i]
                 if value:
@@ -133,6 +142,7 @@ class OWID(base.BaseETL):
 
         summary_report["submitter_id"] = format_summary_report_submitter_id(
             summary_location_submitter_id,
+            test_type=summary_report["test_type"],
             date=datetime.date.today().strftime("%Y-%m-%d"),
         )
         summary_report["summary_locations"] = [
