@@ -1,0 +1,19 @@
+dist: xenial
+
+language: python
+
+python:
+- 3.6
+
+cache:
+- pip
+- apt
+
+befor
+
+install:
+- pip install -r covid19-etl-requirements.txt
+- pip install pytest~=3.6
+
+script:
+- pipenv run pytest -vv covid19-etl/tests
