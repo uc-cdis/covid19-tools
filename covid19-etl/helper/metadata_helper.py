@@ -106,11 +106,11 @@ class MetadataHelper:
                 tries < max_retries
             ), "    Unable to query Peregrine for existing 'summary_clinical' data"
 
-        for report in summary_clinicals:
-            report_id = report["submitter_id"]
-            location_id = report_id.replace("summary_clinical", "summary_location")
+        for sc in summary_clinicals:
+            sc_id = sc["submitter_id"]
+            location_id = sc_id.replace("summary_clinical", "summary_location")
             location_id = "_".join(location_id.split("_")[:-1])  # remove the date
-            json_res[location_id].append(report_id)
+            json_res[location_id].append(sc_id)
 
         return json_res
 
@@ -147,8 +147,8 @@ class MetadataHelper:
         if len(query_res["data"]["summary_clinical"]) < 1:
             return None
 
-        report = query_res["data"]["summary_clinical"][0]
-        latest_submitted_date = datetime.datetime.strptime(report["date"], "%Y-%m-%d")
+        sc = query_res["data"]["summary_clinical"][0]
+        latest_submitted_date = datetime.datetime.strptime(sc["date"], "%Y-%m-%d")
         return latest_submitted_date.date()
 
     def add_record_to_submit(self, record):

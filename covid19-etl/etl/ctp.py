@@ -28,30 +28,6 @@ def format_summary_clinical_submitter_id(location_submitter_id, date):
     )
 
 
-def get_unified_date_format(date):
-    month, day, year = date.split("/")
-
-    # format all the dates the same way
-    if len(year) == 2:
-        year = "20{}".format(year)
-    if len(month) == 1:
-        month = "0{}".format(month)
-    if len(day) == 1:
-        day = "0{}".format(day)
-
-    return "-".join((year, month, day))
-
-
-def format_report_submitter_id(location_submitter_id, date):
-    """summary_clinical_<country>_<province>_<county>_<date>"""
-    sub_id = location_submitter_id.replace("summary_location", "summary_clinical")
-    return "{}_{}".format(sub_id, date)
-
-
-def format_time_series_date(date):
-    return datetime.strptime(date, "%Y-%m-%d").isoformat("T")
-
-
 class CTP(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
