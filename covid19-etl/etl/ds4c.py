@@ -116,8 +116,8 @@ class DS4C(base.BaseETL):
         self.metadata_helper.batch_submit_records()
 
         print("Submitting demographic data")
-        for rep in self.demographics:
-            rep_record = {"type": "demographic"}
-            rep_record.update(rep)
-            self.metadata_helper.add_record_to_submit(rep_record)
+        for dem in self.demographics:
+            dem_record = {"type": "demographic"}
+            dem_record.update(dem)
+            self.metadata_helper.add_record_to_submit(dem_record)
         self.metadata_helper.batch_submit_records()

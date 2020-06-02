@@ -211,8 +211,8 @@ class IDPH(base.BaseETL):
         self.metadata_helper.batch_submit_records()
 
         print("Submitting summary_clinical data")
-        for rep in self.summary_clinicals:
-            rep_record = {"type": "summary_clinical"}
-            rep_record.update(rep)
-            self.metadata_helper.add_record_to_submit(rep_record)
+        for sc in self.summary_clinicals:
+            sc_record = {"type": "summary_clinical"}
+            sc_record.update(sc)
+            self.metadata_helper.add_record_to_submit(sc_record)
         self.metadata_helper.batch_submit_records()
