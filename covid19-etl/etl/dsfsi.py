@@ -17,9 +17,7 @@ def format_subject_submitter_id(country, submitter_id):
 
 
 def format_demographic_submitter_id(subject_submitter_id):
-    return "{}".format(
-        subject_submitter_id.replace("subject_", "demographic_")
-    )
+    return subject_submitter_id.replace("subject_", "demographic_")
 
 
 def normalize_current_status(status):
@@ -61,13 +59,13 @@ def normalize_symptoms(symptoms):
         "chest pain": "persistent pain or pressure in the chest",
         "cold": "fever* or feeling feverish/chills",
         "Cold": "fever* or feeling feverish/chills",
+        "Cough Fever": "cough",
         "cough": "cough",
         "Cough": "cough",
-        "Cough Fever": "cough",
         "COVID-19 related symptoms": "COVID-19 related symptoms",
+        "fever and aches and headache": "fever or feeling feverish/chills",
         "fever": "fever or feeling feverish/chills",
         "Fever": "fever or feeling feverish/chills",
-        "fever and aches and headache": "fever or feeling feverish/chills",
         "Mild to moderate": "mild to moderate",
         "muscle pain": "muscle or body aches",
         "NA": "no data",
@@ -77,7 +75,7 @@ def normalize_symptoms(symptoms):
         "tired": "fatigue (tiredness)",
     }
 
-    list_of_symptoms = re.split(r', | and ', symptoms)
+    list_of_symptoms = re.split(r", | and ", symptoms)
 
     result = []
     for symptom in list_of_symptoms:
@@ -118,33 +116,27 @@ def normalize_condition(condition):
 
 def normalize_gender(gender):
     normalized = {
-        "male": "male",
-        "male ?": "male",
-        "m": "male",
-        "female": "female",
-        "f": "female",
-        "woman": "female",
-        "not specified": "unspecified",
-        "na": None,
-        "x": None,
         "?": None,
+        "f": "female",
+        "female": "female",
+        "m": "male",
+        "male ?": "male",
+        "male": "male",
+        "na": None,
+        "not specified": "unspecified",
         "suleja": None,
+        "woman": "female",
+        "x": None,
     }
 
     return normalized[gender.lower()]
 
 
 def normalize_age(age):
-    if age == "NA":
+    try:
+        return int(float(age))
+    except ValueError:
         return None
-
-    if age:
-        try:
-            return int(float(age))
-        except ValueError:
-            return None
-
-    return None
 
 
 class DSFSI(base.BaseETL):
@@ -177,9 +169,15 @@ class DSFSI(base.BaseETL):
             ("source", ("subject", "source", str)),
             ("symptoms", ("subject", "symptoms", normalize_symptoms)),
             ("date_onset_symptoms", ("subject", "date_onset_symptoms", normalize_date)),
-            ("date_admission_hospital", ("subject", "date_admission_hospital", normalize_date)),
+            (
+                "date_admission_hospital",
+                ("subject", "date_admission_hospital", normalize_date),
+            ),
             ("date_confirmation", ("subject", "date_confirmation", normalize_date)),
-            ("underlying_conditions", ("subject", "underlying_conditions", normalize_condition)),
+            (
+                "underlying_conditions",
+                ("subject", "underlying_conditions", normalize_condition),
+            ),
             ("travel_history_dates", ("subject", "travel_history_dates", list)),
             ("travel_history_location", ("subject", "travel_history_location", list)),
             ("death_date", ("subject", "date_death_or_discharge", normalize_date)),
@@ -248,7 +246,7 @@ class DSFSI(base.BaseETL):
             headers = next(reader)
 
             assert (
-                    headers[0] != "404: Not Found"
+                headers[0] != "404: Not Found"
             ), "  Unable to get file contents, received {}.".format(headers)
 
             countries_with_empty_columns = [
@@ -286,7 +284,6 @@ class DSFSI(base.BaseETL):
 
             countries_with_mistyped_column = [
                 "South Africa",
-
             ]
 
             countries_without_notes = [
@@ -309,12 +306,17 @@ class DSFSI(base.BaseETL):
                 "Zambia",
             ]
 
+            # Ok, this is ugly... But, almost all the countries have some ugliness in the CSV format...
+            # And this code deals with it
             tmp = copy.deepcopy(self.countries_fields)
             if country in countries_with_empty_columns:
                 tmp.insert(0, ("", (None, None, None)))
 
             if country in countries_with_mistyped_column:
-                tmp[14] = ("underlyng_conditions", ("subject", "underlying_conditions", str))
+                tmp[14] = (
+                    "underlyng_conditions",
+                    ("subject", "underlying_conditions", str),
+                )
 
             if country in countries_without_notes:
                 del tmp[-1]
@@ -333,17 +335,21 @@ class DSFSI(base.BaseETL):
                 tmp.insert(9, ("source 1", (None, None, None)))
                 tmp.insert(10, ("source 2", (None, None, None)))
 
-            updated_headers_mapping = {field: (k, mapping) for k, (field, mapping) in enumerate(tmp)}
+            updated_headers_mapping = {
+                field: (k, mapping) for k, (field, mapping) in enumerate(tmp)
+            }
             expected_h = list(updated_headers_mapping.keys())
             obtained_h = headers[: len(expected_h)]
             obtained_h = [header.strip() for header in obtained_h]
 
             assert (
-                    obtained_h == expected_h
+                obtained_h == expected_h
             ), "CSV headers have changed\nexpected: {}\n     got: {})".format(
                 expected_h, obtained_h
             )
 
+            # South Africa dataset has only 274 nice cases
+            # Everything after has the same data and don't have any meaningful information
             idx = 0
             last = None
             if country == "South Africa":
@@ -375,8 +381,12 @@ class DSFSI(base.BaseETL):
                         demographic[node_field] = type_conv(value)
 
         case_id = subject["submitter_id"]
-        subject["submitter_id"] = format_subject_submitter_id(subject["country"], subject["submitter_id"])
+        subject["submitter_id"] = format_subject_submitter_id(
+            subject["country"], subject["submitter_id"]
+        )
 
+        # Only South Africa dataset has a record with the same case_id...
+        # Because this code deals only with individual rows, it's hard coded right now
         if subject["country"] == "South Africa" and case_id == "110":
             if subject["age"] == 34:
                 subject["submitter_id"] += "_1"
@@ -388,9 +398,7 @@ class DSFSI(base.BaseETL):
         demographic["submitter_id"] = format_demographic_submitter_id(
             subject["submitter_id"]
         )
-        demographic["subjects"] = [
-            {"submitter_id": subject["submitter_id"]}
-        ]
+        demographic["subjects"] = [{"submitter_id": subject["submitter_id"]}]
 
         return subject, demographic
 
