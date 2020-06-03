@@ -19,6 +19,7 @@ def test_import():
     ]
 
     for job_name in all_etls:
+        print(f"Testing ETL job: {job_name}")
         job_module = job_name.lower()
         job_class = job_name.upper()
 
@@ -29,9 +30,6 @@ def test_import():
             job = etl(
                 base_url="fake_url", access_token="fake_token", s3_bucket="fake_bucket"
             )
-        except TypeError as e:
-            # probably missing an argument
-            raise TypeError(f"ETL {job_name}: {e}")
         except RequestException:
             # we could mock `requests` calls instead
             pass

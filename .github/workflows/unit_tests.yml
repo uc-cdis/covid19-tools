@@ -4,7 +4,7 @@ on:
 name: Tests
 
 jobs:
-  runWool:
+  runTests:
     name: Run unit tests
     runs-on: ubuntu-latest
     strategy:
