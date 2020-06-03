@@ -22,41 +22,17 @@ def format_location_submitter_id(country, province, county=None):
     return submitter_id.strip("-")
 
 
-def format_summary_report_submitter_id(location_submitter_id, date):
+def format_summary_clinical_submitter_id(location_submitter_id, date):
     return "{}_{}".format(
-        location_submitter_id.replace("summary_location_", "summary_report_"), date
+        location_submitter_id.replace("summary_location_", "summary_clinical_"), date
     )
-
-
-def get_unified_date_format(date):
-    month, day, year = date.split("/")
-
-    # format all the dates the same way
-    if len(year) == 2:
-        year = "20{}".format(year)
-    if len(month) == 1:
-        month = "0{}".format(month)
-    if len(day) == 1:
-        day = "0{}".format(day)
-
-    return "-".join((year, month, day))
-
-
-def format_report_submitter_id(location_submitter_id, date):
-    """summary_report_<country>_<province>_<county>_<date>"""
-    sub_id = location_submitter_id.replace("summary_location", "summary_report")
-    return "{}_{}".format(sub_id, date)
-
-
-def format_time_series_date(date):
-    return datetime.strptime(date, "%Y-%m-%d").isoformat("T")
 
 
 class CTP(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
         self.summary_locations = []
-        self.summary_reports = []
+        self.summary_clinicals = []
 
         self.program_name = "open"
         self.project_code = "CTP"
@@ -140,10 +116,10 @@ class CTP(base.BaseETL):
             )
 
             for row in reader:
-                summary_location, summary_report = self.parse_row(headers, row)
+                summary_location, summary_clinical = self.parse_row(headers, row)
 
                 self.summary_locations.append(summary_location)
-                self.summary_reports.append(summary_report)
+                self.summary_clinicals.append(summary_clinical)
 
     def parse_row(self, headers, row):
         """
@@ -174,12 +150,12 @@ class CTP(base.BaseETL):
             "province_state": state,
         }
 
-        summary_report_submitter_id = format_summary_report_submitter_id(
+        summary_clinical_submitter_id = format_summary_clinical_submitter_id(
             summary_location_submitter_id, date
         )
-        summary_report = {
+        summary_clinical = {
             "date": date,
-            "submitter_id": summary_report_submitter_id,
+            "submitter_id": summary_clinical_submitter_id,
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
 
@@ -191,17 +167,17 @@ class CTP(base.BaseETL):
 
         for k, v in map_csv_fields.items():
             if row[self.header_to_column[v]]:
-                summary_report[k] = int(row[self.header_to_column[v]])
+                summary_clinical[k] = int(row[self.header_to_column[v]])
 
         dataQualityGrade = row[self.header_to_column["dataQualityGrade"]]
         if dataQualityGrade:
-            summary_report["dataQualityGrade"] = dataQualityGrade
+            summary_clinical["dataQualityGrade"] = dataQualityGrade
 
         lastUpdateEt = row[self.header_to_column["lastUpdateEt"]]
         if lastUpdateEt:
-            summary_report["lastUpdateEt"] = lastUpdateEt
+            summary_clinical["lastUpdateEt"] = lastUpdateEt
 
-        return summary_location, summary_report
+        return summary_location, summary_clinical
 
     def submit_metadata(self):
         """
@@ -219,9 +195,9 @@ class CTP(base.BaseETL):
         #     self.metadata_helper.add_record_to_submit(loc_record)
         # self.metadata_helper.batch_submit_records()
 
-        # print("Submitting summary_report data")
-        for rep in self.summary_reports:
-            rep_record = {"type": "summary_report"}
-            rep_record.update(rep)
-            self.metadata_helper.add_record_to_submit(rep_record)
+        # print("Submitting summary_clinical data")
+        for sc in self.summary_clinicals:
+            sc_record = {"type": "summary_clinical"}
+            sc_record.update(sc)
+            self.metadata_helper.add_record_to_submit(sc_record)
         self.metadata_helper.batch_submit_records()

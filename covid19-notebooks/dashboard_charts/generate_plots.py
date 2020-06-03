@@ -161,11 +161,11 @@ sub = Gen3Submission(api, auth)
 
 program = "open"
 project = "IDPH"
-summary_report = sub.export_node(
-    program, project, "summary_report", "tsv", "summary_report_idph.tsv"
+summary_clinical = sub.export_node(
+    program, project, "summary_clinical", "tsv", "summary_clinical_idph.tsv"
 )
 
-idph = pd.read_csv("./summary_report_idph.tsv", sep="\t")
+idph = pd.read_csv("./summary_clinical_idph.tsv", sep="\t")
 idph1 = idph[["date", "confirmed", "deaths", "testing"]]
 data_day = idph1.groupby(["date"]).sum()
 

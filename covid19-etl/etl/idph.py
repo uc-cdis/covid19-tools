@@ -1,11 +1,14 @@
-import datetime
-import re
 from contextlib import closing
-
+import datetime
+import os
+import re
 import requests
 
 from etl import base
 from helper.metadata_helper import MetadataHelper
+
+
+CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 def format_summary_location_submitter_id(country, state, county):
@@ -20,9 +23,9 @@ def format_summary_location_submitter_id(country, state, county):
     return submitter_id.strip("-")
 
 
-def format_summary_report_submitter_id(location_submitter_id, date):
+def format_summary_clinical_submitter_id(location_submitter_id, date):
     return "{}_{}".format(
-        location_submitter_id.replace("summary_location_", "summary_report_"), date
+        location_submitter_id.replace("summary_location_", "summary_clinical_"), date
     )
 
 
@@ -43,10 +46,12 @@ class IDPH(base.BaseETL):
         self.il_counties()
 
         self.summary_locations = []
-        self.summary_reports = []
+        self.summary_clinicals = []
 
     def il_counties(self):
-        with open("etl/data/IL_counties_central_coords_lat_long.tsv") as f:
+        with open(
+            os.path.join(CURRENT_DIR, "data/IL_counties_central_coords_lat_long.tsv")
+        ) as f:
             counties = f.readlines()
             counties = counties[1:]
             counties = map(lambda l: l.strip().split("\t"), counties)
@@ -79,7 +84,7 @@ class IDPH(base.BaseETL):
     def parse_file(self, latest_submitted_date, state, url):
         """
         Converts a JSON files to data we can submit via Sheepdog. Stores the
-        records to submit in `self.summary_locations` and `self.summary_reports`.
+        records to submit in `self.summary_locations` and `self.summary_clinicals`.
 
         `self.summary_locations` is only needed once.
 
@@ -101,16 +106,16 @@ class IDPH(base.BaseETL):
                 return
 
             for county in data["characteristics_by_county"]["values"]:
-                summary_location, summary_report = self.parse_county(
+                summary_location, summary_clinical = self.parse_county(
                     date, state, county
                 )
 
                 self.summary_locations.append(summary_location)
-                self.summary_reports.append(summary_report)
+                self.summary_clinicals.append(summary_clinical)
 
             for illinois_data in data["state_testing_results"]["values"]:
                 illinois_historic_data = self.parse_historical_data(illinois_data)
-                self.summary_reports.append(illinois_historic_data)
+                self.summary_clinicals.append(illinois_historic_data)
 
     def parse_historical_data(self, illinois_data):
         country = "US"
@@ -125,19 +130,19 @@ class IDPH(base.BaseETL):
             country, state, county
         )
 
-        summary_report_submitter_id = format_summary_report_submitter_id(
+        summary_clinical_submitter_id = format_summary_clinical_submitter_id(
             summary_location_submitter_id, date
         )
-        summary_report = {
+        summary_clinical = {
             "confirmed": illinois_data["confirmed_cases"],
-            "submitter_id": summary_report_submitter_id,
+            "submitter_id": summary_clinical_submitter_id,
             "testing": illinois_data["total_tested"],
             "date": date,
             "deaths": illinois_data["deaths"],
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
 
-        return summary_report
+        return summary_clinical
 
     def parse_county(self, date, state, county_json):
         """
@@ -171,12 +176,12 @@ class IDPH(base.BaseETL):
             if county_json["lon"] != 0:
                 summary_location["longitude"] = str(county_json["lon"])
 
-        summary_report_submitter_id = format_summary_report_submitter_id(
+        summary_clinical_submitter_id = format_summary_clinical_submitter_id(
             summary_location_submitter_id, date
         )
-        summary_report = {
+        summary_clinical = {
             "confirmed": county_json["confirmed_cases"],
-            "submitter_id": summary_report_submitter_id,
+            "submitter_id": summary_clinical_submitter_id,
             "testing": county_json["total_tested"],
             "date": date,
             "deaths": county_json["deaths"],
@@ -184,9 +189,9 @@ class IDPH(base.BaseETL):
         }
 
         if "negative" in county_json:
-            summary_report["negative"] = county_json["negative"]
+            summary_clinical["negative"] = county_json["negative"]
 
-        return summary_location, summary_report
+        return summary_location, summary_clinical
 
     def get_date(self, county_json):
         """
@@ -198,7 +203,7 @@ class IDPH(base.BaseETL):
 
     def submit_metadata(self):
         """
-        Submits the data in `self.summary_locations` and `self.summary_reports` to Sheepdog.
+        Submits the data in `self.summary_locations` and `self.summary_clinicals` to Sheepdog.
         """
 
         print("Submitting data")
@@ -210,9 +215,9 @@ class IDPH(base.BaseETL):
             self.metadata_helper.add_record_to_submit(loc_record)
         self.metadata_helper.batch_submit_records()
 
-        print("Submitting summary_report data")
-        for rep in self.summary_reports:
-            rep_record = {"type": "summary_report"}
-            rep_record.update(rep)
-            self.metadata_helper.add_record_to_submit(rep_record)
+        print("Submitting summary_clinical data")
+        for sc in self.summary_clinicals:
+            sc_record = {"type": "summary_clinical"}
+            sc_record.update(sc)
+            self.metadata_helper.add_record_to_submit(sc_record)
         self.metadata_helper.batch_submit_records()

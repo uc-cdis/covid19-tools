@@ -36,9 +36,9 @@ def get_unified_date_format(date):
     return "-".join((year, month, day))
 
 
-def format_report_submitter_id(location_submitter_id, date):
-    """summary_report_<country>_<province>_<county>_<date>"""
-    sub_id = location_submitter_id.replace("summary_location", "summary_report")
+def format_summary_clinical_submitter_id(location_submitter_id, date):
+    """summary_clinical_<country>_<province>_<county>_<date>"""
+    sub_id = location_submitter_id.replace("summary_location", "summary_clinical")
     return "{}_{}".format(sub_id, date)
 
 
@@ -205,7 +205,7 @@ class JHU(base.BaseETL):
                     self.location_data[location_submitter_id] = location
 
                 for date, value in date_to_value.items():
-                    date_submitter_id = format_report_submitter_id(
+                    date_submitter_id = format_summary_clinical_submitter_id(
                         location_submitter_id, date
                     )
                     # do not re-submit time_series data that already exist
@@ -314,12 +314,14 @@ class JHU(base.BaseETL):
             self.metadata_helper.add_record_to_submit(record)
         self.metadata_helper.batch_submit_records()
 
-        print("Submitting summary_report data")
+        print("Submitting summary_clinical data")
         for location_submitter_id, time_series in self.time_series_data.items():
             for date, data in time_series.items():
-                submitter_id = format_report_submitter_id(location_submitter_id, date)
+                submitter_id = format_summary_clinical_submitter_id(
+                    location_submitter_id, date
+                )
                 record = {
-                    "type": "summary_report",
+                    "type": "summary_clinical",
                     "submitter_id": submitter_id,
                     "summary_locations": [{"submitter_id": location_submitter_id}],
                     "date": format_time_series_date(date),
