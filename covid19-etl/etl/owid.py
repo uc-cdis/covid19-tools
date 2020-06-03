@@ -28,9 +28,9 @@ def format_location_submitter_id(in_json):
     return submitter_id.strip("-")
 
 
-def format_summary_report_submitter_id(location_submitter_id, test_type, date):
+def format_summary_clinical_submitter_id(location_submitter_id, test_type, date):
     return "{}_{}_{}".format(
-        location_submitter_id.replace("summary_location_", "summary_report_"), test_type, date
+        location_submitter_id.replace("summary_location_", "summary_clinical_"), test_type, date
     )
 
 
@@ -44,7 +44,7 @@ class OWID(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
         self.summary_locations = []
-        self.summary_reports = []
+        self.summary_clinicals = []
 
         self.program_name = "open"
         self.project_code = "OWID"
@@ -60,14 +60,14 @@ class OWID(base.BaseETL):
         testing_fields = [
             ("ISO code", ("summary_location", "iso3", str)),
             ("Entity", (None, None, split_entity)),
-            ("Date", ("summary_report", "date", str)),
-            ("Source URL", ("summary_report", "source_url", str)),
+            ("Date", ("summary_clinical", "date", str)),
+            ("Source URL", ("summary_clinical", "source_url", str)),
             ("Source label", (None, None, None)),
             ("Notes", (None, None, None)),
             ("Number of observations", (None, None, None)),
-            ("Cumulative total", ("summary_report", "testing", int)),
+            ("Cumulative total", ("summary_clinical", "testing", int)),
             ("Cumulative total per thousand", (None, None, None)),
-            ("Daily change in cumulative total", ("summary_report", "totalTestResultsIncrease", int)),
+            ("Daily change in cumulative total", ("summary_clinical", "totalTestResultsIncrease", int)),
             ("Daily change in cumulative total per thousand", (None, None, None)),
             ("7-day smoothed daily change", (None, None, None)),
             ("7-day smoothed daily change per thousand", (None, None, None)),
@@ -107,49 +107,49 @@ class OWID(base.BaseETL):
             )
 
             for row in reader:
-                summary_location, summary_report = self.parse_row(
+                summary_location, summary_clinical = self.parse_row(
                     row, self.headers_mapping
                 )
 
                 if summary_location not in self.summary_locations:
                     self.summary_locations.append(summary_location)
-                self.summary_reports.append(summary_report)
+                self.summary_clinicals.append(summary_clinical)
 
     def parse_row(self, row, mapping):
         summary_location = {}
-        summary_report = {}
+        summary_clinical = {}
 
         for k, (i, (node_type, node_field, type_conv)) in mapping.items():
             if k == "Entity":
                 country, test_type = split_entity(row[i])
                 summary_location["country_region"] = country
-                summary_report["test_type"] = test_type
+                summary_clinical["test_type"] = test_type
             if node_field:
                 value = row[i]
                 if value:
                     if node_type == "summary_location":
                         summary_location[node_field] = type_conv(value)
-                    if node_type == "summary_report":
+                    if node_type == "summary_clinical":
                         if type_conv == int:
-                            summary_report[node_field] = type_conv(float(value))
+                            summary_clinical[node_field] = type_conv(float(value))
                         else:
-                            summary_report[node_field] = type_conv(value)
+                            summary_clinical[node_field] = type_conv(value)
 
         summary_location_submitter_id = format_location_submitter_id(summary_location)
 
         summary_location["submitter_id"] = summary_location_submitter_id
         summary_location["projects"] = [{"code": self.project_code}]
 
-        summary_report["submitter_id"] = format_summary_report_submitter_id(
+        summary_clinical["submitter_id"] = format_summary_clinical_submitter_id(
             summary_location_submitter_id,
-            test_type=summary_report["test_type"],
+            test_type=summary_clinical["test_type"],
             date=datetime.date.today().strftime("%Y-%m-%d"),
         )
-        summary_report["summary_locations"] = [
+        summary_clinical["summary_locations"] = [
             {"submitter_id": summary_location_submitter_id}
         ]
 
-        return summary_location, summary_report
+        return summary_location, summary_clinical
 
     def submit_metadata(self):
         print("Submitting summary_location data")
@@ -159,9 +159,9 @@ class OWID(base.BaseETL):
             self.metadata_helper.add_record_to_submit(loc_record)
         self.metadata_helper.batch_submit_records()
 
-        print("Submitting summary_report data")
-        for rep in self.summary_reports:
-            rep_record = {"type": "summary_report"}
+        print("Submitting summary_clinical data")
+        for rep in self.summary_clinicals:
+            rep_record = {"type": "summary_clinical"}
             rep_record.update(rep)
             self.metadata_helper.add_record_to_submit(rep_record)
         self.metadata_helper.batch_submit_records()
