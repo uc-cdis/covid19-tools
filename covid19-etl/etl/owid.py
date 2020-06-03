@@ -30,7 +30,9 @@ def format_location_submitter_id(in_json):
 
 def format_summary_clinical_submitter_id(location_submitter_id, test_type, date):
     return "{}_{}_{}".format(
-        location_submitter_id.replace("summary_location_", "summary_clinical_"), test_type, date
+        location_submitter_id.replace("summary_location_", "summary_clinical_"),
+        test_type,
+        date,
     )
 
 
@@ -67,7 +69,10 @@ class OWID(base.BaseETL):
             ("Number of observations", (None, None, None)),
             ("Cumulative total", ("summary_clinical", "testing", int)),
             ("Cumulative total per thousand", (None, None, None)),
-            ("Daily change in cumulative total", ("summary_clinical", "totalTestResultsIncrease", int)),
+            (
+                "Daily change in cumulative total",
+                ("summary_clinical", "totalTestResultsIncrease", int),
+            ),
             ("Daily change in cumulative total per thousand", (None, None, None)),
             ("7-day smoothed daily change", (None, None, None)),
             ("7-day smoothed daily change per thousand", (None, None, None)),
@@ -77,7 +82,9 @@ class OWID(base.BaseETL):
             ("Detailed description", (None, None, None)),
         ]
 
-        self.headers_mapping = {field: (k, mapping) for k, (field, mapping) in enumerate(testing_fields)}
+        self.headers_mapping = {
+            field: (k, mapping) for k, (field, mapping) in enumerate(testing_fields)
+        }
 
     def files_to_submissions(self):
         """
