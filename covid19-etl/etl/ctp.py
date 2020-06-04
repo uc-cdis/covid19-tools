@@ -115,13 +115,19 @@ class CTP(base.BaseETL):
                 expected_h, obtained_h
             )
 
-            for row in reader:
-                summary_location, summary_clinical = self.parse_row(headers, row)
+            summary_location_list = []
 
-                self.summary_locations.append(summary_location)
+            for row in reader:
+                summary_location, summary_clinical = self.parse_row(row)
+
+                summary_location_submitter_id = summary_location["submitter_id"]
+                if summary_location_submitter_id not in summary_location_list:
+                    self.summary_locations.append(summary_location)
+                    summary_location_list.append(summary_location_submitter_id)
+
                 self.summary_clinicals.append(summary_clinical)
 
-    def parse_row(self, headers, row):
+    def parse_row(self, row):
         """
         Converts a row of a CSV file to data we can submit via Sheepdog
 
@@ -189,11 +195,11 @@ class CTP(base.BaseETL):
         # Commented
         # Only required for one time submission of summary_location
         print("Submitting summary_location data")
-        # for loc in self.summary_locations:
-        #     loc_record = {"type": "summary_location"}
-        #     loc_record.update(loc)
-        #     self.metadata_helper.add_record_to_submit(loc_record)
-        # self.metadata_helper.batch_submit_records()
+        for loc in self.summary_locations:
+            loc_record = {"type": "summary_location"}
+            loc_record.update(loc)
+            self.metadata_helper.add_record_to_submit(loc_record)
+        self.metadata_helper.batch_submit_records()
 
         # print("Submitting summary_clinical data")
         for sc in self.summary_clinicals:
