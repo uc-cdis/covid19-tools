@@ -134,8 +134,6 @@ class JHU(base.BaseETL):
         """
         Reads CSV files and converts the data to Sheepdog records
         """
-        # self.metadata_helper.delete_tmp()  # TODO remove
-        # return
         urls = {
             "global": {
                 "confirmed": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
