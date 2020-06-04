@@ -45,7 +45,7 @@ class MetadataHelper:
         try:
             query_res = json.loads(response.text)
         except:
-            print("Peregrine did not return JSON")
+            print(f"Peregrine did not return JSON: {response.text}")
             raise
         json_res = {
             location["submitter_id"]: []
@@ -70,7 +70,7 @@ class MetadataHelper:
                     + str(first)
                     + ", offset: "
                     + str(offset)
-                    + ', order_by_desc: "date", project_id: "'
+                    + ', project_id: "'
                     + self.project_id
                     + '") { submitter_id } }'
                 )
@@ -85,7 +85,7 @@ class MetadataHelper:
                     try:
                         query_res = json.loads(response.text)
                     except:
-                        print("Peregrine did not return JSON")
+                        print(f"Peregrine did not return JSON: {response.text}")
                 else:
                     print(
                         "    Unable to query Peregrine for existing 'summary_clinical' data: {}\n{}".format(
@@ -141,7 +141,7 @@ class MetadataHelper:
         try:
             query_res = json.loads(response.text)
         except:
-            print("Peregrine did not return JSON")
+            print(f"Peregrine did not return JSON: {response.text}")
             raise
 
         if len(query_res["data"]["summary_clinical"]) < 1:
