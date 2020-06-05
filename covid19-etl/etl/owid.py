@@ -68,14 +68,34 @@ class OWID(base.BaseETL):
             ("Notes", ("summary_clinical", "notes", str)),
             ("Number of observations", ("summary_clinical", "num_observations", int)),
             ("Cumulative total", ("summary_clinical", "cumulative_total", int)),
-            ("Cumulative total per thousand", ("summary_clinical", "cumulative_total_per_thousand", int)),
+            (
+                "Cumulative total per thousand",
+                ("summary_clinical", "cumulative_total_per_thousand", int),
+            ),
             (
                 "Daily change in cumulative total",
                 ("summary_clinical", "daily_change_in_cumulative_total", int),
             ),
-            ("Daily change in cumulative total per thousand", ("summary_clinical", "daily_change_in_cumulative_total_per_thousand", int)),
-            ("7-day smoothed daily change", ("summary_clinical", "seven_day_smoothed_daily_change", int)),
-            ("7-day smoothed daily change per thousand", ("summary_clinical", "seven_day_smoothed_daily_change_per_thousand", float)),
+            (
+                "Daily change in cumulative total per thousand",
+                (
+                    "summary_clinical",
+                    "daily_change_in_cumulative_total_per_thousand",
+                    int,
+                ),
+            ),
+            (
+                "7-day smoothed daily change",
+                ("summary_clinical", "seven_day_smoothed_daily_change", int),
+            ),
+            (
+                "7-day smoothed daily change per thousand",
+                (
+                    "summary_clinical",
+                    "seven_day_smoothed_daily_change_per_thousand",
+                    float,
+                ),
+            ),
             ("General source label", ("summary_clinical", "general_source_label", str)),
             ("General source URL", ("summary_clinical", "general_source_url", str)),
             ("Short description", ("summary_clinical", "short_description", str)),
