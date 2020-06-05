@@ -1,11 +1,14 @@
-import datetime
-import re
 from contextlib import closing
-
+import datetime
+import os
+import re
 import requests
 
 from etl import base
 from helper.metadata_helper import MetadataHelper
+
+
+CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 def format_summary_location_submitter_id(
@@ -24,9 +27,9 @@ def format_summary_location_submitter_id(
     return submitter_id.strip("-")
 
 
-def format_summary_report_submitter_id(location_submitter_id, date):
+def format_summary_clinical_submitter_id(location_submitter_id, date):
     return "{}_{}".format(
-        location_submitter_id.replace("summary_location_", "summary_report_"), date
+        location_submitter_id.replace("summary_location_", "summary_clinical_"), date
     )
 
 
@@ -59,11 +62,13 @@ class IDPH_ZIPCODE(base.BaseETL):
         self.il_counties()
 
         self.summary_locations = []
-        self.summary_reports = []
+        self.summary_clinicals = []
         self.summary_demographics = []
 
     def il_counties(self):
-        with open("etl/data/IL_counties_central_coords_lat_long.tsv") as f:
+        with open(
+            os.path.join(CURRENT_DIR, "data/IL_counties_central_coords_lat_long.tsv")
+        ) as f:
             counties = f.readlines()
             counties = counties[1:]
             counties = map(lambda l: l.strip().split("\t"), counties)
@@ -91,7 +96,7 @@ class IDPH_ZIPCODE(base.BaseETL):
     def parse_file(self, latest_submitted_date, state, url):
         """
         Converts a JSON files to data we can submit via Sheepdog. Stores the
-        records to submit in `self.summary_locations` and `self.summary_reports`.
+        records to submit in `self.summary_locations` and `self.summary_clinicals`.
 
         `self.summary_locations` is only needed once.
 
@@ -115,12 +120,12 @@ class IDPH_ZIPCODE(base.BaseETL):
             for zipcode_values in data["zip_values"]:
                 (
                     summary_location,
-                    summary_report,
+                    summary_clinical,
                     summary_demographic,
                 ) = self.parse_zipcode(date, state, zipcode_values)
 
                 self.summary_locations.append(summary_location)
-                self.summary_reports.append(summary_report)
+                self.summary_clinicals.append(summary_clinical)
                 self.summary_demographics.append(summary_demographic)
 
     def parse_zipcode(self, date, state, zipcode_values):
@@ -142,12 +147,12 @@ class IDPH_ZIPCODE(base.BaseETL):
             "zipcode": zipcode,
         }
 
-        summary_report_submitter_id = format_summary_report_submitter_id(
+        summary_clinical_submitter_id = format_summary_clinical_submitter_id(
             summary_location_submitter_id, date
         )
-        summary_report = {
+        summary_clinical = {
             "confirmed": zipcode_values["confirmed_cases"],
-            "submitter_id": summary_report_submitter_id,
+            "submitter_id": summary_clinical_submitter_id,
             "date": date,
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
@@ -206,7 +211,7 @@ class IDPH_ZIPCODE(base.BaseETL):
                 if dst_field:
                     summary_demographic[mapping[item[field]]] = item["count"]
 
-        return summary_location, summary_report, summary_demographic
+        return summary_location, summary_clinical, summary_demographic
 
     def get_date(self, county_json):
         """
@@ -225,9 +230,9 @@ class IDPH_ZIPCODE(base.BaseETL):
             self.metadata_helper.add_record_to_submit(loc_record)
         self.metadata_helper.batch_submit_records()
 
-        print("Submitting summary_report data")
-        for rep in self.summary_reports:
-            rep_record = {"type": "summary_report"}
-            rep_record.update(rep)
-            self.metadata_helper.add_record_to_submit(rep_record)
+        print("Submitting summary_clinical data")
+        for sc in self.summary_clinicals:
+            sc_record = {"type": "summary_clinical"}
+            sc_record.update(sc)
+            self.metadata_helper.add_record_to_submit(sc_record)
         self.metadata_helper.batch_submit_records()

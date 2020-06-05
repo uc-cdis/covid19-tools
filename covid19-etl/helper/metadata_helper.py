@@ -45,16 +45,16 @@ class MetadataHelper:
         try:
             query_res = json.loads(response.text)
         except:
-            print("Peregrine did not return JSON")
+            print(f"Peregrine did not return JSON: {response.text}")
             raise
         json_res = {
             location["submitter_id"]: []
             for location in query_res["data"]["summary_location"]
         }
 
-        print("  summary_report data...")
+        print("  summary_clinical data...")
 
-        summary_reports = []
+        summary_clinicals = []
         data = None
         offset = 0
         first = 50000
@@ -66,11 +66,11 @@ class MetadataHelper:
                     "    Getting first {} records with offset: {}".format(first, offset)
                 )
                 query_string = (
-                    "{ summary_report (first: "
+                    "{ summary_clinical (first: "
                     + str(first)
                     + ", offset: "
                     + str(offset)
-                    + ', order_by_desc: "date", project_id: "'
+                    + ', project_id: "'
                     + self.project_id
                     + '") { submitter_id } }'
                 )
@@ -85,17 +85,17 @@ class MetadataHelper:
                     try:
                         query_res = json.loads(response.text)
                     except:
-                        print("Peregrine did not return JSON")
+                        print(f"Peregrine did not return JSON: {response.text}")
                 else:
                     print(
-                        "    Unable to query Peregrine for existing 'summary_report' data: {}\n{}".format(
+                        "    Unable to query Peregrine for existing 'summary_clinical' data: {}\n{}".format(
                             response.status_code, response.text
                         )
                     )
 
                 if query_res:
-                    data = query_res["data"]["summary_report"]
-                    summary_reports.extend(data)
+                    data = query_res["data"]["summary_clinical"]
+                    summary_clinicals.extend(data)
                     offset += first
                     break
                 else:
@@ -104,27 +104,27 @@ class MetadataHelper:
                     sleep(2)  # wait 2 seconds - can change to exponential backoff later
             assert (
                 tries < max_retries
-            ), "    Unable to query Peregrine for existing 'summary_report' data"
+            ), "    Unable to query Peregrine for existing 'summary_clinical' data"
 
-        for report in summary_reports:
-            report_id = report["submitter_id"]
-            location_id = report_id.replace("summary_report", "summary_location")
+        for sc in summary_clinicals:
+            sc_id = sc["submitter_id"]
+            location_id = sc_id.replace("summary_clinical", "summary_location")
             location_id = "_".join(location_id.split("_")[:-1])  # remove the date
-            json_res[location_id].append(report_id)
+            json_res[location_id].append(sc_id)
 
         return json_res
 
     def get_latest_submitted_date_idph(self):
         """
-        Queries Peregrine for the existing `summary_report` data.
+        Queries Peregrine for the existing `summary_clinical` data.
 
-        { summary_report (first: 1, project_id: <...>) { date } }
+        { summary_clinical (first: 1, project_id: <...>) { date } }
 
         Returns the latest submitted date as Python "datetime.date"
         """
         print("Getting latest date from Peregrine...")
         query_string = (
-            '{ summary_report (first: 1, order_by_desc: "date", project_id: "'
+            '{ summary_clinical (first: 1, order_by_desc: "date", project_id: "'
             + self.project_id
             + '") { submitter_id date } }'
         )
@@ -141,14 +141,14 @@ class MetadataHelper:
         try:
             query_res = json.loads(response.text)
         except:
-            print("Peregrine did not return JSON")
+            print(f"Peregrine did not return JSON: {response.text}")
             raise
 
-        if len(query_res["data"]["summary_report"]) < 1:
+        if len(query_res["data"]["summary_clinical"]) < 1:
             return None
 
-        report = query_res["data"]["summary_report"][0]
-        latest_submitted_date = datetime.datetime.strptime(report["date"], "%Y-%m-%d")
+        sc = query_res["data"]["summary_clinical"][0]
+        latest_submitted_date = datetime.datetime.strptime(sc["date"], "%Y-%m-%d")
         return latest_submitted_date.date()
 
     def add_record_to_submit(self, record):
