@@ -23,54 +23,47 @@ def format_demographic_submitter_id(subject_submitter_id):
 def normalize_current_status(status):
     normalized = {
         "?": None,
-        "Alive": "alive",
-        "Clinically Stable": "stable",
+        "alive": "alive",
+        "clinically stable": "stable",
         "critical condition": "critical",
-        "Critical condition": "critical",
-        "Dead": "deceased",
-        "Death": "deceased",
-        "Deceased": "deceased",
+        "dead": "deceased",
+        "death": "deceased",
         "deceased": "deceased",
-        "Died": "deceased",
-        "In recovery": "in recovery",
-        "In treatment": "in treatment",
-        "NA": None,
-        "Pos": "positive",
-        "Receiving Treatment": "in treatment",
-        "Recovered": "recovered",
+        "died": "deceased",
+        "in recovery": "in recovery",
+        "in treatment": "in treatment",
+        "na": None,
+        "pos": "positive",
+        "receiving treatment": "in treatment",
         "recovered": "recovered",
-        "Recovered (3/19/2020)": "recovered",
-        "Stable": "stable",
-        " Stable": "stable",
+        "recovered (3/19/2020)": "recovered",
+        "stable": "stable",
         "stable condition": "stable",
-        "Tested Negative and hence is not considered as a case anymore": None,
-        "Under treatment": "in treatment",
-        "unstable": "unstable",
+        "tested negative and hence is not considered as a case anymore": None,
+        "under treatment": "in treatment",
+        "unstable": "Unstable",
     }
 
-    return normalized[status]
+    return normalized[status.lower().strip()]
 
 
 def normalize_symptoms(symptoms):
     normalized = {
         "acute pneumonia": "pneumonia",
-        "Asymptomatic": "asymptomatic",
+        "asymptomatic": "asymptomatic",
         "breathing complications": "trouble breathing",
         "chest pain": "persistent pain or pressure in the chest",
         "cold": "fever* or feeling feverish/chills",
-        "Cold": "fever* or feeling feverish/chills",
-        "Cough Fever": "cough",
+        "cough Fever": "cough",
         "cough": "cough",
-        "Cough": "cough",
-        "COVID-19 related symptoms": "COVID-19 related symptoms",
+        "covid-19 related symptoms": "COVID-19 related symptoms",
         "fever and aches and headache": "fever or feeling feverish/chills",
         "fever": "fever or feeling feverish/chills",
-        "Fever": "fever or feeling feverish/chills",
-        "Mild to moderate": "mild to moderate",
+        "mild to moderate": "mild to moderate",
         "muscle pain": "muscle or body aches",
-        "NA": "no data",
+        "na": "no data",
         "rhinorrhea": "runny or stuffy nose",
-        "Severe": "severe",
+        "severe": "severe",
         "sneezing": "sneezing",
         "tired": "fatigue (tiredness)",
     }
@@ -79,8 +72,10 @@ def normalize_symptoms(symptoms):
 
     result = []
     for symptom in list_of_symptoms:
-        if symptom.strip() in normalized:
-            result.append(normalized[symptom.strip()])
+        symptom = symptom.lower().strip()
+        if symptom in normalized:
+            result.append(normalized[symptom])
+
     return result
 
 
@@ -89,7 +84,7 @@ def normalize_date(d):
         return None
 
     parsed_date = None
-    for fmt in ("%Y/%m/%d", "%Y-%m-%d", "%d-%m-%y", "%m/%d/%Y", "%d/%m/%Y", "%d-%b-%y"):
+    for fmt in ("%Y/%m/%d", "%Y-%m-%d", "%d-%m-%y", "%m/%d/%Y", "%d-%b-%y"):
         try:
             parsed_date = datetime.datetime.strptime(d, fmt)
         except ValueError:
