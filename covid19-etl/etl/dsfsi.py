@@ -41,7 +41,7 @@ def normalize_current_status(status):
         "stable condition": "stable",
         "tested negative and hence is not considered as a case anymore": None,
         "under treatment": "in treatment",
-        "unstable": "Unstable",
+        "unstable": "unstable",
     }
 
     return normalized[status.lower().strip()]
@@ -99,7 +99,6 @@ def normalize_date(d):
 def normalize_condition(condition):
     normalized = {
         "NA": None,
-        "was treated for unspecified underlying condition": None,
     }
 
     norm = normalized.get(condition, condition)
