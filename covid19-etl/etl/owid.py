@@ -29,11 +29,14 @@ def format_location_submitter_id(in_json):
 
 
 def format_summary_clinical_submitter_id(location_submitter_id, test_type, date):
-    return "{}_{}_{}".format(
+    submitter_id = "{}_{}_{}".format(
         location_submitter_id.replace("summary_location_", "summary_clinical_"),
         test_type,
         date,
     )
+    submitter_id = submitter_id.lower()
+    submitter_id = re.sub("[^a-z0-9-_]+", "-", submitter_id)
+    return submitter_id
 
 
 def split_entity(entity):
