@@ -36,6 +36,10 @@ The ETL for Kaggle dataset from [here](https://www.kaggle.com/kimjihoo/coronavir
 
 The ETL for Kaggle dataset from [here](https://www.kaggle.com/ardisragen/indonesia-coronavirus-cases?select=patient.csv).
 
+### DSFSI ([Jira](https://occ-data.atlassian.net/browse/COV-172))
+
+The ETL for dataset from [here](https://github.com/dsfsi/covid19africa/tree/master/data/line_lists).
+
 ### OWID ([Jira](https://occ-data.atlassian.net/browse/COV-192))
 
 The ETL for OWID dataset for number of testing from [here](https://github.com/owid/covid-19-data/tree/master/public/data/testing).
