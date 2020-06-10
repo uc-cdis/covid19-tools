@@ -1,17 +1,17 @@
-Insert brief model description and explanations of each plot here.
-
 # Model Summary
+
+
 
 Objectives; Assumptions; Scope; Limitations;
 Inputs; Outputs; Methods;
 
-todo
+(still todo)
 
 # Visualization Descriptions
 
 - `Rt_June_1.png` : June 1st estimates of Rt for the five IL counties most impacted by COVID-19.
 
-- `Cook/Rt.png` : 
+- `Cook/Rt.png` : Step-wise estimate of Rt; initial Rt is estimated using mortality data from the beginning of the outbreak. Rt drops on March 21st, the first day of lockdown, to just above 1 and remains there for the duration of lockdown.
 
 - `Cook/cases.png` : Here we plot daily case counts over time, where the gray bars are reported cases and the blue curve traces the estimated number of true (i.e., reported and not-reported) cases. The darker and lighter shaded regions correspond to 50% and 95% posterior credible intervals, respectively. The sharp decrease in estimated true cases in the third week of March results from a similarly sharp decrease in estimated Rt at that same time due to the Illinois statewide lockdown intervention being put in place on March 21st. 
 
@@ -22,8 +22,6 @@ todo
 - `Cook/deathsForecast.png` : Here we plot observed and modeled daily deaths on a log10 scale and forecast 7 days beyond June 1st, the date of the last observation. We note that the curve bends downward approximately 2-3 weeks after March 21st, the first day of lockdown in Illinois, but still maintains a slightly positive slope thereafter, indicating that lockdown in Cook County reduced Rt but not to less than 1.
 
 ## Notes to self
-
-1-2 sentences per
 
 I'm writing descriptions specifically for Cook County - we have the same visualizations for
 the other counties, but not all of them exhibit exactly the same trends.
