@@ -17,7 +17,7 @@ todo
 
 - `Cook/casesForecast.png` : Here we plot reported cases and estimated true cases on a log10 scale and forecast 7 days beyond June 1st, the date of the last observation. We note that leading up to March 21st, the first day of lockdown in Illinois, there were no measures put in place to control the spread of COVID-19, and so the reported and estimated cases in that time period are seen to be increasing at a relatively high rate. The rate of change of modeled case counts sharply decreases and restabilizes around March 21st in response to a corresponding drop in Rt resulting from beginning the lockdown intervention at that time. Moving forward from early April we observe that the rate of change of reported and estimated true cases is still positive but very close to zero, indicating that Rt in this time period is greater than but very close 1.
 
-- `Cook/deaths.png` : (edit) Here we plot daily death counts over time, where the gray bars are reported deaths and the blue curve represents modeled death counts. The darker and lighter shaded regions correspond to 50% and 95% posterior credible intervals, respectively. 
+- `Cook/deaths.png` : Here we plot daily death counts over time, where the gray bars are observed deaths and the blue curve represents modeled death counts.
 
 - `Cook/deathsForecast.png` : (edit) Here we plot observed and modeled daily deaths on a log10 scale and forecast 7 days beyond June 1st, the date of the last observation. We note that the curve bends downward approximately 2-3 weeks after March 21st, the first day of lockdown in Illinois, indicating that the lockdown intervention successfully slowed the spread of COVID-19 in this county.
 
