@@ -278,11 +278,7 @@ class CCMAP(base.BaseETL):
         """
         api_url = "https://api.github.com/repos"
         commit_info_url = "{}/{}/{}{}{}".format(
-            api_url,
-            repo,
-            "commits?path=",
-            url,
-            "&page=1&per_page=1"
+            api_url, repo, "commits?path=", url, "&page=1&per_page=1"
         )
 
         with closing(requests.get(commit_info_url, stream=True)) as r:
@@ -295,12 +291,7 @@ class CCMAP(base.BaseETL):
         last_update_date = self.get_last_update_date_file(repo, file_url)
 
         raw_url = "https://raw.githubusercontent.com"
-        url = "{}/{}/{}/{}".format(
-            raw_url,
-            repo,
-            branch,
-            file_url,
-        )
+        url = "{}/{}/{}/{}".format(raw_url, repo, branch, file_url,)
 
         print("Getting data from {}".format(url))
         with closing(requests.get(url, stream=True)) as r:
@@ -355,8 +346,7 @@ class CCMAP(base.BaseETL):
             summary_location["province_state"] = state_to_long(state)
 
         summary_clinical["submitter_id"] = format_summary_clinical_submitter_id(
-            summary_location_submitter_id,
-            date=last_update_date.strftime("%Y-%m-%d"),
+            summary_location_submitter_id, date=last_update_date.strftime("%Y-%m-%d"),
         )
         summary_clinical["summary_locations"] = [
             {"submitter_id": summary_location_submitter_id}
