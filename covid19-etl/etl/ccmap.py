@@ -34,6 +34,65 @@ def format_summary_clinical_submitter_id(location_submitter_id, date):
     )
 
 
+def state_to_long(state):
+    short_to_long = {
+        "AK": "Alaska",
+        "AL": "Alabama",
+        "AR": "Arkansas",
+        "AZ": "Arizona",
+        "CA": "California",
+        "CO": "Colorado",
+        "CT": "Connecticut",
+        "DC": "District of Columbia",
+        "DE": "Delaware",
+        "FL": "Florida",
+        "GA": "Georgia",
+        "HI": "Hawaii",
+        "IA": "Iowa",
+        "ID": "Idaho",
+        "IL": "Illinois",
+        "IN": "Indiana",
+        "KS": "Kansas",
+        "KY": "Kentucky",
+        "LA": "Louisiana",
+        "MA": "Massachusetts",
+        "MD": "Maryland",
+        "ME": "Maine",
+        "MI": "Michigan",
+        "MN": "Minnesota",
+        "MO": "Missouri",
+        "MS": "Mississippi",
+        "MT": "Montana",
+        "NC": "North Carolina",
+        "ND": "North Dakota",
+        "NE": "Nebraska",
+        "NH": "New Hampshire",
+        "NJ": "New Jersey",
+        "NM": "New Mexico",
+        "NV": "Nevada",
+        "NY": "New York",
+        "OH": "Ohio",
+        "OK": "Oklahoma",
+        "OR": "Oregon",
+        "PA": "Pennsylvania",
+        "PR": "Puerto Rico",
+        "RI": "Rhode Island",
+        "SC": "South Carolina",
+        "SD": "South Dakota",
+        "TN": "Tennessee",
+        "TX": "Texas",
+        "UT": "Utah",
+        "VA": "Virginia",
+        "VT": "Vermont",
+        "WA": "Washington",
+        "WI": "Wisconsin",
+        "WV": "West Virginia",
+        "WY": "Wyoming",
+    }
+
+    return short_to_long[state]
+
+
 class CCMAP(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
@@ -199,15 +258,41 @@ class CCMAP(base.BaseETL):
         """
         Reads CSV files and converts the data to Sheepdog records
         """
-        urls = {
-            "county": "https://raw.githubusercontent.com/covidcaremap/covid19-healthsystemcapacity/master/data/published/us_healthcare_capacity-county-CovidCareMap.csv",
-            "state": "https://raw.githubusercontent.com/covidcaremap/covid19-healthsystemcapacity/master/data/published/us_healthcare_capacity-state-CovidCareMap.csv",
+        repo = "covidcaremap/covid19-healthsystemcapacity"
+        branch = "master"
+        files = {
+            "county": "data/published/us_healthcare_capacity-county-CovidCareMap.csv",
+            "state": "data/published/us_healthcare_capacity-state-CovidCareMap.csv",
         }
 
-        for k, url in urls.items():
-            self.parse_file(url, csv_type=k)
+        for k, url in files.items():
+            self.parse_file(repo, branch, url, csv_type=k)
 
-    def parse_file(self, url, csv_type):
+    def get_last_update_date_file(self, repo, url):
+        """
+        Gets latest update time for specific file in the repository
+
+        :param repo: "user/repository" for Github repository
+        :param url: path to file
+        :return: last update (commit) datetime for the file
+        """
+        api_url = "https://api.github.com/repos"
+        commit_info_url = "{}/{}/{}{}{}".format(
+            api_url, repo, "commits?path=", url, "&page=1&per_page=1"
+        )
+
+        with closing(requests.get(commit_info_url, stream=True)) as r:
+            commit_info = r.json()
+            last_update_date = commit_info[0]["commit"]["committer"]["date"]
+
+        return datetime.datetime.strptime(last_update_date, "%Y-%m-%dT%H:%M:%SZ")
+
+    def parse_file(self, repo, branch, file_url, csv_type):
+        last_update_date = self.get_last_update_date_file(repo, file_url)
+
+        raw_url = "https://raw.githubusercontent.com"
+        url = "{}/{}/{}/{}".format(raw_url, repo, branch, file_url,)
+
         print("Getting data from {}".format(url))
         with closing(requests.get(url, stream=True)) as r:
             f = (line.decode("utf-8") for line in r.iter_lines())
@@ -229,13 +314,13 @@ class CCMAP(base.BaseETL):
 
             for row in reader:
                 summary_location, summary_clinical = self.parse_row(
-                    row, self.headers_mapping[csv_type]
+                    row, self.headers_mapping[csv_type], last_update_date
                 )
 
                 self.summary_locations.append(summary_location)
                 self.summary_clinicals.append(summary_clinical)
 
-    def parse_row(self, row, mapping):
+    def parse_row(self, row, mapping, last_update_date):
         summary_location = {"country_region": "US"}
         summary_clinical = {}
 
@@ -256,9 +341,12 @@ class CCMAP(base.BaseETL):
         summary_location["submitter_id"] = summary_location_submitter_id
         summary_location["projects"] = [{"code": self.project_code}]
 
+        state = summary_location["province_state"]
+        if len(state) == 2:
+            summary_location["province_state"] = state_to_long(state)
+
         summary_clinical["submitter_id"] = format_summary_clinical_submitter_id(
-            summary_location_submitter_id,
-            date=datetime.date.today().strftime("%Y-%m-%d"),
+            summary_location_submitter_id, date=last_update_date.strftime("%Y-%m-%d"),
         )
         summary_clinical["summary_locations"] = [
             {"submitter_id": summary_location_submitter_id}
