@@ -5,7 +5,7 @@ Insert brief model description and explanations of each plot here.
 Objectives; Assumptions; Scope; Limitations;
 Inputs; Outputs; Methods;
 
-# Plot Summaries
+# Visualization Descriptions
 
 - `Rt_June_1.png` : desc1
 
@@ -19,6 +19,8 @@ Inputs; Outputs; Methods;
 
 - `Cook/deathsForecast.png` : Here we plot observed and modeled daily deaths on a log10 scale and forecast 7 days beyond June 1st, the date of the last observation. We note that the curve bends downward approximately 2-3 weeks after March 21st, the first day of lockdown in Illinois, indicating that the lockdown intervention successfully slowed the spread of COVID-19 in this county.
 
+## Notes to self
+
 1-2 sentences per
 
 I'm writing descriptions specifically for Cook County - we have the same visualizations for
@@ -27,6 +29,6 @@ For example, in some other counties the curve after lockdown actually has a nega
 (Rt < 1), whereas in Cook county the curves after lockdown still have slightly positive slope (log10)
 (mean Rt slightly bigger than 1).
 
-note:  
+
 date of IL lockdown: Saturday, March 21st, 2020  
 source: https://www.chicagotribune.com/coronavirus/ct-coronavirus-illinois-shelter-in-place-lockdown-order-20200320-teedakbfw5gvdgmnaxlel54hau-story.html
