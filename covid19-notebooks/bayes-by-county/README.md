@@ -9,9 +9,9 @@ todo
 
 # Visualization Descriptions
 
-- `Rt_June_1.png` : todo
+- `Rt_June_1.png` : June 1st estimates of Rt for the five IL counties most impacted by COVID-19.
 
-- `Cook/Rt.png` : todo
+- `Cook/Rt.png` : 
 
 - `Cook/cases.png` : Here we plot daily case counts over time, where the gray bars are reported cases and the blue curve traces the estimated number of true (i.e., reported and not-reported) cases. The darker and lighter shaded regions correspond to 50% and 95% posterior credible intervals, respectively. The sharp decrease in estimated true cases in the third week of March results from a similarly sharp decrease in estimated Rt at that same time due to the Illinois statewide lockdown intervention being put in place on March 21st. 
 
