@@ -19,7 +19,9 @@ todo
 
 - `Cook/deaths.png` : Here we plot daily death counts over time, where the gray bars are observed deaths and the blue curve represents modeled death counts.
 
-- `Cook/deathsForecast.png` : (edit) Here we plot observed and modeled daily deaths on a log10 scale and forecast 7 days beyond June 1st, the date of the last observation. We note that the curve bends downward approximately 2-3 weeks after March 21st, the first day of lockdown in Illinois, indicating that the lockdown intervention successfully slowed the spread of COVID-19 in this county.
+- `Cook/deathsForecast.png` : Here we plot observed and modeled daily deaths on a log10 scale and forecast 7 days beyond June 1st, the date of the last observation. We note that the curve bends downward approximately 2-3 weeks after March 21st, the first day of lockdown in Illinois, but still maintains a slightly positive slope thereafter, indicating that lockdown in Cook County reduced Rt but not to less than 1.
+
+indicating that the lockdown intervention successfully slowed the spread of COVID-19 in Cook County.
 
 ## Notes to self
 
