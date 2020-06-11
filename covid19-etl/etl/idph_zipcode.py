@@ -39,12 +39,6 @@ def format_summary_demographic_submitter_id(location_submitter_id, date):
     )
 
 
-def format_summary_demographic_submitter_id(location_submitter_id, date):
-    return "{}_{}".format(
-        location_submitter_id.replace("summary_location_", "summary_demographic_"), date
-    )
-
-
 class IDPH_ZIPCODE(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
@@ -63,7 +57,6 @@ class IDPH_ZIPCODE(base.BaseETL):
 
         self.summary_locations = []
         self.summary_clinicals = []
-        self.summary_demographics = []
 
     def il_counties(self):
         with open(
@@ -118,15 +111,12 @@ class IDPH_ZIPCODE(base.BaseETL):
                 return
 
             for zipcode_values in data["zip_values"]:
-                (
-                    summary_location,
-                    summary_clinical,
-                    summary_demographic,
-                ) = self.parse_zipcode(date, state, zipcode_values)
+                (summary_location, summary_clinical,) = self.parse_zipcode(
+                    date, state, zipcode_values
+                )
 
                 self.summary_locations.append(summary_location)
                 self.summary_clinicals.append(summary_clinical)
-                self.summary_demographics.append(summary_demographic)
 
     def parse_zipcode(self, date, state, zipcode_values):
         """
@@ -153,15 +143,6 @@ class IDPH_ZIPCODE(base.BaseETL):
         summary_clinical = {
             "confirmed": zipcode_values["confirmed_cases"],
             "submitter_id": summary_clinical_submitter_id,
-            "date": date,
-            "summary_locations": [{"submitter_id": summary_location_submitter_id}],
-        }
-
-        summary_demographic_submitter_id = format_summary_demographic_submitter_id(
-            summary_location_submitter_id, date
-        )
-        summary_demographic = {
-            "submitter_id": summary_demographic_submitter_id,
             "date": date,
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
@@ -201,17 +182,28 @@ class IDPH_ZIPCODE(base.BaseETL):
             "race": ("description", race_mapping),
         }
 
-        demographic = zipcode_values["demographics"]
+        if "demographics" in zipcode_values:
+            demographic = zipcode_values["demographics"]
 
-        for k, v in fields_mapping.items():
-            field, mapping = v
-            demographic_group = demographic[k]
-            for item in demographic_group:
-                dst_field = mapping[item[field]]
-                if dst_field:
-                    summary_demographic[mapping[item[field]]] = item["count"]
+            for k, v in fields_mapping.items():
+                field, mapping = v
+                demographic_group = demographic[k]
 
-        return summary_location, summary_clinical, summary_demographic
+                for item in demographic_group:
+                    dst_field = mapping[item[field]]
+                    if dst_field:
+                        if "count" in item:
+                            age_group_count_field = "{}_{}".format(
+                                mapping[item[field]], "count"
+                            )
+                            summary_clinical[age_group_count_field] = item["count"]
+                        if "tested" in item:
+                            age_group_tested_field = "{}_{}".format(
+                                mapping[item[field]], "tested"
+                            )
+                            summary_clinical[age_group_tested_field] = item["tested"]
+
+        return summary_location, summary_clinical
 
     def get_date(self, county_json):
         """
