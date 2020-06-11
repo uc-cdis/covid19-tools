@@ -63,14 +63,14 @@ class CTP(base.BaseETL):
             "death",
             "hospitalized",
             "dateChecked",
+            "totalTestsViral",
+            "positiveTestsViral",
+            "negativeTestsViral",
+            "positiveCasesViral",
             "fips",
             "positiveIncrease",
             "negativeIncrease",
             "total",
-            "totalTestResults",
-            "totalTestResultsIncrease",
-            "posNeg",
-            "deathIncrease",
         ]
 
         self.header_to_column = {
