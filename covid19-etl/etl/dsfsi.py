@@ -160,7 +160,10 @@ class DSFSI(base.BaseETL):
             ("province/state", ("subject", "province", str)),
             ("country", ("subject", "country", str)),
             ("current_status", ("subject", "current_state", normalize_current_status)),
-            ("source", ("subject", "source", None)),  # type of fields "None" is used to remove the value
+            (
+                "source",
+                ("subject", "source", None),
+            ),  # type of fields "None" is used to remove the value
             ("symptoms", ("subject", "symptoms", normalize_symptoms)),
             ("date_onset_symptoms", ("subject", "date_onset_symptoms", normalize_date)),
             (
