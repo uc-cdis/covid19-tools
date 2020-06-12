@@ -71,6 +71,18 @@ class CTP(base.BaseETL):
             "positiveIncrease",
             "negativeIncrease",
             "total",
+            "totalTestResults",
+            "totalTestResultsIncrease",
+            "posNeg",
+            "deathIncrease",
+            "hospitalizedIncrease",
+            "hash",
+            "commercialScore",
+            "negativeRegularScore",
+            "negativeScore",
+            "positiveScore",
+            "score",
+            "grade"
         ]
 
         self.header_to_column = {
@@ -156,6 +168,10 @@ class CTP(base.BaseETL):
             "province_state": state,
         }
 
+        fips = row[self.header_to_column["fips"]]
+        if fips:
+            summary_location["FIPS"] = int(fips)
+
         summary_clinical_submitter_id = format_summary_clinical_submitter_id(
             summary_location_submitter_id, date
         )
@@ -167,13 +183,48 @@ class CTP(base.BaseETL):
 
         map_csv_fields = {
             "confirmed": "positive",
-            "testing": "totalTestResultsIncrease",
+            "negative": "negative",
+            "pending": "pending",
+            "hospitalizedCurrently": "hospitalizedCurrently",
+            "hospitalizedCumulative": "hospitalizedCumulative",
+            "inIcuCurrently": "inIcuCurrently",
+            "inIcuCumulative": "inIcuCumulative",
+            "onVentilatorCurrently": "onVentilatorCurrently",
+            # "": "onVentilatorCumulative",
+            "recovered": "recovered",
+            # "": "dataQualityGrade",
+            # "": "lastUpdateEt",
+            # "": "dateModified",
+            # "": "checkTimeEt",
             "deaths": "death",
+            # "": "hospitalized",
+            # "": "dateChecked",
+            "totalTestsViral": "totalTestsViral",
+            "positiveTestsViral": "positiveTestsViral",
+            "negativeTestsViral": "negativeTestsViral",
+            "positiveCasesViral": "positiveCasesViral",
+            # "": "fips",
+            "positiveIncrease": "positiveIncrease",
+            "negativeIncrease": "negativeIncrease",
+            # "": "total",
+            # "": "totalTestResults",
+            "totalTestResultsIncrease": "totalTestResultsIncrease",
+            # "": "posNeg",
+            "deathIncrease": "deathIncrease",
+            "hospitalizedIncrease": "hospitalizedIncrease",
+            # "": "hash",
+            # "": "commercialScore",
+            # "": "negativeRegularScore",
+            # "": "negativeScore",
+            # "": "positiveScore",
+            # "": "score",
+            # "": "grade"
         }
 
         for k, v in map_csv_fields.items():
-            if row[self.header_to_column[v]]:
-                summary_clinical[k] = int(row[self.header_to_column[v]])
+            value = row[self.header_to_column[v]]
+            if value:
+                summary_clinical[k] = int(value)
 
         dataQualityGrade = row[self.header_to_column["dataQualityGrade"]]
         if dataQualityGrade:
