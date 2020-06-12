@@ -54,4 +54,4 @@ data.reset_index(level=0, inplace=True)
 data["date"] = pd.to_datetime(data["date"])
 # strftime won't print the timezone with "%z", adding manually
 data["date"] = data["date"].dt.strftime("%Y-%m-%d %H:%M:%S+00:00")
-data.to_csv("top10.txt", sep='\t', index=False)
+data.to_csv("top10.txt", sep="\t", index=False)
