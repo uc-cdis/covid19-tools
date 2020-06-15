@@ -82,7 +82,7 @@ class CTP(base.BaseETL):
             "negativeScore",
             "positiveScore",
             "score",
-            "grade"
+            "grade",
         ]
 
         self.header_to_column = {
