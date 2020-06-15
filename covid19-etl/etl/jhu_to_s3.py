@@ -192,6 +192,13 @@ def replace_small_counts(data):
     for field in ["confirmed", "deaths", "recovered"]:
         if field in res and res[field] < MINIMUM_COUNT:
             res[field] = count_replacement
+
+    # right now we don't have any "recovered" data for the US and
+    # Canada, and displaying "<5" for the whole country looks bad.
+    # TODO: remove this when we add recovered data.
+    if res.get("country_region") in ["US", "Canada"]:
+        del res["recovered"]
+
     return res
 
 
