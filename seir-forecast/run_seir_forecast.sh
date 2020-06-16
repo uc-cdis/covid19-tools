@@ -25,7 +25,7 @@ cd ../covid19-notebooks/bayes-by-county/
 
 echo "Running bayes-by-county..."
 # sh run.sh <stan_model> <deaths_cutoff> <nIterations>
-sh run.sh us_base 10 16000
+sh run.sh us_base 10 8000
 
 # copy images to S3 under prefix "/bayes-by-county/"
 echo "Copying to S3 bucket..."
