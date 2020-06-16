@@ -24,12 +24,8 @@ fi
 cd ../covid19-notebooks/bayes-by-county/
 
 echo "Running bayes-by-county..."
-
 # sh run.sh <stan_model> <deaths_cutoff> <nIterations>
-# 100 iterations just to see that things run without error
-sh run.sh us_base 10 100
-# later -> actual simulation -> 16,000 iterations (somewhat arbitrary, but "big enough")
-# sh run.sh us_base 10 16000
+sh run.sh us_base 10 16000
 
 # copy images to S3 under prefix "/bayes-by-county/"
 echo "Copying to S3 bucket..."
