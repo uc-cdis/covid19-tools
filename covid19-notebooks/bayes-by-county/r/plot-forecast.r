@@ -92,14 +92,15 @@ make_forecast_plot <- function(){
     make_two_plots(data_country = data_country, 
                      data_country_forecast = data_country_forecast,
                      filename = filename,
-                     country = countryName)
+                     country = countryName,
+                     code = country)
     
   }
 }
 
-make_two_plots <- function(data_country, data_country_forecast, filename, country){
+make_two_plots <- function(data_country, data_country_forecast, filename, country, code){
 
-  countyDir <- file.path("../modelOutput/figures", country)
+  countyDir <- file.path("../modelOutput/figures", code)
   dir.create(countyDir, showWarnings = FALSE)
   
   data_deaths <- data_country %>%

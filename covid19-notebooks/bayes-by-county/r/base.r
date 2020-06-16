@@ -30,6 +30,8 @@ d <- read.csv("../modelInput/ILCaseAndMortalityV1.csv")
 ###
 
 d$countryterritoryCode <- sapply(d$countryterritoryCode, as.character)
+# trim US code prefix
+d$countryterritoryCode <- sub("840", "", d$countryterritoryCode)
 
 # drop counties with fewer than cutoff cumulative deaths or cases
 cumCaseAndDeath <- aggregate(cbind(d$deaths), by=list(Category=d$countryterritoryCode), FUN=sum)
@@ -37,7 +39,13 @@ cumCaseAndDeath <- aggregate(cbind(d$deaths), by=list(Category=d$countryterritor
 dropCounties <- subset(cumCaseAndDeath, V1 < minimumReportedDeaths)$Category
 d <- subset(d, !(countryterritoryCode %in% dropCounties))
 # print(sprintf("nCounties with more than %d deaths before %s: %d", minimumReportedDeaths, dateCutoff, length(unique(d$countryterritoryCode))))
+
+# HERE! -> write/save county NAME and FIPS -> see Pauline's message
 print(sprintf("nCounties with more than %d deaths: %d", minimumReportedDeaths, length(unique(d$countryterritoryCode))))
+
+# write list of counties used in this simulation
+CountyCodeList <- unique(d$countryterritoryCode)
+write.table(CountyCodeList, "../modelOutput/figures/CountyCodeList.txt", row.names=FALSE, col.names=FALSE)
 
 # 84017031 -> ID for Cook County
 # 84017043 -> ID for DuPage County
@@ -50,6 +58,7 @@ countries <- unique(d$countryterritoryCode)
 # weighted fatality table
 cfr.by.country = read.csv("../modelInput/ILWeightedFatalityV1.csv")
 cfr.by.country$country = as.character(cfr.by.country[,3])
+cfr.by.country$country <-  sub("840", "", cfr.by.country$country) # cutoff US prefix code - note: maybe this should be in the python etl, not here
 
 # serial interval discrete gamma distribution
 serial.interval = read.csv("../modelInput/ILSerialIntervalV1.csv") # new table
@@ -59,6 +68,8 @@ serial.interval = read.csv("../modelInput/ILSerialIntervalV1.csv") # new table
 # e.g., if there are 3 different interventions in the model, then there are 3 covariates here in the code
 covariates = read.csv("../modelInput/ILInterventionsV1.csv", stringsAsFactors = FALSE)
 covariates$Country <- sapply(covariates$Country, as.character)
+covariates$Country <-  sub("840", "", covariates$Country) # cutoff US prefix code - note: maybe this should be in the python etl, not here
+
 p <- ncol(covariates) - 2
 forecast = 0
 

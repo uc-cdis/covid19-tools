@@ -119,7 +119,8 @@ make_three_pannel_plot <- function(){
     make_plots(data_country = data_country, 
                covariates_country_long = covariates_country_long,
                filename2 = filename2,
-               country = countryName)
+               country = countryName,
+               code = country)
     
   }
 }
@@ -129,9 +130,9 @@ make_three_pannel_plot <- function(){
 # todo: break down into 3 fn's - modular, man, modular
 
 make_plots <- function(data_country, covariates_country_long, 
-                       filename2, country){
+                       filename2, country, code){
 
-    countyDir <- file.path("../modelOutput/figures", country)
+    countyDir <- file.path("../modelOutput/figures", code)
     dir.create(countyDir, showWarnings = FALSE)
 
     ## p1
