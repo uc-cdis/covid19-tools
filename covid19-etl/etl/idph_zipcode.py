@@ -5,38 +5,15 @@ import re
 import requests
 
 from etl import base
+from helper.format_helper import (
+    derived_submitter_id,
+    format_submitter_id,
+    idph_get_date,
+)
 from helper.metadata_helper import MetadataHelper
 
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-
-
-def format_summary_location_submitter_id(
-    country, state=None, county=None, zipcode=None
-):
-    submitter_id = "summary_location_{}".format(country)
-    if state:
-        submitter_id += "_{}".format(state)
-    if county:
-        submitter_id += "_{}".format(county)
-    if zipcode:
-        submitter_id += "_{}".format(zipcode)
-
-    submitter_id = submitter_id.lower().replace(", ", "_")
-    submitter_id = re.sub("[^a-z0-9-_]+", "-", submitter_id)
-    return submitter_id.strip("-")
-
-
-def format_summary_clinical_submitter_id(location_submitter_id, date):
-    return "{}_{}".format(
-        location_submitter_id.replace("summary_location_", "summary_clinical_"), date
-    )
-
-
-def format_summary_demographic_submitter_id(location_submitter_id, date):
-    return "{}_{}".format(
-        location_submitter_id.replace("summary_location_", "summary_demographic_"), date
-    )
 
 
 class IDPH_ZIPCODE(base.BaseETL):
@@ -52,22 +29,11 @@ class IDPH_ZIPCODE(base.BaseETL):
             access_token=access_token,
         )
 
-        self.county_dict = {}
-        self.il_counties()
+        self.country = "US"
+        self.state = "IL"
 
         self.summary_locations = []
         self.summary_clinicals = []
-
-    def il_counties(self):
-        with open(
-            os.path.join(CURRENT_DIR, "data/IL_counties_central_coords_lat_long.tsv")
-        ) as f:
-            counties = f.readlines()
-            counties = counties[1:]
-            counties = map(lambda l: l.strip().split("\t"), counties)
-
-        for county, lat, lon in counties:
-            self.county_dict[county] = {"lat": lat, "lon": lon}
 
     def files_to_submissions(self):
         """
@@ -82,68 +48,68 @@ class IDPH_ZIPCODE(base.BaseETL):
 
         today_str = today.strftime("%Y%m%d")
         print(f"Getting data for date: {today_str}")
-        state = "IL"
         url = "http://dph.illinois.gov/sitefiles/COVIDZip.json?nocache=1"
-        self.parse_file(latest_submitted_date, state, url)
+        self.parse_file(latest_submitted_date, url)
 
-    def parse_file(self, latest_submitted_date, state, url):
+    def parse_file(self, latest_submitted_date, url):
         """
         Converts a JSON files to data we can submit via Sheepdog. Stores the
         records to submit in `self.summary_locations` and `self.summary_clinicals`.
 
-        `self.summary_locations` is only needed once.
-
         Args:
-            state (str): the state
+            latest_submitted_date (date): date for latest submitted date
             url (str): URL at which the JSON file is available
         """
         print("Getting data from {}".format(url))
         with closing(requests.get(url, stream=True)) as r:
             data = r.json()
-            date = self.get_date(data)
+            date = idph_get_date(data["LastUpdateDate"])
 
             if latest_submitted_date and date == latest_submitted_date.strftime(
                 "%Y-%m-%d"
             ):
                 print(
-                    "Nothing to submit: today and latest submitted date are the same."
+                    "Nothing to submit: latest submitted date and date from data are the same."
                 )
                 return
 
             for zipcode_values in data["zip_values"]:
                 (summary_location, summary_clinical,) = self.parse_zipcode(
-                    date, state, zipcode_values
+                    date, zipcode_values
                 )
 
                 self.summary_locations.append(summary_location)
                 self.summary_clinicals.append(summary_clinical)
 
-    def parse_zipcode(self, date, state, zipcode_values):
+    def parse_zipcode(self, date, zipcode_values):
         """
         From county-level data, generate the data we can submit via Sheepdog
         """
-        country = "US"
         zipcode = zipcode_values["zip"]
 
-        summary_location_submitter_id = format_summary_location_submitter_id(
-            country, state, zipcode=zipcode
+        summary_location_submitter_id = format_submitter_id(
+            "summary_location",
+            {"country": self.country, "state": self.state, "zipcode": zipcode},
         )
 
         summary_location = {
-            "country_region": country,
             "submitter_id": summary_location_submitter_id,
-            "projects": [{"code": self.project_code}],
-            "province_state": state,
+            "country_region": self.country,
+            "province_state": self.state,
             "zipcode": zipcode,
+            "projects": [{"code": self.project_code}],
         }
 
-        summary_clinical_submitter_id = format_summary_clinical_submitter_id(
-            summary_location_submitter_id, date
+        summary_clinical_submitter_id = derived_submitter_id(
+            summary_location_submitter_id,
+            "summary_location",
+            "summary_clinical",
+            {"date": date},
         )
         summary_clinical = {
-            "confirmed": zipcode_values["confirmed_cases"],
             "submitter_id": summary_clinical_submitter_id,
             "date": date,
+            "confirmed": zipcode_values["confirmed_cases"],
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
 
@@ -205,21 +171,16 @@ class IDPH_ZIPCODE(base.BaseETL):
 
         return summary_location, summary_clinical
 
-    def get_date(self, county_json):
-        """
-        Converts JSON with "year", "month" and "day" to formatted date string.
-        """
-        date_json = county_json["LastUpdateDate"]
-        date = datetime.date(**date_json)
-        return date.strftime("%Y-%m-%d")
-
     def submit_metadata(self):
-        print("Submitting data")
+        """
+        Submits the data in `self.summary_locations` and `self.summary_clinicals` to Sheepdog.
+        """
+        print("Submitting data...")
         print("Submitting summary_location data")
-        for loc in self.summary_locations:
-            loc_record = {"type": "summary_location"}
-            loc_record.update(loc)
-            self.metadata_helper.add_record_to_submit(loc_record)
+        for sl in self.summary_locations:
+            sl_record = {"type": "summary_location"}
+            sl_record.update(sl)
+            self.metadata_helper.add_record_to_submit(sl_record)
         self.metadata_helper.batch_submit_records()
 
         print("Submitting summary_clinical data")
