@@ -39,11 +39,12 @@ fi
 
 ### HERE is the directory structure:
 #
-# Matts-MacBook-Pro:bayes-by-county mattgarvin$ ls -R modelOutput/figures
-#  Cook		DuPage		Lake		Rt_All.png
+# Matts-MacBook-Pro:figures mattgarvin$ ls -R
+# 17031			17097			CountyCodeList.txt
+# 17043			17197			Rt_All.png
 # 
-# modelOutput/figures/Cook:
+# ./17031:
 # Rt.png			casesForecast.png	deathsForecast.png
-# cases.png
-#
+# cases.png		deaths.png
+# 
 # ...
