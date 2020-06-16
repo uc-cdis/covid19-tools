@@ -67,8 +67,7 @@ class IDPH(base.BaseETL):
             url = "http://www.dph.illinois.gov/sitefiles/COVIDTestResults.json"
         else:
             url = f"https://www.dph.illinois.gov/sites/default/files/COVID19/COVID19CountyResults{today_str}.json"
-        # self.parse_file(latest_submitted_date, state, url)
-        self.parse_file(today, url)
+        self.parse_file(latest_submitted_date, url)
 
     def parse_file(self, latest_submitted_date, url):
         """
