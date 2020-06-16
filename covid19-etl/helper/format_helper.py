@@ -14,7 +14,7 @@ def format_submitter_id(node, args):
     Returns:
         str: generated "submitter_id"
     """
-    submitter_id = "{}".format(node)
+    submitter_id = node
     for v in args.values():
         submitter_id += "_{}".format(v)
 
