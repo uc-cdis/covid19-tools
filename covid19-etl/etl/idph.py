@@ -87,7 +87,7 @@ class IDPH(base.BaseETL):
                 "%Y-%m-%d"
             ):
                 print(
-                    "Nothing to submit: today and latest submitted date are the same."
+                    "Nothing to submit: latest submitted date and date from data are the same."
                 )
                 return
 
