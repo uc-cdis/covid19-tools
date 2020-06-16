@@ -21,7 +21,7 @@ def format_submitter_id(node, args):
     submitter_id = submitter_id.lower()
     submitter_id = re.sub("[^a-z0-9-_]+", "-", submitter_id)
 
-    return submitter_id
+    return submitter_id.strip("-")
 
 
 def derived_submitter_id(submitter_id, original_node, derived_node, args):
