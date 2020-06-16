@@ -166,6 +166,7 @@ MAP_DATA_FOLDER = "map_data"
 GEOJSON_FILENAME = "jhu_geojson_latest.json"
 JSON_BY_LEVEL_FILENAME = "jhu_json_by_level_latest.json"
 TIME_SERIES_DATA_FOLDER = "time_series"
+MINIMUM_COUNT = 5
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -182,6 +183,23 @@ def get_unified_date_format(date):
         day = "0{}".format(day)
 
     return "-".join((year, month, day))
+
+
+def replace_small_counts(data):
+    # remove values smaller than the threshold
+    count_replacement = f"<{MINIMUM_COUNT}"
+    res = data.copy()
+    for field in ["confirmed", "deaths", "recovered"]:
+        if field in res and res[field] < MINIMUM_COUNT:
+            res[field] = count_replacement
+
+    # right now we don't have any "recovered" data for the US and
+    # Canada, and displaying "<5" for the whole country looks bad.
+    # TODO: remove this when we add recovered data.
+    if res.get("country_region") in ["US", "Canada"]:
+        del res["recovered"]
+
+    return res
 
 
 class JHU_TO_S3(base.BaseETL):
@@ -496,7 +514,7 @@ class JHU_TO_S3(base.BaseETL):
                     continue
                 feat_country = deepcopy(feat_base)
                 feat_country["properties"]["date"] = date
-                feat_country["properties"].update(ts)
+                feat_country["properties"].update(replace_small_counts(ts))
                 del feat_country["properties"]["date"]
                 if country_data["country_region"] not in ["US", "Canada"]:
                     features.append(feat_country)
@@ -516,7 +534,7 @@ class JHU_TO_S3(base.BaseETL):
                         "province_state"
                     ]
                     feat_prov["properties"]["date"] = date
-                    feat_prov["properties"].update(ts)
+                    feat_prov["properties"].update(replace_small_counts(ts))
                     del feat_prov["properties"]["date"]
                     features.append(feat_prov)
 
@@ -539,7 +557,7 @@ class JHU_TO_S3(base.BaseETL):
                         feat_county["properties"]["fips"] = county_data["fips"]
                         feat_county["properties"]["code3"] = county_data["code3"]
                         feat_county["properties"]["date"] = date
-                        feat_county["properties"].update(ts)
+                        feat_county["properties"].update(replace_small_counts(ts))
                         del feat_county["properties"]["date"]
                         features.append(feat_county)
 
@@ -632,6 +650,11 @@ class JHU_TO_S3(base.BaseETL):
                                 "county": county_data["county"],
                             }
 
+        # remove values smaller than the threshold
+        for data_level, locations in js.items():
+            for location_id, data in locations.items():
+                js[data_level][location_id] = replace_small_counts(data)
+
         with open(
             os.path.join(CURRENT_DIR, MAP_DATA_FOLDER, JSON_BY_LEVEL_FILENAME), "w"
         ) as f:
@@ -708,7 +731,11 @@ class JHU_TO_S3(base.BaseETL):
 
         # save as JSON files
         for data_level in ["country", "state", "county"]:
-            for location_id, data in tmp[data_level].items():
+            for location_id, data_by_date in tmp[data_level].items():
+                # remove values smaller than the threshold
+                for date, data in data_by_date.items():
+                    data_by_date[date] = replace_small_counts(data)
+
                 file_name = "{}.json".format(location_id)
                 with open(
                     os.path.join(
@@ -716,7 +743,7 @@ class JHU_TO_S3(base.BaseETL):
                     ),
                     "w",
                 ) as f:
-                    json.dump(data, f)
+                    json.dump(data_by_date, f)
 
     def submit_metadata(self):
         print("Uploading to S3...")
