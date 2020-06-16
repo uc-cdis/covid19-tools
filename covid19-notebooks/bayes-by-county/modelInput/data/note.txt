@@ -1,0 +1,59 @@
+--- args to call to init HierarchicalDataset ---
+
+currently all Euro data
+
+objective: replace Euro data with IL county data (roughly)
+
+rough mapping: EU countries ---> IL and NY counties
+
+not all params will be able to be broken down by county
+e.g., fatality ratio, interventions
+
+start with something very simple
+a simple modification,
+then build from there
+
+first task: replace EU case and mortality data with IL case and mortality data
+
+-
+
+1. Config file
+config_dir = "../../config/catalog.yml"
+
+-
+
+2. COVID-19 Case and Mortality data
+cases_dir = "../../data/COVID-19-up-to-date.csv"
+
+plan:
+https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/README.md
+https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series
+https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv
+https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv
+https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv
+"
+Please reference 
+time_series_covid19_confirmed_global.csv and 
+time_series_covid19_deaths_global.csv 
+for the latest time series data.
+"
+
+-
+
+3. Fatality Ratio data
+ifr_dir = "../../data/weighted_fatality.csv"
+
+-
+
+4. Serial Interval data
+serial_interval_dir = "../../data/serial_interval.csv"
+
+-
+
+5. Interventions table
+interventions_dir = "../../data/interventions.csv"
+
+-
+
+6. Number of Covariates (interventions? -> double check)
+num_covariates = 7
