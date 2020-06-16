@@ -9,10 +9,14 @@ output: html_document
 If you need to install these libraries, uncomment and run this cell:
 
 ```{r setup, include=TRUE, message=FALSE}
-# install.packages("tidyr")
-# install.packages("leaflet")
-# install.packages("RCurl")
-# install.packages("httr")
+install.packages("https://cran.rstudio.com/src/contrib/rlang_0.4.6.tar.gz", repos=NULL)
+install.packages("https://cran.rstudio.com/src/contrib/vctrs_0.3.0.tar.gz", repos=NULL)
+install.packages("https://cran.rstudio.com/src/contrib/tidyselect_1.1.0.tar.gz", repos=NULL)
+install.packages("https://cran.rstudio.com/bin/macosx/el-capitan/contrib/3.5/lifecycle_0.2.0.tgz", repos=NULL)
+devtools::install_github("tidyverse/tidyr")
+install.packages("leaflet")
+install.packages("RCurl")
+install.packages("httr")
 library(RCurl)
 library(httr)
 library(tidyverse)
