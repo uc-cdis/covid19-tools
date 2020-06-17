@@ -199,10 +199,20 @@ def makeCaseMortalityTable(dirPath):
     # populate geoID with Town also, just to populate it
     df["geoId"] = df["countriesAndTerritories"]
 
-    # reorder the columns to match Euro table
-    # fixme - don't need to read in their table -> just have this column order as config
-    EuroCaseAndMortality = pd.read_csv("../modelInput/data/EU/COVID-19-up-to-date.csv", encoding="ISO-8859-1")
-    df = df[list(EuroCaseAndMortality)]
+    # reorder the columns to match Euro table # probably don't hardcode this -> make proper config file (?)
+    CaseMortalityColumnOrder = [
+        'dateRep', 
+        'day', 
+        'month', 
+        'year', 
+        'cases', 
+        'deaths', 
+        'countriesAndTerritories', 
+        'geoId', 
+        'countryterritoryCode', 
+        'popData2018'
+    ]
+    df = df[CaseMortalityColumnOrder]
 
     print("--- saving transformed case and mortality data  ---")
 
@@ -251,13 +261,8 @@ def makeInterventionsTable(dirPath, countyIDList):
 def makeIFRTable(dirPath, population_df):
 
     print("\n~ IFR TABLE ~")
-
-    # first tackling ifr
-    ifr = pd.read_csv("../modelInput/data/EU/weighted_fatality.csv", parse_dates=False)
-    ifr["country"] = ifr.iloc[:, 1]
-
     print("--- constructing IFR table ---")
-
+    
     ourIFR = population_df
 
     # now need:
@@ -327,8 +332,25 @@ def makeIFRTable(dirPath, population_df):
     # fill placeholder values for redundant columns, to match their df exactly ..
     ILInputIFR["Region, subregion, country or area *"] = ILInputIFR["country"]
     ILInputIFR["Unnamed: 0"] = ILInputIFR.index
+
     # reorder to match their order
-    ILInputIFR = ILInputIFR[list(ifr)]
+    EUColumnOrder = [
+        'Unnamed: 0', 
+        'Region, subregion, country or area *', 
+        '0-9', 
+        'Oct-19', 
+        '20-29', 
+        '30-39', 
+        '40-49', 
+        '50-59', 
+        '60-69', 
+        '70-79', 
+        '80+', 
+        'weighted_fatality', 
+        'population', 
+        'country'
+    ]
+    ILInputIFR = ILInputIFR[EUColumnOrder]
 
     print("--- saving IFR table ---")
 

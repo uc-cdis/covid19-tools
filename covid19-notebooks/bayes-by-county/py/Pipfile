@@ -5,7 +5,6 @@ verify_ssl = true
 
 [packages]
 pandas = "*"
-pylint = "*"
 
 [requires]
 python_version = "3.7"
