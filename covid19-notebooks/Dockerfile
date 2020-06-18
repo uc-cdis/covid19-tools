@@ -49,6 +49,7 @@ COPY ./nb-etl-requirements.txt /nb-etl/
 RUN pip3 install -r nb-etl-requirements.txt
 
 COPY ./seir-forecast/seir-forecast.ipynb /nb-etl/
-COPY ./run_seir_forecast.sh /nb-etl/
-COPY ./generate_plots.py /nb-etl/
-CMD [ "bash", "/nb-etl-run.sh" ]
+COPY ./generate_top10_plots.py /nb-etl/
+COPY ./nb-etl-run.sh /nb-etl/
+
+CMD [ "bash", "/nb-etl/nb-etl-run.sh" ]
