@@ -160,7 +160,10 @@ class DSFSI(base.BaseETL):
             ("province/state", ("subject", "province", str)),
             ("country", ("subject", "country", str)),
             ("current_status", ("subject", "current_state", normalize_current_status)),
-            ("source", ("subject", "source", str)),
+            (
+                "source",
+                ("subject", "source", None),
+            ),  # type of fields "None" is used to remove the value
             ("symptoms", ("subject", "symptoms", normalize_symptoms)),
             ("date_onset_symptoms", ("subject", "date_onset_symptoms", normalize_date)),
             (
@@ -370,8 +373,14 @@ class DSFSI(base.BaseETL):
                 value = row[i]
                 if value:
                     if node_type == "subject":
+                        if type_conv is None:
+                            subject[node_field] = None
+                            continue
                         subject[node_field] = type_conv(value)
                     if node_type == "demographic":
+                        if type_conv is None:
+                            demographic[node_field] = None
+                            continue
                         demographic[node_field] = type_conv(value)
 
         case_id = subject["submitter_id"]

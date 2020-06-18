@@ -55,5 +55,6 @@ RUN pip3 install -r requirements.txt
 
 COPY ./seir-forecast.ipynb /seir-forecast/seir-forecast.ipynb
 COPY ./run_seir_forecast.sh /seir-forecast/run_seir_forecast.sh
+COPY ./generate_plots.py /seir-forecast/generate_plots.py
 
 CMD [ "bash", "/seir-forecast/run_seir_forecast.sh" ]
