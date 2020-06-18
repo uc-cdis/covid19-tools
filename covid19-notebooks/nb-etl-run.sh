@@ -12,7 +12,7 @@ echo "Running notebook $FILE..."
 jupyter nbconvert --to notebook --inplace --execute "$FILE"
 
 echo "Running top10 script..."
-python generate_plots.py
+python generate_top10_plots.py
 
 echo "Copying to S3 bucket..."
 if [[ -n "$S3_BUCKET" ]]; then
