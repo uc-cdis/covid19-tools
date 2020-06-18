@@ -25,17 +25,17 @@ fi
 ## bayes-by-county big sim
 ####
 
-cd ../covid19-notebooks/bayes-by-county/
+# cd ../covid19-notebooks/bayes-by-county/
 
-echo "Running bayes-by-county..."
-# sh run.sh <stan_model> <deaths_cutoff> <nIterations>
-sh run.sh us_base 10 8000
+# echo "Running bayes-by-county..."
+# # sh run.sh <stan_model> <deaths_cutoff> <nIterations>
+# sh run.sh us_base 10 8000
 
-# copy images to S3 under prefix "/bayes-by-county/"
-echo "Copying to S3 bucket..."
-if [[ -n "$S3_BUCKET" ]]; then
-  aws s3 sync "./modelOutput/figures" "$S3_BUCKET/bayes-by-county/"
-fi
+# # copy images to S3 under prefix "/bayes-by-county/"
+# echo "Copying to S3 bucket..."
+# if [[ -n "$S3_BUCKET" ]]; then
+#   aws s3 sync "./modelOutput/figures" "$S3_BUCKET/bayes-by-county/"
+# fi
 
 ### HERE is the directory structure:
 #

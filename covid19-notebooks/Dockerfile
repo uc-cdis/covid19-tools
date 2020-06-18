@@ -1,16 +1,15 @@
 FROM python:3.8-slim-buster
 
-#############
-## R stuff ##
-## see: https://github.com/ImperialCollegeLondon/covid19model/blob/v6.0/docker/Dockerfile
+############
+# R stuff ##
+# see: https://github.com/ImperialCollegeLondon/covid19model/blob/v6.0/docker/Dockerfile
 
-## very well may be that we don't need most of this
-## but just want to get the thing running first
-## and later can strip down and minimize the image
+# very well may be that we don't need most of this
+# but just want to get the thing running first
+# and later can strip down and minimize the image <- TODO @mattgarvin1
 
 # RUN apt-get update
-# #RUN apt-get install -y build-essential libxml2-dev libcurl4-openssl-dev libssl-dev
-# RUN r-base
+# RUN apt-get install -y r-base
 # RUN apt-get install -y \
 # 	r-cran-rstan \
 # 	r-cran-lubridate r-cran-dplyr r-cran-matrixstats r-cran-scales r-cran-gridextra \
@@ -20,28 +19,24 @@ FROM python:3.8-slim-buster
 # 	fonts-arkpandora \
 # 	fonts-adf-verana
 
-# RUN apt-get install -y r-cran-ggpubr
+# RUN Rscript -e "install.packages('ggpubr', dependencies=TRUE)"
+
 # RUN apt-get install -y r-cran-nortest
-# RUN apt-get install -y r-cran-cowplot
+
+# RUN Rscript -e "install.packages('cowplot', dependencies=TRUE)"
+
 # RUN apt-get install -y r-cran-bh
+
+# RUN Rscript -e "install.packages(c('EnvStats', 'BH', 'ggplot2', 'isoband'), dependencies=FALSE)"
+# RUN rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
 # RUN Rscript -e "update.packages(.libPaths()[1])"
 
-# RUN install2.r --error --deps FALSE \
-# 	EnvStats BH ggplot2 isoband \
-# 	&& rm -rf /tmp/downloaded_packages/ /tmp/*.rds
-
-# WORKDIR /covid19-notebooks/bayes-by-county/
-
-# # is this redundant?
-# COPY modelInput modelInput/
-# COPY stan stan/
-# COPY r r/
-# COPY py py/
-# COPY run.sh run.sh
-
-# # probably not necessary
-# WORKDIR /
+# COPY /covid19-notebooks/bayes-by-county/modelInput /covid19-notebooks/bayes-by-county/modelInput/
+# COPY /covid19-notebooks/bayes-by-county/stan /covid19-notebooks/bayes-by-county/stan/
+# COPY /covid19-notebooks/bayes-by-county/r /covid19-notebooks/bayes-by-county/r/
+# COPY /covid19-notebooks/bayes-by-county/py /covid19-notebooks/bayes-by-county/py/
+# COPY /covid19-notebooks/bayes-by-county/run.sh /covid19-notebooks/bayes-by-county/run.sh
 
 ########
 ########
