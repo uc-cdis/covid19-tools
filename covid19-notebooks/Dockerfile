@@ -27,6 +27,8 @@ RUN apt-get install -y \
 RUN Rscript -e "install.packages('ggpubr', dependencies=TRUE)"
 RUN Rscript -e "install.packages('cowplot', dependencies=TRUE)"
 RUN Rscript -e "install.packages('EnvStats', dependencies=TRUE)"
+RUN Rscript -e "install.packages('BH', dependencies=TRUE)"
+RUN Rscript -e "install.packages('ggplot2', dependencies=TRUE)"
 RUN Rscript -e "install.packages('isoband', dependencies=TRUE)"
 
 RUN rm -rf /tmp/downloaded_packages/ /tmp/*.rds
