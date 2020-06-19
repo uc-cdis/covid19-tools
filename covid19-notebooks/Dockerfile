@@ -13,6 +13,7 @@ RUN echo "this line is to clear cache"
 
 RUN apt-get update
 RUN apt-get install -y r-base
+RUN apt-get install -y r-base-dev
 RUN apt-get install -y \
 	r-cran-rstan \
 	r-cran-lubridate r-cran-dplyr r-cran-matrixstats r-cran-scales r-cran-gridextra \
@@ -28,7 +29,6 @@ RUN Rscript -e "install.packages('cowplot', dependencies=TRUE)"
 RUN Rscript -e "install.packages('EnvStats', dependencies=TRUE)"
 RUN Rscript -e "install.packages('isoband', dependencies=TRUE)"
 
-# this line? may be problematic
 RUN rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
 RUN Rscript -e "update.packages(.libPaths()[1])"
