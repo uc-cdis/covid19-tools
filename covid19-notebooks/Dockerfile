@@ -8,22 +8,29 @@ FROM python:3.8-slim-buster
 # but just want to get the thing running first
 # and later can strip down and minimize the image
 
-# remove this line after testing
-RUN echo "this line is to clear cache"
-
 RUN apt-get update
-RUN apt-get install -y r-base
-RUN apt-get install -y r-base-dev
+
 RUN apt-get install -y \
-	r-cran-rstan \
-	r-cran-lubridate r-cran-dplyr r-cran-matrixstats r-cran-scales r-cran-gridextra \
-	r-cran-bayesplot r-cran-ggplot2 r-cran-tidyr r-cran-gdata \
-	r-cran-svglite r-cran-jsonlite r-cran-optparse \
-	r-cran-nortest r-cran-bh \
 	fonts-open-sans \
 	fonts-arkpandora \
 	fonts-adf-verana
 
+RUN apt-get install -y r-base
+RUN apt-get install -y r-base-dev
+
+RUN Rscript -e "install.packages('rstan', dependencies=TRUE)"
+RUN Rscript -e "install.packages('lubridate', dependencies=TRUE)"
+RUN Rscript -e "install.packages('dplyr', dependencies=TRUE)"
+RUN Rscript -e "install.packages('matrixstats', dependencies=TRUE)"
+RUN Rscript -e "install.packages('scales', dependencies=TRUE)"
+RUN Rscript -e "install.packages('gridextra', dependencies=TRUE)"
+RUN Rscript -e "install.packages('bayesplot', dependencies=TRUE)"
+RUN Rscript -e "install.packages('tidyr', dependencies=TRUE)"
+RUN Rscript -e "install.packages('gdata', dependencies=TRUE)"
+RUN Rscript -e "install.packages('svglite', dependencies=TRUE)"
+RUN Rscript -e "install.packages('jsonlite', dependencies=TRUE)"
+RUN Rscript -e "install.packages('optparse', dependencies=TRUE)"
+RUN Rscript -e "install.packages('nortest', dependencies=TRUE)"
 RUN Rscript -e "install.packages('ggpubr', dependencies=TRUE)"
 RUN Rscript -e "install.packages('cowplot', dependencies=TRUE)"
 RUN Rscript -e "install.packages('EnvStats', dependencies=TRUE)"
