@@ -8,6 +8,9 @@ FROM python:3.8-slim-buster
 # but just want to get the thing running first
 # and later can strip down and minimize the image
 
+# remove this line after testing
+RUN echo "this line is to clear cache"
+
 RUN apt-get update
 RUN apt-get install -y r-base
 RUN apt-get install -y \
