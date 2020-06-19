@@ -15,22 +15,11 @@ RUN apt-get install -y \
 	fonts-arkpandora \
 	fonts-adf-verana
 
-## Use Debian unstable via pinning -- new style via APT::Default-Release
-RUN echo "deb http://http.debian.net/debian sid main" > /etc/apt/sources.list.d/debian-unstable.list \
-        && echo 'APT::Default-Release "buster-slim";' > /etc/apt/apt.conf.d/default
-
-ENV R_BASE_VERSION 4.0.0
-
-## Now install R and littler, and create a link for littler in /usr/local/bin
-RUN apt-get install -t unstable -y --no-install-recommends \
-	littler \
-	r-cran-littler \
-	r-base=${R_BASE_VERSION}-* \
-	r-base-dev=${R_BASE_VERSION}-* \
-	r-recommended=${R_BASE_VERSION}-* 
-
-# RUN apt-get install -y r-base
-# RUN apt-get install -y r-base-dev
+# problem: this seems to install R version 3.5.2 ; we want 4.0.0 or later
+# this might be useful: https://github.com/rocker-org/rocker/blob/master/r-base/latest/Dockerfile
+# this might also be useful: https://cran.r-project.org/bin/linux/ubuntu/README.html
+RUN apt-get install -y r-base
+RUN apt-get install -y r-base-dev
 
 RUN Rscript -e "install.packages('rstan', dependencies=TRUE)"
 RUN Rscript -e "install.packages('lubridate', dependencies=TRUE)"
