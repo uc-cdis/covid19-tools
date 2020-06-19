@@ -18,9 +18,9 @@ RUN apt-get install -y \
 RUN apt-get install -y --no-install-recommends \
 		littler \
         r-cran-littler \
-		r-base=4.0.0-* \
-		r-base-dev=4.0.0-* \
-		r-recommended=4.0.0-*
+		r-base=4.0.0 \
+		r-base-dev=4.0.0 \
+		r-recommended=4.0.0
 
 # RUN apt-get install -y r-base=4.0.0
 # RUN apt-get install -y r-base-dev
