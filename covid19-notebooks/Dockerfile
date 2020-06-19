@@ -18,19 +18,17 @@ RUN apt-get install -y \
 	r-cran-lubridate r-cran-dplyr r-cran-matrixstats r-cran-scales r-cran-gridextra \
 	r-cran-bayesplot r-cran-ggplot2 r-cran-tidyr r-cran-gdata \
 	r-cran-svglite r-cran-jsonlite r-cran-optparse \
+	r-cran-nortest r-cran-bh \
 	fonts-open-sans \
 	fonts-arkpandora \
 	fonts-adf-verana
 
 RUN Rscript -e "install.packages('ggpubr', dependencies=TRUE)"
-
-RUN apt-get install -y r-cran-nortest
-
 RUN Rscript -e "install.packages('cowplot', dependencies=TRUE)"
+RUN Rscript -e "install.packages('EnvStats', dependencies=TRUE)"
+RUN Rscript -e "install.packages(isoband', dependencies=TRUE)"
 
-RUN apt-get install -y r-cran-bh
-
-RUN Rscript -e "install.packages(c('EnvStats', 'BH', 'ggplot2', 'isoband'), dependencies=FALSE)"
+# this line? may be problematic
 RUN rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
 RUN Rscript -e "update.packages(.libPaths()[1])"
