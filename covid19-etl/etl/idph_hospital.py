@@ -73,9 +73,10 @@ class IDPH_HOSPITAL(base.BaseETL):
                 )
                 return
 
-            (summary_location, summary_clinical_statewide_current,) = self.parse_statewide_values(
-                date, data["statewideValues"]
-            )
+            (
+                summary_location,
+                summary_clinical_statewide_current,
+            ) = self.parse_statewide_values(date, data["statewideValues"])
 
             self.summary_locations.append(summary_location)
 
@@ -91,11 +92,6 @@ class IDPH_HOSPITAL(base.BaseETL):
 
                 self.summary_locations.append(summary_location)
                 self.summary_clinicals.append(summary_clinical)
-
-            for sl in self.summary_locations:
-                print(sl)
-            for sc in self.summary_clinicals:
-                print(sc)
 
     def parse_historical(self, utilization, summary_clinical_statewide_current):
         utilization_mapping = {
@@ -117,11 +113,7 @@ class IDPH_HOSPITAL(base.BaseETL):
 
         summary_location_submitter_id = format_submitter_id(
             "summary_location",
-            {
-                "project": "idph_hospital",
-                "country": self.country,
-                "state": self.state,
-            },
+            {"project": "idph_hospital", "country": self.country, "state": self.state,},
         )
 
         summary_clinical_submitter_id = derived_submitter_id(
@@ -140,7 +132,10 @@ class IDPH_HOSPITAL(base.BaseETL):
         for k, v in utilization.items():
             summary_clinical[utilization_mapping[k]] = v
 
-        if summary_clinical_submitter_id == summary_clinical_statewide_current["submitter_id"]:
+        if (
+            summary_clinical_submitter_id
+            == summary_clinical_statewide_current["submitter_id"]
+        ):
             summary_clinical.update(summary_clinical_statewide_current)
 
         return summary_clinical
@@ -183,11 +178,7 @@ class IDPH_HOSPITAL(base.BaseETL):
 
         summary_location_submitter_id = format_submitter_id(
             "summary_location",
-            {
-                "project": "idph_hospital",
-                "country": self.country,
-                "state": self.state,
-            },
+            {"project": "idph_hospital", "country": self.country, "state": self.state,},
         )
 
         summary_location = {
