@@ -17,7 +17,7 @@ RUN apt-get install -y \
 
 ## Use Debian unstable via pinning -- new style via APT::Default-Release
 RUN echo "deb http://http.debian.net/debian sid main" > /etc/apt/sources.list.d/debian-unstable.list \
-        && echo 'APT::Default-Release "testing";' > /etc/apt/apt.conf.d/default
+        && echo 'APT::Default-Release "buster-slim";' > /etc/apt/apt.conf.d/default
 
 ENV R_BASE_VERSION 4.0.0
 
