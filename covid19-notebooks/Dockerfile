@@ -15,8 +15,15 @@ RUN apt-get install -y \
 	fonts-arkpandora \
 	fonts-adf-verana
 
-RUN apt-get install -y r-base
-RUN apt-get install -y r-base-dev
+RUN apt-get install -y --no-install-recommends \
+		littler \
+        r-cran-littler \
+		r-base=4.0.0-* \
+		r-base-dev=4.0.0-* \
+		r-recommended=4.0.0-*
+
+# RUN apt-get install -y r-base=4.0.0
+# RUN apt-get install -y r-base-dev
 
 RUN Rscript -e "install.packages('rstan', dependencies=TRUE)"
 RUN Rscript -e "install.packages('lubridate', dependencies=TRUE)"
