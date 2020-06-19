@@ -211,7 +211,6 @@ class IDPH_HOSPITAL(base.BaseETL):
         From county-level data, generate the data we can submit via Sheepdog
         """
         region = hospital_region["region"]
-        region_id = hospital_region["id"]
         region_description = hospital_region["region_description"]
 
         summary_location_submitter_id = format_submitter_id(
