@@ -15,14 +15,21 @@ RUN apt-get install -y \
 	fonts-arkpandora \
 	fonts-adf-verana
 
-RUN apt-get install -t unstable -y --no-install-recommends \
-		littler \
-        r-cran-littler \
-		r-base=4.0.0 \
-		r-base-dev=4.0.0 \
-		r-recommended=4.0.0
+## Use Debian unstable via pinning -- new style via APT::Default-Release
+RUN echo "deb http://http.debian.net/debian sid main" > /etc/apt/sources.list.d/debian-unstable.list \
+        && echo 'APT::Default-Release "testing";' > /etc/apt/apt.conf.d/default
 
-# RUN apt-get install -y r-base=4.0.0
+ENV R_BASE_VERSION 4.0.0
+
+## Now install R and littler, and create a link for littler in /usr/local/bin
+RUN apt-get install -t unstable -y --no-install-recommends \
+	littler \
+	r-cran-littler \
+	r-base=${R_BASE_VERSION}-* \
+	r-base-dev=${R_BASE_VERSION}-* \
+	r-recommended=${R_BASE_VERSION}-* 
+
+# RUN apt-get install -y r-base
 # RUN apt-get install -y r-base-dev
 
 RUN Rscript -e "install.packages('rstan', dependencies=TRUE)"
