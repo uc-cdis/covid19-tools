@@ -15,7 +15,7 @@ RUN apt-get install -y \
 	fonts-arkpandora \
 	fonts-adf-verana
 
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get install -t unstable -y --no-install-recommends \
 		littler \
         r-cran-littler \
 		r-base=4.0.0 \
