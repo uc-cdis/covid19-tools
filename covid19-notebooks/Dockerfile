@@ -21,16 +21,13 @@ RUN apt-get update && \
 	apt-get install -y -t buster-cran40 r-base
 
 RUN Rscript -e "install.packages('rstan', dependencies=TRUE)"
-RUN Rscript -e "install.packages('lubridate', dependencies=TRUE)"
-RUN Rscript -e "install.packages('dplyr', dependencies=TRUE)"
+RUN Rscript -e "install.packages('tidyverse', dependencies=TRUE))"
 RUN Rscript -e "install.packages('matrixstats', dependencies=TRUE)"
 RUN Rscript -e "install.packages('scales', dependencies=TRUE)"
+RUN Rscript -e "install.packages('gdata', dependencies=TRUE)"
 RUN Rscript -e "install.packages('gridextra', dependencies=TRUE)"
 RUN Rscript -e "install.packages('bayesplot', dependencies=TRUE)"
-RUN Rscript -e "install.packages('tidyr', dependencies=TRUE)"
-RUN Rscript -e "install.packages('gdata', dependencies=TRUE)"
 RUN Rscript -e "install.packages('svglite', dependencies=TRUE)"
-RUN Rscript -e "install.packages('jsonlite', dependencies=TRUE)"
 RUN Rscript -e "install.packages('optparse', dependencies=TRUE)"
 RUN Rscript -e "install.packages('nortest', dependencies=TRUE)"
 RUN Rscript -e "install.packages('pbkrtest', dependencies=TRUE)"
@@ -38,7 +35,6 @@ RUN Rscript -e "install.packages('ggpubr', dependencies=TRUE)"
 RUN Rscript -e "install.packages('cowplot', dependencies=TRUE)"
 RUN Rscript -e "install.packages('EnvStats', dependencies=TRUE)"
 RUN Rscript -e "install.packages('BH', dependencies=TRUE)"
-RUN Rscript -e "install.packages('ggplot2', dependencies=TRUE)"
 RUN Rscript -e "install.packages('isoband', dependencies=TRUE)"
 
 RUN rm -rf /tmp/downloaded_packages/ /tmp/*.rds
