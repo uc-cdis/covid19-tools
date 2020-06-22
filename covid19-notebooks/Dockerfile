@@ -16,7 +16,7 @@ RUN apt-get update && \
 
 RUN apt-get update && \
 	apt-get install -y r-base
-	
+
 # >>>>>>>>> trying this >>>>>>>>>>> #
 
 RUN apt-get install -y \
@@ -24,10 +24,13 @@ RUN apt-get install -y \
 	r-cran-lubridate r-cran-dplyr r-cran-matrixstats r-cran-scales r-cran-gridextra \
 	r-cran-bayesplot r-cran-ggplot2 r-cran-tidyr r-cran-gdata \
 	r-cran-svglite r-cran-jsonlite r-cran-optparse \
-	r-cran-ggpubr r-cran-nortest r-cran-cowplot r-cran-bh \
+	r-cran-nortest r-cran-bh \
 	fonts-open-sans \
 	fonts-arkpandora \
 	fonts-adf-verana
+
+RUN Rscript -e "install.packages('cowplot', dependencies=FALSE)"
+RUN Rscript -e "install.packages('ggpubr', dependencies=FALSE)"
 
 RUN Rscript -e "update.packages(.libPaths()[1])"
 
