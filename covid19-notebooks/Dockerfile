@@ -31,7 +31,7 @@ RUN apt-get install -y \
 
 RUN Rscript -e "install.packages('RcppEigen', dependencies=FALSE)"
 RUN Rscript -e "install.packages('cowplot', dependencies=FALSE)"
-RUN Rscript -e "install.packages('ggpubr', dependencies=FALSE)"
+RUN Rscript -e "install.packages('ggpubr', dependencies=TRUE)"
 
 RUN Rscript -e "update.packages(.libPaths()[1])"
 
