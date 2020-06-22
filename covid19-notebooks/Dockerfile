@@ -14,11 +14,9 @@ RUN apt-get update && \
 	apt-get install -y build-essential libxml2-dev libcurl4-openssl-dev libssl-dev \
 		fonts-open-sans fonts-arkpandora fonts-adf-verana gnupg2
 
-RUN echo "deb http://cloud.r-project.org/bin/linux/debian buster-cran40/" | tee -a /etc/apt/sources.list && \
-    apt-key adv --keyserver keys.gnupg.net --recv-key 'E19F5F87128899B192B1A2C2AD5F960A256A04AF'
 RUN apt-get update && \
-	apt-get install -y -t buster-cran40 r-base
-
+	apt-get install -y r-base
+	
 # >>>>>>>>> trying this >>>>>>>>>>> #
 
 RUN apt-get install -y \
