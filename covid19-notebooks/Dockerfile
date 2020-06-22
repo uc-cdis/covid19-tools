@@ -19,26 +19,28 @@ RUN echo "deb http://cloud.r-project.org/bin/linux/debian buster-cran40/" | tee 
 RUN apt-get update && \
 	apt-get install -y -t buster-cran40 r-base
 
-RUN Rscript -e "install.packages('rstan', dependencies=TRUE)"
-RUN Rscript -e "install.packages('tidyverse', dependencies=TRUE)"
-RUN Rscript -e "install.packages('matrixstats', dependencies=TRUE)"
-RUN Rscript -e "install.packages('scales', dependencies=TRUE)"
-RUN Rscript -e "install.packages('gdata', dependencies=TRUE)"
-RUN Rscript -e "install.packages('gridextra', dependencies=TRUE)"
-RUN Rscript -e "install.packages('bayesplot', dependencies=TRUE)"
-RUN Rscript -e "install.packages('svglite', dependencies=TRUE)"
-RUN Rscript -e "install.packages('optparse', dependencies=TRUE)"
-RUN Rscript -e "install.packages('nortest', dependencies=TRUE)"
-RUN Rscript -e "install.packages('pbkrtest', dependencies=TRUE)"
-RUN Rscript -e "install.packages('ggpubr', dependencies=TRUE)"
-RUN Rscript -e "install.packages('cowplot', dependencies=TRUE)"
-RUN Rscript -e "install.packages('EnvStats', dependencies=TRUE)"
-RUN Rscript -e "install.packages('BH', dependencies=TRUE)"
-RUN Rscript -e "install.packages('isoband', dependencies=TRUE)"
+# >>>>>>>>> trying this >>>>>>>>>>> #
+
+RUN apt-get install -y \
+	r-cran-rstan \
+	r-cran-lubridate r-cran-dplyr r-cran-matrixstats r-cran-scales r-cran-gridextra \
+	r-cran-bayesplot r-cran-ggplot2 r-cran-tidyr r-cran-gdata \
+	r-cran-svglite r-cran-jsonlite r-cran-optparse \
+	r-cran-ggpubr r-cran-nortest r-cran-cowplot r-cran-bh \
+	fonts-open-sans \
+	fonts-arkpandora \
+	fonts-adf-verana
+
+RUN Rscript -e "update.packages(.libPaths()[1])"
+
+RUN Rscript -e "install.packages('ggplot2', dependencies=FALSE)"
+RUN Rscript -e "install.packages('EnvStats', dependencies=FALSE)"
+RUN Rscript -e "install.packages('BH', dependencies=FALSE)"
+RUN Rscript -e "install.packages('isoband', dependencies=FALSE)"
 
 RUN rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
-RUN Rscript -e "update.packages(.libPaths()[1])"
+# <<<<<<< trying this <<<<<<<< #
 
 # install Python dependencies
 RUN pip3 install --upgrade pip==20.0.*
