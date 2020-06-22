@@ -21,7 +21,7 @@ RUN apt-get update && \
 	apt-get install -y -t buster-cran40 r-base
 
 RUN Rscript -e "install.packages('rstan', dependencies=TRUE)"
-RUN Rscript -e "install.packages('tidyverse', dependencies=TRUE))"
+RUN Rscript -e "install.packages('tidyverse', dependencies=TRUE)"
 RUN Rscript -e "install.packages('matrixstats', dependencies=TRUE)"
 RUN Rscript -e "install.packages('scales', dependencies=TRUE)"
 RUN Rscript -e "install.packages('gdata', dependencies=TRUE)"
