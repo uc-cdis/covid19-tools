@@ -29,6 +29,7 @@ RUN apt-get install -y \
 	fonts-arkpandora \
 	fonts-adf-verana
 
+RUN Rscript -e "install.packages('RcppEigen', dependencies=FALSE)"
 RUN Rscript -e "install.packages('cowplot', dependencies=FALSE)"
 RUN Rscript -e "install.packages('ggpubr', dependencies=FALSE)"
 
