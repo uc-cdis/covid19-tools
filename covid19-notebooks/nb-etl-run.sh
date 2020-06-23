@@ -27,12 +27,7 @@ echo "Running bayes-by-county..."
 cd /nb-etl/bayes-by-county/
 
 # sh run.sh <stan_model> <deaths_cutoff> <nIterations>
-
-# this is the actual run
-# sh run.sh us_base 10 8000
-
-# this is just for testing
-sh run.sh us_base 350 4000
+sh run.sh us_base 10 8000
 
 # copy images to S3 under prefix "bayes-by-county"
 # directory structure:
