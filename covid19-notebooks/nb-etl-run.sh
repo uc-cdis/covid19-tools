@@ -32,7 +32,7 @@ cd /nb-etl/bayes-by-county/
 # sh run.sh us_base 10 8000
 
 # this is just for testing
-sh run.sh us_base 350 30
+sh run.sh us_base 350 4000
 
 # copy images to S3 under prefix "bayes-by-county"
 # directory structure:
