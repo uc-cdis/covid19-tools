@@ -6,6 +6,7 @@ from contextlib import closing
 import requests
 
 from etl import base
+from helper.idph_helper import fields_mapping
 from helper.format_helper import (
     derived_submitter_id,
     format_submitter_id,
@@ -92,7 +93,10 @@ class IDPH(base.BaseETL):
                 return
 
             for county in data["characteristics_by_county"]["values"]:
-                summary_location, summary_clinical = self.parse_county(date, county)
+                demographic = data.get("demographics", None)
+                summary_location, summary_clinical = self.parse_county(
+                    date, county, demographic
+                )
 
                 self.summary_locations.append(summary_location)
                 self.summary_clinicals.append(summary_clinical)
@@ -142,7 +146,7 @@ class IDPH(base.BaseETL):
 
         return summary_clinical
 
-    def parse_county(self, date, county_json):
+    def parse_county(self, date, county_json, demographic):
         """
         From county-level data, generate the data we can submit via Sheepdog
 
@@ -199,6 +203,25 @@ class IDPH(base.BaseETL):
 
         if "negative" in county_json:
             summary_clinical["negative"] = county_json["negative"]
+
+        if county == "Illinois" and demographic:
+            for k, v in fields_mapping.items():
+                field, mapping = v
+                demographic_group = demographic[k]
+
+                for item in demographic_group:
+                    dst_field = mapping[item[field]]
+                    if dst_field:
+                        if "count" in item:
+                            age_group_count_field = "{}_{}".format(
+                                mapping[item[field]], "count"
+                            )
+                            summary_clinical[age_group_count_field] = item["count"]
+                        if "tested" in item:
+                            age_group_tested_field = "{}_{}".format(
+                                mapping[item[field]], "tested"
+                            )
+                            summary_clinical[age_group_tested_field] = item["tested"]
 
         return summary_location, summary_clinical
 
