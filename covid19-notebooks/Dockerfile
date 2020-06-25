@@ -1,5 +1,6 @@
 FROM debian:bullseye
 
+# install R dependencies
 RUN apt-get update && \
 	apt-get install -y build-essential \
 	libxml2-dev \
