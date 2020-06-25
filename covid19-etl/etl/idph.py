@@ -94,7 +94,9 @@ class IDPH(base.BaseETL):
 
             for county in data["characteristics_by_county"]["values"]:
                 demographic = data.get("demographics", None)
-                summary_location, summary_clinical = self.parse_county(date, county, demographic)
+                summary_location, summary_clinical = self.parse_county(
+                    date, county, demographic
+                )
 
                 self.summary_locations.append(summary_location)
                 self.summary_clinicals.append(summary_clinical)
