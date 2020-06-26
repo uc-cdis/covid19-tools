@@ -26,6 +26,11 @@ class JHU_COUNTRY_CODES(base.BaseETL):
         locations = self.get_existing_locations()
         for location in locations:
             codes = get_codes_for_country_name(codes_dict, location["country_region"])
+
+            # do not update the record if it already has the codes
+            if location["iso2"] == codes["iso2"] and location["iso3"] == codes["iso3"]:
+                continue
+
             record = {k: v for k, v in location.items() if v != None}
             record.update(
                 {
@@ -48,7 +53,7 @@ class JHU_COUNTRY_CODES(base.BaseETL):
             + self.program_name
             + "-"
             + self.project_code
-            + '") { submitter_id, country_region, province_state } }'
+            + '") { submitter_id, country_region, iso2, iso3 } }'
         )
         response = requests.post(
             "{}/api/v0/submission/graphql".format(self.base_url),
