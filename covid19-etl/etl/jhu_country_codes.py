@@ -9,11 +9,6 @@ from helper.metadata_helper import MetadataHelper
 from utils.country_codes_utils import get_codes_dictionary, get_codes_for_country_name
 
 
-BASE_URL = "https://chicagoland.pandemicresponsecommons.org"
-PROGRAM_NAME = "open"
-PROJECT_CODE = "JHU"
-
-
 class JHU_COUNTRY_CODES(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
@@ -31,6 +26,11 @@ class JHU_COUNTRY_CODES(base.BaseETL):
         locations = self.get_existing_locations()
         for location in locations:
             codes = get_codes_for_country_name(codes_dict, location["country_region"])
+
+            # do not update the record if it already has the codes
+            if location["iso2"] == codes["iso2"] and location["iso3"] == codes["iso3"]:
+                continue
+
             record = {k: v for k, v in location.items() if v != None}
             record.update(
                 {
@@ -50,13 +50,13 @@ class JHU_COUNTRY_CODES(base.BaseETL):
         headers = {"Authorization": "bearer " + self.access_token}
         query_string = (
             '{ summary_location (first: 0, project_id: "'
-            + PROGRAM_NAME
+            + self.program_name
             + "-"
-            + PROJECT_CODE
-            + '") { submitter_id, country_region, province_state } }'
+            + self.project_code
+            + '") { submitter_id, country_region, iso2, iso3 } }'
         )
         response = requests.post(
-            "{}/api/v0/submission/graphql".format(BASE_URL),
+            "{}/api/v0/submission/graphql".format(self.base_url),
             json={"query": query_string, "variables": None},
             headers=headers,
         )
