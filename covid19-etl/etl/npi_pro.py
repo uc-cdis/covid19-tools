@@ -65,11 +65,6 @@ class NPI_PRO(base.BaseETL):
             self.summary_clinicals.append(summary_clinical)
 
     def parse_row(self, row):
-        result = {
-            "summary_location": {},
-            "summary_clinical": {},
-        }
-
         fields_mapping = {
             "NPI": ("summary_location", "npi"),
             "Provider_First_Line_Business_Pra": (
@@ -84,10 +79,10 @@ class NPI_PRO(base.BaseETL):
                 "summary_location",
                 "provider_business_practice_city",
             ),
-            "Provider_Business_Practice_ST": (
-                "summary_location",
-                "provider_business_practice_st",
-            ),
+            "Provider_Business_Practice_ST": [
+                ("summary_location", "provider_business_practice_st",),
+                ("summary_location", "state",),
+            ],
             "TaxonomyCode": ("summary_clinical", "taxonomy_code"),
             "ProviderType": ("summary_clinical", "provider_type"),
             "ProviderSubtype": ("summary_clinical", "provider_subtype"),
@@ -105,8 +100,19 @@ class NPI_PRO(base.BaseETL):
             summary_location_submitter_id, "summary_location", "summary_clinical", {}
         )
 
-        for original_field, (node, node_field) in fields_mapping.items():
-            result[node][node_field] = row[original_field]
+        result = {
+            "summary_location": {},
+            "summary_clinical": {},
+        }
+
+        for original_field, mappings in fields_mapping.items():
+            if isinstance(mappings, list):
+                for mapping in mappings:
+                    node, node_field = mapping
+                    result[node][node_field] = row[original_field]
+            else:
+                node, node_field = mappings
+                result[node][node_field] = row[original_field]
 
         result["summary_location"].update(
             {
