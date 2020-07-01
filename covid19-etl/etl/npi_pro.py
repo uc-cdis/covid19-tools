@@ -51,10 +51,9 @@ class NPI_PRO(base.BaseETL):
         # get all the layers from the .gdb file
         layers = fiona.listlayers(file_path)
         # and check that the layer is the one we expect
-        print(layers)
         assert layers == [
             "NPI202003_TaxonomyGroups"
-        ], "no required layer, is it a wrong file?"
+        ], "no required layer, is it a wrong file? got layers {}".format(layers)
         gdf = gpd.read_file(file_path, layer="NPI202003_TaxonomyGroups")
 
         print("Until better solution, submit only Illinois data")
