@@ -119,7 +119,7 @@ class IDPH_FACILITY(base.BaseETL):
         facility_name = facility["FacilityName"]
         confirmed_cases = facility["confirmed_cases"]
         deaths = facility["deaths"]
-        status = facility.get("status", "Open")
+        status = facility.get("status", None)
 
         summary_location_submitter_id = format_submitter_id(
             "summary_location",
@@ -127,7 +127,7 @@ class IDPH_FACILITY(base.BaseETL):
                 "country": self.country,
                 "state": self.state,
                 "facility_name": facility_name,
-                "status": status,
+                "reporting_org_status": status,
             },
         )
 
