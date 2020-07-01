@@ -138,7 +138,7 @@ class IDPH_FACILITY(base.BaseETL):
             "province_state": self.state,
             "county": county,
             "reporting_org": facility_name,
-            "status": status,
+            "reporting_org_status": status,
         }
 
         summary_clinical_submitter_id = derived_submitter_id(
