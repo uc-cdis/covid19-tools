@@ -96,7 +96,9 @@ class IDPH_FACILITY(base.BaseETL):
                     "submitter_id": summary_clinical_submitter_id,
                     "lastUpdateEt": date,
                     "date": date,
-                    "summary_locations": [{"submitter_id": summary_location_submitter_id}],
+                    "summary_locations": [
+                        {"submitter_id": summary_location_submitter_id}
+                    ],
                 }
                 self.summary_locations.append(summary_location)
                 self.summary_clinicals.append(summary_clinical)
