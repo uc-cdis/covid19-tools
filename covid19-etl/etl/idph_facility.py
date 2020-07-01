@@ -1,6 +1,5 @@
 import datetime
 import os
-import re
 from contextlib import closing
 
 import requests
@@ -73,33 +72,36 @@ class IDPH_FACILITY(base.BaseETL):
                 )
                 return
 
-            summary_location_submitter_id = format_submitter_id(
-                "summary_location", {"country": self.country, "state": self.state},
-            )
+            if "LTC_Reported_Cases" in data:
+                summary_location_submitter_id = format_submitter_id(
+                    "summary_location", {"country": self.country, "state": self.state},
+                )
 
-            summary_location = {
-                "country_region": self.country,
-                "submitter_id": summary_location_submitter_id,
-                "projects": [{"code": self.project_code}],
-                "province_state": self.state,
-            }
+                summary_location = {
+                    "country_region": self.country,
+                    "submitter_id": summary_location_submitter_id,
+                    "projects": [{"code": self.project_code}],
+                    "province_state": self.state,
+                }
 
-            summary_clinical_submitter_id = derived_submitter_id(
-                summary_location_submitter_id,
-                "summary_location",
-                "summary_clinical",
-                {"date": date},
-            )
-            summary_clinical = {
-                "confirmed": data["LTC_Reported_Cases"]["confirmed_cases"],
-                "deaths": data["LTC_Reported_Cases"]["deaths"],
-                "submitter_id": summary_clinical_submitter_id,
-                "lastUpdateEt": date,
-                "date": date,
-                "summary_locations": [{"submitter_id": summary_location_submitter_id}],
-            }
-            self.summary_locations.append(summary_location)
-            self.summary_clinicals.append(summary_clinical)
+                summary_clinical_submitter_id = derived_submitter_id(
+                    summary_location_submitter_id,
+                    "summary_location",
+                    "summary_clinical",
+                    {"date": date},
+                )
+                summary_clinical = {
+                    "confirmed": data["LTC_Reported_Cases"]["confirmed_cases"],
+                    "deaths": data["LTC_Reported_Cases"]["deaths"],
+                    "submitter_id": summary_clinical_submitter_id,
+                    "lastUpdateEt": date,
+                    "date": date,
+                    "summary_locations": [
+                        {"submitter_id": summary_location_submitter_id}
+                    ],
+                }
+                self.summary_locations.append(summary_location)
+                self.summary_clinicals.append(summary_clinical)
 
             for facility in data["FacilityValues"]:
                 (summary_location, summary_clinical,) = self.parse_facility(
@@ -117,7 +119,7 @@ class IDPH_FACILITY(base.BaseETL):
         facility_name = facility["FacilityName"]
         confirmed_cases = facility["confirmed_cases"]
         deaths = facility["deaths"]
-        status = facility["status"]
+        status = facility.get("status", None)
 
         summary_location_submitter_id = format_submitter_id(
             "summary_location",
@@ -125,6 +127,7 @@ class IDPH_FACILITY(base.BaseETL):
                 "country": self.country,
                 "state": self.state,
                 "facility_name": facility_name,
+                "reporting_org_status": status,
             },
         )
 
@@ -135,6 +138,7 @@ class IDPH_FACILITY(base.BaseETL):
             "province_state": self.state,
             "county": county,
             "reporting_org": facility_name,
+            "reporting_org_status": status,
         }
 
         summary_clinical_submitter_id = derived_submitter_id(
