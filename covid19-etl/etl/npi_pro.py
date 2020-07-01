@@ -101,8 +101,14 @@ class NPI_PRO(base.BaseETL):
         )
 
         result = {
-            "summary_location": {},
-            "summary_clinical": {},
+            "summary_location": {
+                "submitter_id": summary_location_submitter_id,
+                "projects": [{"code": self.project_code}],
+            },
+            "summary_clinical": {
+                "submitter_id": summary_clinical_submitter_id,
+                "summary_locations": [{"submitter_id": summary_location_submitter_id}],
+            },
         }
 
         for original_field, mappings in fields_mapping.items():
@@ -113,20 +119,6 @@ class NPI_PRO(base.BaseETL):
             else:
                 node, node_field = mappings
                 result[node][node_field] = row[original_field]
-
-        result["summary_location"].update(
-            {
-                "submitter_id": summary_location_submitter_id,
-                "projects": [{"code": self.project_code}],
-            }
-        )
-
-        result["summary_clinical"].update(
-            {
-                "submitter_id": summary_clinical_submitter_id,
-                "summary_locations": [{"submitter_id": summary_location_submitter_id}],
-            }
-        )
 
         return result["summary_location"], result["summary_clinical"]
 
