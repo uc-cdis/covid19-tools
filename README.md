@@ -48,6 +48,11 @@ The ETL for dataset from [here](https://github.com/dsfsi/covid19africa/tree/mast
 
 The ETL for OWID dataset for number of testing from [here](https://github.com/owid/covid-19-data/tree/master/public/data/testing).
 
+### NPI-PRO ([Jira](https://occ-data.atlassian.net/browse/COV-361))
+
+The ETL for USA providers data from [here](https://www.arcgis.com/home/item.html?id=7e80baf1773e4fd9b44fe9fb054677db).
+Currently, only Illinois data would submitted. Until solution for submitting the whole providers data, which contain approximately 3 million nodes.
+
 ## Run ETL jobs
 
 Setup in adminVM in `crontab`:
