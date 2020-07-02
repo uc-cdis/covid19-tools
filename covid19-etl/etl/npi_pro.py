@@ -1,7 +1,6 @@
 import os
 import tempfile
 
-import fiona
 import geopandas as gpd
 import requests
 
@@ -48,13 +47,11 @@ class NPI_PRO(base.BaseETL):
         self.parse_file(file_path=tf)
 
     def parse_file(self, file_path):
-        # get all the layers from the .gdb file
-        layers = fiona.listlayers(file_path)
-        # and check that the layer is the one we expect
-        assert layers == [
-            "NPI202003_TaxonomyGroups"
-        ], "no required layer, is it a wrong file? got layers {}".format(layers)
-        gdf = gpd.read_file(file_path, layer="NPI202003_TaxonomyGroups")
+        try:
+            gdf = gpd.read_file(file_path)
+        except Exception as e:
+            print(e)
+            return
 
         print("Until better solution, submit only Illinois data")
         il_only = gdf.loc[gdf["Provider_Business_Practice_ST"] == "IL"]
