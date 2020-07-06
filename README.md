@@ -3,17 +3,17 @@
 | Jira | Dataset | Source | Scheduled / One-time |
 | --- | --- | --- | --- |
 | [COV-24][cov-24] | John Hopkins Data | [here][jhu] | Scheduled |
-| [COV-12][cov-12] | IDPH County-level data | [here][idph-county] | Scheduled |
-| [COV-79][cov-79] | IDPH Zipcode data| [here][idph-zipcode] | Scheduled |
-| [COV-273][cov-273] | IDPH Facility data | [here][idph-facility-json] ([JSON][idph-facility-json]) | Scheduled |
+| [COV-12][cov-12] | IDPH County-level data | ([JSON][idph-county-json]) | Scheduled |
+| [COV-79][cov-79] | IDPH Zipcode data| ([JSON][idph-zipcode-json]) | Scheduled |
+| [COV-273][cov-273] | IDPH Facility data | [here][idph-facility] ([JSON][idph-facility-json]) | Scheduled |
 | [COV-34][cov-34] | CTP | [here][ctp] | Scheduled |
-| [COV-97][cov-97] | DS4C | [here][ds4c] | One-time |
-| [COV-126][cov-126] | DSCI | [here][dsci] | One-time |
+| [COV-97][cov-97] | DS4C | [Kaggle][ds4c] | One-time |
+| [COV-126][cov-126] | DSCI | [Kaggle][dsci] | One-time |
 | [COV-172][cov-172] | DSFSI | [here][dsfsi] | One-time |
 | [COV-170][cov-170] | CCMap | [here][ccmap] | One-time |
 | [COV-192][cov-192] | OWID | [here][owid] | Scheduled |
 | [COV-237][cov-237] | Chicago Neighborhoods Data | [here][chi-nbhd] ([JSON][chi-nbhd-json]) | Scheduled |
-| [COV-220][cov-220] | COXRAY | [here][coxray] | One-time |
+| [COV-220][cov-220] | COXRAY | [Kaggle][coxray] | One-time |
 
 ## Deployment
 
@@ -39,7 +39,7 @@ And add the following:
 
 ## Special instructions
 
-### COXRAY ([Jira]())
+### COXRAY
 
 The ETL is consist of two parts: `COXRAY_FILE` - for file upload and `COXRAY` for metadata submission.
 
@@ -61,8 +61,8 @@ covid19-tools
   [chi-nbhd]: https://covid19neighborhoods.southsideweekly.com/
   [chi-nbhd-json]: https://covid19neighborhoods.southsideweekly.com/page-data/index/page-data.json
   [jhu]: https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series
-  [idph-county]: http://www.dph.illinois.gov/sitefiles/COVIDTestResults.json?nocache=1
-  [idph-zipcode]: http://dph.illinois.gov/sitefiles/COVIDZip.json?nocache=1
+  [idph-county-json]: http://www.dph.illinois.gov/sitefiles/COVIDTestResults.json?nocache=1
+  [idph-zipcode-json]: http://dph.illinois.gov/sitefiles/COVIDZip.json?nocache=1
   [idph-facility]: https://dph.illinois.gov/covid19/long-term-care-facility-outbreaks-covid-19
   [idph-facility-json]: https://dph.illinois.gov/sitefiles/COVIDLTC.json?nocache=1
   [ds4c]: https://www.kaggle.com/kimjihoo/coronavirusdataset#PatientInfo.csv
