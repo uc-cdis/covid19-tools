@@ -20,7 +20,9 @@ class FileHelper:
         r = requests.get(url)
         data = r.json()
         if data["records"]:
-            assert len(data["records"]) == 1, f"multiple records for filename, something wrong: {filename}"
+            assert (
+                len(data["records"]) == 1
+            ), f"multiple records for filename, something wrong: {filename}"
             did = data["records"][0]["did"]
             rev = data["records"][0]["rev"]
             md5sum = data["records"][0]["hashes"]["md5"]
@@ -30,10 +32,15 @@ class FileHelper:
 
     def update_authz(self, did, rev):
         url = f"{self.base_url}/index/index/{did}?rev={rev}"
-        r = requests.put(url, json={
-            "authz": [f"/programs/{self.program_name}/projects/{self.project_code}"],
-            "uploader": None,
-        })
+        r = requests.put(
+            url,
+            json={
+                "authz": [
+                    f"/programs/{self.program_name}/projects/{self.project_code}"
+                ],
+                "uploader": None,
+            },
+        )
         if r.status_code == 200:
             return True
         return False

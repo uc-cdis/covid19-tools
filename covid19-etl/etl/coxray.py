@@ -95,7 +95,7 @@ class COXRAY(base.BaseETL):
 
     def files_to_submissions(self):
         with open(Path(COXRAY_DATA_PATH).joinpath("metadata.csv")) as f:
-            reader = csv.reader(f, delimiter=",", quotechar="\"")
+            reader = csv.reader(f, delimiter=",", quotechar='"')
             headers = next(reader)
             for row in reader:
                 row_nodes = self.parse_row(headers, row)
@@ -109,21 +109,27 @@ class COXRAY(base.BaseETL):
         return guid
 
     def parse_row(self, headers, row):
-        cmc_submitter_id = format_submitter_id("cmc_coxray", {"patientid": row[headers.index("patientid")]})
-        subject_submitter_id = format_submitter_id("subject_coxray", {"patientid": row[headers.index("patientid")]})
-        follow_up_submitter_id = derived_submitter_id(subject_submitter_id,
-                                                      "subject_coxray",
-                                                      "follow_up_coxray",
-                                                      {"offset": row[headers.index("offset")]},
-                                                      )
-        demographic_submitter_id = derived_submitter_id(subject_submitter_id,
-                                                        "subject_coxray",
-                                                        "demographic_coxray",
-                                                        {},
-                                                        )
-        imaging_file_submitter_id = format_submitter_id("imaging_file_coxray",
-                                                        {"filename": row[headers.index("filename")]})
-        study_submitter_id = format_submitter_id("study_coxray", {"doi": row[headers.index("doi")]})
+        cmc_submitter_id = format_submitter_id(
+            "cmc_coxray", {"patientid": row[headers.index("patientid")]}
+        )
+        subject_submitter_id = format_submitter_id(
+            "subject_coxray", {"patientid": row[headers.index("patientid")]}
+        )
+        follow_up_submitter_id = derived_submitter_id(
+            subject_submitter_id,
+            "subject_coxray",
+            "follow_up_coxray",
+            {"offset": row[headers.index("offset")]},
+        )
+        demographic_submitter_id = derived_submitter_id(
+            subject_submitter_id, "subject_coxray", "demographic_coxray", {},
+        )
+        imaging_file_submitter_id = format_submitter_id(
+            "imaging_file_coxray", {"filename": row[headers.index("filename")]}
+        )
+        study_submitter_id = format_submitter_id(
+            "study_coxray", {"doi": row[headers.index("doi")]}
+        )
 
         filename = row[headers.index("filename")]
         filename = Path(filename)
@@ -156,7 +162,9 @@ class COXRAY(base.BaseETL):
 
         if filepath_exist:
             data_type = "".join(filename.suffixes)
-            did, rev, md5sum, filesize = self.file_helper.find_by_name(filename=filename)
+            did, rev, md5sum, filesize = self.file_helper.find_by_name(
+                filename=filename
+            )
             if did:
                 self.file_helper.update_authz(did=did, rev=rev)
             else:
