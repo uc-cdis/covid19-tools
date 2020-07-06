@@ -1,71 +1,43 @@
 # Tools to work with the COVID-19 Data Commons
 
-| Jira | Dataset | Source |
-| --- | --- | --- |
-| [COV-237][cov-237] | [Chicago Neighborhoods Data](#chicago-neighborhoods-etl) | [here][chi-nbhd] ([JSON][chi-nbhd-json]) |
-| [COV-24][cov-24] | John Hopkins Data | [here][jhu] |
-| [COV-12][cov-12] | IDPH County-level data | [here][idph-county] |
-| [COV-79][cov-79] | IDPH Zipcode data| [here][idph-zipcode] |
-| [COV-273][cov-273] | IDPH Facility data | [here][idph-facility-json] ([JSON][idph-facility-json]) |
-| [COV-97][cov-97] | DS4C | [here][ds4c] |
-| [COV-126][cov-126] | DSCI | [here][dsci] |
-| [COV-172][cov-172] | DSFSI | [here][dsfsi] |
-| [COV-192][cov-192] | OWID | [here][owid] |
-| [COV-170][cov-170] | CCMap | [here][ccmap] |
-| [COV-220][cov-220] | COXRAY | [here][coxray] |
+| Jira | Dataset | Source | Scheduled / One-time |
+| --- | --- | --- | --- |
+| [COV-24][cov-24] | John Hopkins Data | [here][jhu] | Scheduled |
+| [COV-12][cov-12] | IDPH County-level data | [here][idph-county] | Scheduled |
+| [COV-79][cov-79] | IDPH Zipcode data| [here][idph-zipcode] | Scheduled |
+| [COV-273][cov-273] | IDPH Facility data | [here][idph-facility-json] ([JSON][idph-facility-json]) | Scheduled |
+| [COV-34][cov-34] | CTP | [here][ctp] | Scheduled |
+| [COV-97][cov-97] | DS4C | [here][ds4c] | One-time |
+| [COV-126][cov-126] | DSCI | [here][dsci] | One-time |
+| [COV-172][cov-172] | DSFSI | [here][dsfsi] | One-time |
+| [COV-170][cov-170] | CCMap | [here][ccmap] | One-time |
+| [COV-192][cov-192] | OWID | [here][owid] | Scheduled |
+| [COV-237][cov-237] | Chicago Neighborhoods Data | [here][chi-nbhd] ([JSON][chi-nbhd-json]) | Scheduled |
+| [COV-220][cov-220] | COXRAY | [here][coxray] | One-time |
 
-## ETL tools
+## Deployment
 
-### Chicago Neighborhoods ETL
+To deploy the daily/weekly ETLs, use the following setup in adminVM in `crontab`:
+```
+crontab -e
+```
 
-This ETL will grab the data for Chicago Neighborhoods data from South Side Weekly from .
-The data is located in JSON .
+And add the following:
 
-### Johns Hopkins
+```
+ 0   1   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=jhu bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+ 0  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+ 0  40   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph_zipcode bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+ 0  50   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph_facility bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+30  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ctp bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+45  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=owid bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+50  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=chi_nbhd bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+ 0 */3   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/etl-cronjob.sh ]; then bash $HOME/cloud-automation/files/scripts/etl-cronjob.sh; else echo "no etl-cronjob.sh"; fi) > $HOME/etl-cronjob.log 2>&1
+```
 
-Parses the CSV files located [here](https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series) and submits them to https://chicagoland.pandemicresponsecommons.org via Sheepdog.
+*Note*: The time in adminVM is in UTC.
 
-### Illinois Department of Public Health
-
-#### County level data ([Jira]())
-
-Parses the JSON file located [here](http://www.dph.illinois.gov/sitefiles/COVIDTestResults.json) and submits them to https://chicagoland.pandemicresponsecommons.org via Sheepdog.
-
-Before April 1, 2020 the URL has daily format like this:
-
-    https://www.dph.illinois.gov/sites/default/files/COVID19/COVID19CountyResults%date%.json
-
-where `%date%` is in format `YYYYMMDD`, e.g. `20200330` for March 30, 2020.
-
-#### Zipcode-level data ([Jira]())
-
-Parses the JSON file located [here](http://dph.illinois.gov/sitefiles/COVIDZip.json?nocache=1).
-
-#### Facility data ([Jira]())
-
-Parses the JSON file located [here](https://dph.illinois.gov/sitefiles/COVIDLTC.json).
-
-### Covid Tracking Project
-
-Parses CSV file from Github repository [here](https://raw.githubusercontent.com/COVID19Tracking/covid-tracking-data/master/data/states_daily_4pm_et.csv).
-
-### Kaggle datasets
-
-#### DS4C ([Jira]())
-
-The ETL for Kaggle dataset from [here](https://www.kaggle.com/kimjihoo/coronavirusdataset?select=PatientInfo.csv).
-
-#### DSCI ([Jira]())
-
-The ETL for Kaggle dataset from [here](https://www.kaggle.com/ardisragen/indonesia-coronavirus-cases?select=patient.csv).
-
-### DSFSI ([Jira]())
-
-The ETL for dataset from [here](https://github.com/dsfsi/covid19africa/tree/master/data/line_lists).
-
-### OWID ([Jira]())
-
-The ETL for OWID dataset for number of testing from [here](https://github.com/owid/covid-19-data/tree/master/public/data/testing).
+## Special instructions
 
 ### COXRAY ([Jira]())
 
@@ -86,27 +58,6 @@ covid19-tools
 ...
 ```
 
-## Run ETL jobs
-
-Setup in adminVM in `crontab`:
-
-```
-crontab -e
-```
-
-```
- 0   1   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=jhu bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
- 0  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
- 0  40   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph_zipcode bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
- 0  50   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph_facility bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-30  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ctp bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-45  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=owid bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-50  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=chi_nbhd bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
- 0 */3   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/etl-cronjob.sh ]; then bash $HOME/cloud-automation/files/scripts/etl-cronjob.sh; else echo "no etl-cronjob.sh"; fi) > $HOME/etl-cronjob.log 2>&1
-```
-
-*Note*: The time in adminVM is in UTC.
-
   [chi-nbhd]: https://covid19neighborhoods.southsideweekly.com/
   [chi-nbhd-json]: https://covid19neighborhoods.southsideweekly.com/page-data/index/page-data.json
   [jhu]: https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series
@@ -120,8 +71,10 @@ crontab -e
   [owid]: https://github.com/owid/covid-19-data/blob/master/public/data/testing/covid-testing-latest-data-source-details.csv
   [coxray]: https://www.kaggle.com/bachrr/covid-chest-xray
   [ccmap]: https://github.com/covidcaremap/covid19-healthsystemcapacity/tree/master/data/published
+  [ctp]: https://covidtracking.com/data
   [cov-12]: https://occ-data.atlassian.net/browse/COV-12
   [cov-24]: https://occ-data.atlassian.net/browse/COV-24
+  [cov-34]: https://occ-data.atlassian.net/browse/COV-34
   [cov-79]: https://occ-data.atlassian.net/browse/COV-79
   [cov-97]: https://occ-data.atlassian.net/browse/COV-97
   [cov-126]: https://occ-data.atlassian.net/browse/COV-126
