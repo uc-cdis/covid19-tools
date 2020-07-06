@@ -13,6 +13,7 @@
 | [COV-170][cov-170] | CCMap | [here][ccmap] | One-time |
 | [COV-192][cov-192] | OWID | [here][owid] | Scheduled |
 | [COV-237][cov-237] | Chicago Neighborhoods Data | [here][chi-nbhd] ([JSON][chi-nbhd-json]) | Scheduled |
+| [COV-361][cov-361] | NPI-PRO | [here][npi-pro] | One-time |
 | [COV-220][cov-220] | COXRAY | [Kaggle][coxray] | One-time |
 
 ## Deployment
@@ -72,6 +73,7 @@ covid19-tools
   [coxray]: https://www.kaggle.com/bachrr/covid-chest-xray
   [ccmap]: https://github.com/covidcaremap/covid19-healthsystemcapacity/tree/master/data/published
   [ctp]: https://covidtracking.com/data
+  [npi-pro]: https://www.arcgis.com/home/item.html?id=7e80baf1773e4fd9b44fe9fb054677db
   [cov-12]: https://occ-data.atlassian.net/browse/COV-12
   [cov-24]: https://occ-data.atlassian.net/browse/COV-24
   [cov-34]: https://occ-data.atlassian.net/browse/COV-34
@@ -84,3 +86,4 @@ covid19-tools
   [cov-220]: https://occ-data.atlassian.net/browse/COV-220
   [cov-237]: https://occ-data.atlassian.net/browse/COV-237
   [cov-273]: https://occ-data.atlassian.net/browse/COV-273
+  [cov-361]: https://occ-data.atlassian.net/browse/COV-361
