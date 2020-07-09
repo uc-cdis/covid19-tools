@@ -187,7 +187,7 @@ for(Country in countries) {
   index1 = which(cumsum(d1$deaths)>=10)[1] 
   index2 = index1-30
   
-  print(sprintf("First non-zero cases is on day %d, and 30 days before 10 cumulative deaths is day %d",index,index2))
+  print(sprintf("First non-zero cases is on day %d, and 30 days before %d cumulative deaths is day %d",index,minimumReportedDeaths,index2))
   d1=d1[index2:nrow(d1),]
   stan_data$EpidemicStart = c(stan_data$EpidemicStart,index1+1-index2)
 
@@ -364,7 +364,7 @@ write(exportJSON, "../modelOutput/log.json")
 
 filename <- paste0(StanModel, '-', JOBID)
 system(paste0("Rscript plot-trend.r ", filename,'.Rdata')) 
-system(paste0("Rscript plot-forecast.r ", filename,'.Rdata')) ## icl: to run this code you will need to adjust manual values of forecast required
+# system(paste0("Rscript plot-forecast.r ", filename,'.Rdata')) ## icl: to run this code you will need to adjust manual values of forecast required
 
 # suppressing for now
 # system(paste0("Rscript plot-explore.r ", filename,'.Rdata'))

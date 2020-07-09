@@ -60,56 +60,56 @@ make_three_pannel_plot <- function(){
   # dev'ing #
 
   # two transitions
-  lockdownStart <- as.Date("03/21/2020", format="%m/%d/%y")
-  lockdownEnd <- as.Date("05/30/2020", format="%m/%d/%y") # source: https://www.usatoday.com/storytelling/coronavirus-reopening-america-map/
+  # lockdownStart <- as.Date("03/21/2020", format="%m/%d/%y")
+  # lockdownEnd <- as.Date("05/30/2020", format="%m/%d/%y") # source: https://www.usatoday.com/storytelling/coronavirus-reopening-america-map/
   
-  datesRef <- dates[[1]]
+  # datesRef <- dates[[1]]
 
   # cd <- cd[cd > lastObs]
 
   # split the dates
-  preLockdownDates <- datesRef[datesRef < lockdownStart]
-  lockdownDates <- datesRef[datesRef >= lockdownStart & datesRef < lockdownEnd]
-  postLockdownDates <- datesRef[datesRef >= lockdownEnd & datesRef <= lastObs]
+  # preLockdownDates <- datesRef[datesRef < lockdownStart]
+  # lockdownDates <- datesRef[datesRef >= lockdownStart & datesRef < lockdownEnd]
+  # postLockdownDates <- datesRef[datesRef >= lockdownEnd & datesRef <= lastObs]
 
   # map to indexes
-  idxLockdown <- length(preLockdownDates)
-  idxReopen <- idxLockdown + length(lockdownDates)
-  idxLastObs <- idxReopen + length(postLockdownDates)
+  # idxLockdown <- length(preLockdownDates)
+  # idxReopen <- idxLockdown + length(lockdownDates)
+  # idxLastObs <- idxReopen + length(postLockdownDates)
 
-  Rt_PreLockdown <- out$Rt[,1:idxLockdown,]
-  Rt_Lockdown <- out$Rt[,(idxLockdown+1):idxReopen,]
-  Rt_PostLockdown <- out$Rt[,(idxReopen+1):idxLastObs,]
+  # Rt_PreLockdown <- out$Rt[,1:idxLockdown,]
+  # Rt_Lockdown <- out$Rt[,(idxLockdown+1):idxReopen,]
+  # Rt_PostLockdown <- out$Rt[,(idxReopen+1):idxLastObs,]
 
   # certainly, certainly make a function out of this
 
   # average Rt for each time period
-  Rt_PreLockdown <- apply(Rt_PreLockdown, c(1,3), mean)
-  Rt_Lockdown <- apply(Rt_Lockdown, c(1,3), mean)
-  Rt_PostLockdown <- apply(Rt_PostLockdown, c(1,3), mean)
+  # Rt_PreLockdown <- apply(Rt_PreLockdown, c(1,3), mean)
+  # Rt_Lockdown <- apply(Rt_Lockdown, c(1,3), mean)
+  # Rt_PostLockdown <- apply(Rt_PostLockdown, c(1,3), mean)
 
   # here! visualize it
-  colnames(Rt_PreLockdown) <- codeToName$name
-  colnames(Rt_Lockdown) <- codeToName$name
-  colnames(Rt_PostLockdown) <- codeToName$name
+  # colnames(Rt_PreLockdown) <- codeToName$name
+  # colnames(Rt_Lockdown) <- codeToName$name
+  # colnames(Rt_PostLockdown) <- codeToName$name
 
-  Rt_Delta_Lockdown <- Rt_Lockdown - Rt_PreLockdown
-  Rt_Delta_Reopen <- Rt_PostLockdown - Rt_Lockdown
+  # Rt_Delta_Lockdown <- Rt_Lockdown - Rt_PreLockdown
+  # Rt_Delta_Reopen <- Rt_PostLockdown - Rt_Lockdown
 
   # move this
-  plot_Rt_by_time_period <- function(Rt, title, path){
-    g = mcmc_intervals(Rt,prob = .9) + 
-      ggtitle(title, "with 90% posterior credible intervals") +
-      xlab("Rt") + ylab("County") + 
-      theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5)) # center title and subtitle
-    ggsave(file.path("../modelOutput/figures", path),g,width=6,height=4)
-  }
+  # plot_Rt_by_time_period <- function(Rt, title, path){
+  #   g = mcmc_intervals(Rt,prob = .9) + 
+  #     ggtitle(title, "with 90% posterior credible intervals") +
+  #     xlab("Rt") + ylab("County") + 
+  #     theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5)) # center title and subtitle
+  #   ggsave(file.path("../modelOutput/figures", path),g,width=6,height=4)
+  # }
 
-  plot_Rt_by_time_period(Rt_PreLockdown, "Average Rt Prior To Lockdown", "Rt_PreLockdown_All.png")
-  plot_Rt_by_time_period(Rt_Lockdown, "Average Rt During Lockdown", "Rt_Lockdown_All.png")
-  plot_Rt_by_time_period(Rt_PostLockdown, "Average Rt After Reopening", "Rt_Reopening_All.png")
-  plot_Rt_by_time_period(Rt_Delta_Lockdown, "Average Change In Rt Following Lockdown", "Rt_Delta_Lockdown_All.png")
-  plot_Rt_by_time_period(Rt_Delta_Reopen, "Average Change In Rt Following Reopening", "Rt_Delta_Reopen_All.png")
+  # plot_Rt_by_time_period(Rt_PreLockdown, "Average Rt Prior To Lockdown", "Rt_PreLockdown_All.png")
+  # plot_Rt_by_time_period(Rt_Lockdown, "Average Rt During Lockdown", "Rt_Lockdown_All.png")
+  # plot_Rt_by_time_period(Rt_PostLockdown, "Average Rt After Reopening", "Rt_Reopening_All.png")
+  # plot_Rt_by_time_period(Rt_Delta_Lockdown, "Average Change In Rt Following Lockdown", "Rt_Delta_Lockdown_All.png")
+  # plot_Rt_by_time_period(Rt_Delta_Reopen, "Average Change In Rt Following Reopening", "Rt_Delta_Reopen_All.png")
 
   ##### ////////////// #####
 
@@ -203,57 +203,57 @@ make_three_pannel_plot <- function(){
                country = countryName,
                code = country)
 
-    allErr[[i]] <- county_deaths_and_est
+    # allErr[[i]] <- county_deaths_and_est
   }
 
   #### all estimated deaths curves one plot ####
 
-  minDate <- min(sapply(allErr, function(x) min(x$time)))
+  # minDate <- min(sapply(allErr, function(x) min(x$time)))
 
-  allEst <- lapply(allErr, function(x) x[x$time <= lastObs,])
-  allEst <- lapply(allEst, function(x) subset(x, select=-c(deaths)))
+  # allEst <- lapply(allErr, function(x) x[x$time <= lastObs,])
+  # allEst <- lapply(allEst, function(x) subset(x, select=-c(deaths)))
 
-  pad_est <- function(x) {
-    if (min(x$time) == minDate){return(x)}
-    df <- data.frame(
-      time = seq(as.Date(minDate), as.Date(min(x$time)-1), by="days"),
-      est = rep(0, min(x$time) - minDate),
-      countyName = rep(x$countyName[1], min(x$time) - minDate)
-    )
-    return(rbind(df,x))
-  }
-  allEst <- lapply(allEst, pad_est)
+  # pad_est <- function(x) {
+  #   if (min(x$time) == minDate){return(x)}
+  #   df <- data.frame(
+  #     time = seq(as.Date(minDate), as.Date(min(x$time)-1), by="days"),
+  #     est = rep(0, min(x$time) - minDate),
+  #     countyName = rep(x$countyName[1], min(x$time) - minDate)
+  #   )
+  #   return(rbind(df,x))
+  # }
+  # allEst <- lapply(allEst, pad_est)
 
   # rough - add county name as ID
-  pEst <- ggplot(bind_rows(allEst), aes(x=time, y=est, colour=countyName)) + geom_line()
-  save_plot(filename = "../modelOutput/figures/allEstimates.png", pEst)
+  # pEst <- ggplot(bind_rows(allEst), aes(x=time, y=est, colour=countyName)) + geom_line()
+  # save_plot(filename = "../modelOutput/figures/allEstimates.png", pEst)
 
   #### error analysis ####
-  cutoff <- max(sapply(allErr, function(x) min(x$time)))
-  allErr <- sapply(allErr, function(x) x[x$time >= cutoff & x$time <= lastObs,])
+  # cutoff <- max(sapply(allErr, function(x) min(x$time)))
+  # allErr <- sapply(allErr, function(x) x[x$time >= cutoff & x$time <= lastObs,])
 
-  err_df <- data.frame(time=allErr[,1]$time)
+  # err_df <- data.frame(time=allErr[,1]$time)
 
-  err_df$deaths <- 0
-  err_df$est <- 0
-  for (i in 1:dim(allErr)[2]){
-    err_df$deaths <- err_df$deaths + allErr[,i]$deaths
-    err_df$est <- err_df$est + allErr[,i]$est
-  }
+  # err_df$deaths <- 0
+  # err_df$est <- 0
+  # for (i in 1:dim(allErr)[2]){
+  #   err_df$deaths <- err_df$deaths + allErr[,i]$deaths
+  #   err_df$est <- err_df$est + allErr[,i]$est
+  # }
 
   ### scaled error daily
-  error_plot(
-    df = err_df,
-    title = "All County Daily Deaths",
-    path = "../modelOutput/figures/%sse_daily_all.png"
-  )
+  # error_plot(
+  #   df = err_df,
+  #   title = "All County Daily Deaths",
+  #   path = "../modelOutput/figures/%sse_daily_all.png"
+  # )
 
   ### scaled error weekly
-  weekly_error_plot(
-    df = err_df, 
-    title = "All County Weekly Deaths",
-    path = "../modelOutput/figures/%sse_weekly_all.png"
-  )
+  # weekly_error_plot(
+  #   df = err_df, 
+  #   title = "All County Weekly Deaths",
+  #   path = "../modelOutput/figures/%sse_weekly_all.png"
+  # )
 }
 
 weekly_error_plot <- function(df, title, path){
@@ -332,27 +332,27 @@ make_plots <- function(data_country, covariates_country_long,
     dir.create(countyDir, showWarnings = FALSE)
 
     #### scaled error plot daily counts
-    deaths_err <- data.frame(time=data_country$time, deaths=data_country$deaths, est=data_country$estimated_deaths, deaths_c=data_country$deaths_c)
+    # deaths_err <- data.frame(time=data_country$time, deaths=data_country$deaths, est=data_country$estimated_deaths, deaths_c=data_country$deaths_c)
 
     # index = which(d1$cases>0)[1]
-    index <- which(deaths_err$deaths_c>10)[1]
-    deaths_err <- deaths_err[index:nrow(deaths_err),]
+    # index <- which(deaths_err$deaths_c>10)[1]
+    # deaths_err <- deaths_err[index:nrow(deaths_err),]
 
     # MASE : https://en.wikipedia.org/wiki/Mean_absolute_scaled_error
     # https://robjhyndman.com/papers/foresight.pdf
     # file:///Users/mattgarvin/Downloads/A-note-on-the-MASE-Revision-for-IJF.pdf
 
-    error_plot(
-      df = deaths_err,
-      title = paste0(country, " County Daily Deaths"),
-      path = file.path(countyDir, "%sse_daily.png")
-    )
+    # error_plot(
+    #   df = deaths_err,
+    #   title = paste0(country, " County Daily Deaths"),
+    #   path = file.path(countyDir, "%sse_daily.png")
+    # )
 
-    weekly_error_plot(
-      df = deaths_err,
-      title = paste0(country, " County Weekly Deaths"),
-      path = file.path(countyDir, "%sse_weekly.png")
-    )
+    # weekly_error_plot(
+    #   df = deaths_err,
+    #   title = paste0(country, " County Weekly Deaths"),
+    #   path = file.path(countyDir, "%sse_weekly.png")
+    # )
 
     ## p1
 
@@ -469,8 +469,9 @@ make_plots <- function(data_country, covariates_country_long,
 
     save_plot(filename = file.path(countyDir, "Rt.png"), p3)
 
-    df_err <- data.frame(time=deaths_err$time, deaths=deaths_err$deaths, est=deaths_err$est, countyName=country)
-    return(df_err)
+    # df_err <- data.frame(time=deaths_err$time, deaths=deaths_err$deaths, est=deaths_err$est, countyName=country)
+    # return(df_err)
+    return()
 }
 
 make_three_pannel_plot()
