@@ -117,25 +117,25 @@ make_two_plots <- function(data_country, data_country_forecast, filename, countr
   data_deaths_all <- rbind(data_deaths, data_deaths_forecast)
   
   p <- ggplot(data_country) +
-    ggtitle(paste0(country, " County Daily Deaths Forecast")) + 
+    ggtitle(paste0(country, " County Daily Deaths")) + 
     geom_bar(data = data_country, aes(x = time, y = deaths), 
              fill = "coral4", stat='identity', alpha=0.5) + 
     geom_line(data = data_country, aes(x = time, y = estimated_deaths), 
               col = "deepskyblue4") + 
-    geom_line(data = data_country_forecast, 
-              aes(x = time, y = estimated_deaths_forecast), 
-              col = "black", alpha = 0.5) + 
+    # geom_line(data = data_country_forecast, 
+    #           aes(x = time, y = estimated_deaths_forecast), 
+    #           col = "black", alpha = 0.5) + 
     geom_ribbon(data = data_country, aes(x = time, 
                                          ymin = death_min, 
                                          ymax = death_max),
                 fill="deepskyblue4", alpha=0.3) +
-    geom_ribbon(data = data_country_forecast, 
-                aes(x = time, 
-                    ymin = death_min_forecast, 
-                    ymax = death_max_forecast),
-                fill = "black", alpha=0.35) +
-    geom_vline(xintercept = data_deaths$time[length(data_deaths$time)], 
-               col = "black", linetype = "dashed", alpha = 0.5) + 
+    # geom_ribbon(data = data_country_forecast, 
+    #             aes(x = time, 
+    #                 ymin = death_min_forecast, 
+    #                 ymax = death_max_forecast),
+    #             fill = "black", alpha=0.35) +
+    # geom_vline(xintercept = data_deaths$time[length(data_deaths$time)], 
+    #            col = "black", linetype = "dashed", alpha = 0.5) + 
     #scale_fill_manual(name = "", 
     #                 labels = c("Confirmed deaths", "Predicted deaths"),
     #                 values = c("coral4", "deepskyblue4")) + 
@@ -171,25 +171,25 @@ make_two_plots <- function(data_country, data_country_forecast, filename, countr
   data_cases_all <- rbind(data_cases, data_cases_forecast)
   
   p <- ggplot(data_country) +
-    ggtitle(paste0(country, " County Daily Cases Forecast")) + 
+    ggtitle(paste0(country, " County Daily Cases")) + 
     geom_bar(data = data_country, aes(x = time, y = reported_cases), 
              fill = "coral4", stat='identity', alpha=0.5) + 
     geom_line(data = data_country, aes(x = time, y = predicted_cases), 
               col = "deepskyblue4") + 
-    geom_line(data = data_country_forecast, 
-              aes(x = time, y = estimated_cases_forecast), 
-              col = "black", alpha = 0.5) + 
+    # geom_line(data = data_country_forecast, 
+    #           aes(x = time, y = estimated_cases_forecast), 
+    #           col = "black", alpha = 0.5) + 
     geom_ribbon(data = data_country, aes(x = time, 
                                          ymin = predicted_min, 
                                          ymax = predicted_max),
                 fill="deepskyblue4", alpha=0.3) +
-    geom_ribbon(data = data_country_forecast, 
-                aes(x = time, 
-                    ymin = cases_min_forecast, 
-                    ymax = cases_max_forecast),
-                fill = "black", alpha=0.35) +
-    geom_vline(xintercept = data_cases$time[length(data_cases$time)], 
-               col = "black", linetype = "dashed", alpha = 0.5) + 
+    # geom_ribbon(data = data_country_forecast, 
+    #             aes(x = time, 
+    #                 ymin = cases_min_forecast, 
+    #                 ymax = cases_max_forecast),
+    #             fill = "black", alpha=0.35) +
+    # geom_vline(xintercept = data_cases$time[length(data_cases$time)], 
+    #            col = "black", linetype = "dashed", alpha = 0.5) + 
     xlab("Date") +
     ylab("Cases\n") + 
     scale_x_date(date_breaks = "weeks", labels = date_format("%e %b")) + 
