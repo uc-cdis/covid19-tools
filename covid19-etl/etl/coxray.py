@@ -165,10 +165,8 @@ class COXRAY(base.BaseETL):
             did, rev, md5sum, filesize = self.file_helper.find_by_name(
                 filename=filename
             )
-            if did:
-                self.file_helper.update_authz(did=did, rev=rev)
-            else:
-                assert f"file {filename} not exist in the index, rerun COXRAY_FILE ETL"
+            assert did, f"file {filename} does not exist in the index, rerun COXRAY_FILE ETL"
+            self.file_helper.update_authz(did=did, rev=rev)
 
             nodes["imaging_file"] = {
                 "submitter_id": imaging_file_submitter_id,
