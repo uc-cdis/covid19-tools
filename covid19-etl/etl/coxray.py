@@ -201,9 +201,7 @@ class COXRAY(base.BaseETL):
                 node_record = {"type": k}
                 node_record.update(node)
                 submitter_id = node_record["submitter_id"]
-                if submitter_id in submitter_id_exist:
-                    continue
-                else:
+                if submitter_id not in submitter_id_exist:
                     submitter_id_exist.append(submitter_id)
                     self.metadata_helper.add_record_to_submit(node_record)
             self.metadata_helper.batch_submit_records()
