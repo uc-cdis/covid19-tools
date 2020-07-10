@@ -1,7 +1,7 @@
-import os
-import yaml
 import glob
 import hashlib
+from os import path
+import yaml
 
 from etl import base
 from helper.metadata_helper import MetadataHelper
@@ -18,13 +18,19 @@ Execute this script within the dir containing this collection of files.
 load_virus_metadata.yaml file which should be in the same directory as this script.
 '''
 
+
+CURRENT_DIR = path.dirname(path.realpath(__file__))
+
+
 class LOAD_VIRUS_METADATA(base.BaseETL):
-    def __init__(self, base_url, access_token):
-        super().__init__(base_url, access_token)
+    def __init__(self, base_url, access_token, s3_bucket):
+        super().__init__(base_url, access_token, s3_bucket)
 
         # Get all input strings from YAML
-        script = os.path.splitext(os.path.basename(__file__))[0]
-        with open('{}.yaml'.format(script)) as f:
+        script = path.splitext(path.basename(__file__))[0].strip("/")
+        print(CURRENT_DIR, script)
+        script = path.join(CURRENT_DIR, script + ".yaml")
+        with open(script) as f:
             config = yaml.load(f, Loader=yaml.FullLoader)
 
         self.verbose = config['verbose']
@@ -96,7 +102,7 @@ class LOAD_VIRUS_METADATA(base.BaseETL):
                 "submitter_id": virus_genome_submitter_id,
                 "file_name": genome,
                 "md5sum": self.checksum(genome),
-                "file_size": os.path.getsize(genome),
+                "file_size": path.getsize(genome),
                 "projects": [{"code": self.project_code}]
             }
             self.virus_genomes.append(virus_genome)
@@ -121,7 +127,7 @@ class LOAD_VIRUS_METADATA(base.BaseETL):
                 "submitter_id": virus_sequence_id,
                 "file_name": seq,
                 "md5sum": self.checksum(seq),
-                "file_size": os.path.getsize(seq),
+                "file_size": path.getsize(seq),
                 "projects": [{"code": self.project_code}]
             }
             self.virus_sequences.append(virus_sequence)
@@ -146,7 +152,7 @@ class LOAD_VIRUS_METADATA(base.BaseETL):
                 "submitter_id": virus_sequence_alignment_id,
                 "file_name": aln,
                 "md5sum": self.checksum(aln),
-                "file_size": os.path.getsize(aln),
+                "file_size": path.getsize(aln),
                 "projects": [{"code": self.project_code}],
                 "alignment_tool": self.virus_sequence_alignment_tool
             }
@@ -172,7 +178,7 @@ class LOAD_VIRUS_METADATA(base.BaseETL):
                 "submitter_id": virus_sequence_hmm_id,
                 "file_name": hmm,
                 "md5sum": self.checksum(hmm),
-                "file_size": os.path.getsize(hmm),
+                "file_size": path.getsize(hmm),
                 "projects": [{"code": self.project_code}]
             }
             self.virus_sequence_hmms.append(virus_sequence_hmm)
