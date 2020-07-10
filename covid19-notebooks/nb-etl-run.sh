@@ -26,11 +26,6 @@ echo "Running bayes-by-county..."
 cd /nb-etl/bayes-by-county/
 
 # sh run.sh <stan_model> <deaths_cutoff> <nIterations>
-
-# actual run
-# sh run.sh us_mobility 15 4000
-
-# for testing
 sh run.sh us_mobility 50 4000
 
 
