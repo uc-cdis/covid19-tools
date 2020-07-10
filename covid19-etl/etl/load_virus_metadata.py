@@ -28,7 +28,6 @@ class LOAD_VIRUS_METADATA(base.BaseETL):
 
         # Get all input strings from YAML
         script = path.splitext(path.basename(__file__))[0].strip("/")
-        print(CURRENT_DIR, script)
         script = path.join(CURRENT_DIR, script + ".yaml")
         with open(script) as f:
             config = yaml.load(f, Loader=yaml.FullLoader)
