@@ -1,4 +1,33 @@
-# COVID-19 Model for IL by-county (Version 1)
+# COVID-19 Model for IL by-county (Version 2)
+
+## V2: Mobility Data
+
+Use google mobility data to generate real-time estimates of Rt.
+
+## Visualizations
+
+Get written to `modelOutput/figures/`. 
+
+## List of Counties
+
+Each time you run the model, the list of counties used in the simulation gets written to `modelOutput/figures/CountyCodeList.txt`, even though it's not a "figure".
+
+## Running The Model
+
+To run the model:
+
+```sh run.sh <stan_model> <minimumDeaths> <nIterations>```
+
+Example:
+
+```sh run.sh us_mobility 150 4000```
+
+Output gets written to `modelOutput/explorePlots/`, `modelOutput/figures/`, and `modelOutput/results`.
+
+Some Rough Time Benchmarks:
+- 9 counties for 4000 iterations: 9hrs
+
+These times are from running the model on Matt's laptop, without any kind of extra optimization etc.
 
 ## A Few Notes On Version 1
 
@@ -13,40 +42,3 @@
 - Use the bash script to run the model, always.
 - The bash script runs the etl (fetches latest JHU data) and then runs the model with the parameters you pass to it
 - The IL age distribution is applied uniformly across all counties in IL -> this impacts the age-stratified IFR (the age distribution by-county is available, it just hasn't been incorporated into the model yet)
-
-## Visualizations
-
-Get written to `modelOutput/figures/`. 
-
-You get:
-1) estimated Rt on June 1st for all counties in one plot
-2) per county, a directory (the name is the county code) containing 5 visualizations - deaths, cases, forecasts of those, and Rt over time (up through June 1st)
-
-## List of Counties
-
-Each time you run the model, the list of counties used in the simulation gets written to `modelOutput/figures/CountyCodeList.txt`, even though it's not a "figure".
-
-
-## Running The Model
-
-To run the model:
-
-```sh run.sh <stan_model> <minimumDeaths> <nIterations>```
-
-Example:
-
-```sh run.sh us_base 150 4000```
-
-Output gets written to `modelOutput/explorePlots/`, `modelOutput/figures/`, and `modelOutput/results`.
-
-Some Rough Time Benchmarks:
-- 5 counties for 8000 iterations: 20min
-- 25 counties for 8000 iterations: 165min
-- 5 counties for 24000 iterations: 66min
-- 9 counties for 24000 iterations: 106min
-
-These times are from running the model on Matt's laptop, without any kind of extra optimization etc.
-
-## V2 in the works
-
-It's in the works.

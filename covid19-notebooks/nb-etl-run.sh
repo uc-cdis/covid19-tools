@@ -26,7 +26,8 @@ echo "Running bayes-by-county..."
 cd /nb-etl/bayes-by-county/
 
 # sh run.sh <stan_model> <deaths_cutoff> <nIterations>
-sh run.sh us_base 10 4000
+sh run.sh us_mobility 50 4000
+
 
 # copy images to S3 under prefix "bayes-by-county"
 # directory structure:
@@ -43,5 +44,5 @@ sh run.sh us_base 10 4000
 echo "Copying to S3 bucket..."
 if [[ -n "$S3_BUCKET" ]]; then
   # don't copy over the .keep (or any non-image or county list) file
-  aws s3 sync "./modelOutput/figures" "$S3_BUCKET/bayes-by-county/" --exclude ".keep"
+  aws s3 sync "./modelOutput/figures" "$S3_BUCKET/bayes-by-county/" --exclude ".keep" --delete
 fi

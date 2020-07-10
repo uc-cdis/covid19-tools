@@ -1,4 +1,7 @@
-# save(fit,
+# save(JOBID,
+# nStanIterations,
+# duration,
+# fit,
 # prediction,
 # dates,
 # reported_cases,
@@ -7,12 +10,21 @@
 # estimated.deaths,
 # estimated.deaths.cf,
 # out,
-# covariates,file=paste0('../modelOutput/results/',StanModel,'-',JOBID,'-stanfit.Rdata'))
+# lastObs,
+# covariate_list_partial_county,
+# file=paste0('../modelOutput/results/',StanModel,'-',JOBID,'-stanfit.Rdata'))
 
-# ../modelOutput/results/nine_county_big/us_base-606037-stanfit.Rdata
+library(jsonlite)
 
-load("../modelOutput/results/nine_county_big/us_base-606037.Rdata")
+args <- commandArgs(trailingOnly = TRUE)
+filename2 <- args[1]
+load(paste0("../modelOutput/results/", filename2))
+# print(sprintf("loading: %s",paste0("../modelOutput/results/",filename2)))
+
 obs <- read.csv("../modelInput/ILCaseAndMortalityV1.csv")
+obs$date = as.Date(obs$dateRep,format='%m/%d/%y')
+obs$countryterritoryCode <- sapply(obs$countryterritoryCode, as.character)
+obs$countryterritoryCode <- sub("840", "", obs$countryterritoryCode)
 
 l <- list()
 
@@ -22,27 +34,27 @@ for(i in 1:length(countries)){
     county <- countries[[i]]
     N <- length(dates[[i]])
     countyDates <- dates[[i]]
-    lastObs <- tail(dates[[i]], 1)
 
     # last index is county
     countyForecast <- colMeans(estimated.deaths[,(N+1):N2,i])
 
-    countyObs <- obs[obs$countryterritoryCode==county,]
-
-    # tail(as.Date(countyObs$dateRep, format = "%m/%d/%y"), 1) > lastObs
-    validationObs <- countyObs[as.Date(countyObs$dateRep, format = "%m/%d/%y") > lastObs, ]
+    countyObs <- obs[obs$countryterritoryCode == county,]
+    validationObs <- countyObs[countyObs$date > lastObs, ]
 
     # number of points for this county
     n <- min(length(countyForecast), nrow(validationObs))
 
-    # here it is - for one county
-    vdf <- data.frame("date"=validationObs$dateRep[1:n], "obs"=validationObs$deaths[1:n], "pred"=countyForecast[1:n])
+    vdf <- data.frame("date"=validationObs$date[1:n], "obs"=validationObs$deaths[1:n], "pred"=countyForecast[1:n])
     vdf$county <- county
 
     l[[i]] <- vdf
 } 
 
+# could save this df - not sure how necessary that is though
 fullSet <- do.call(rbind, l)
+
+# look at it
+# print(fullSet)
 
 # number of points 
 pts <- nrow(fullSet)
@@ -50,18 +62,37 @@ pts <- nrow(fullSet)
 # compute the score
 correlationScore <- cor(fullSet$pred, fullSet$obs)
 
-# error here???
-print(sprintf("correlation: %d", correlationScore))
+## write results
 
+outDir <- file.path("../modelOutput/validation", JOBID)
+dir.create(outDir, showWarnings = FALSE)
 
-print(sprintf("number of dates: %d", n))
-print(sprintf("number of points: %d", pts))
+# create summary
+summary <- list(
+    jobid=JOBID,
+    time=duration, # in seconds
+    nIter=nStanIterations,
+    start=min(fullSet$date),
+    end=max(fullSet$date),
+    nDays=n,
+    nCounties=length(countries),
+    deathsCutoff=minimumReportedDeaths,
+    nPoints=pts,
+    correlation=correlationScore
+)
+exportJSON <- toJSON(summary, pretty=TRUE, auto_unbox=TRUE)
+# sent to stdout
+print("--- validation summary ---")
+print(exportJSON)
+# write summary to log 
+write(exportJSON, file.path(outDir, "log.json"))
 
-# look at it
-png(filename="../modelOutput/explorePlots/firstValidation.png", width=1600, height=1600, units="px", pointsize=36)
-plot(fullSet$obs, fullSet$pred)
-dev.off()
+# save plot
+png(filename=file.path(outDir, "v.png"), width=1600, height=1600, units="px", pointsize=36)
+plot(fullSet$obs, fullSet$pred, sub=sprintf("correlation: %f", correlationScore))
+naught <- dev.off()
 
-png(filename="../modelOutput/explorePlots/firstValidation_log.png", width=1600, height=1600, units="px", pointsize=36)
-plot(log(fullSet$obs), log(fullSet$pred))
-dev.off()
+# save log plot (sometimes this is easier to look at)
+png(filename=file.path(outDir, "v_logScale.png"), width=1600, height=1600, units="px", pointsize=36)
+plot(log(fullSet$obs), log(fullSet$pred), sub=sprintf("correlation: %f", correlationScore))
+naught <- dev.off()
