@@ -19,8 +19,8 @@ load_virus_metadata.yaml file which should be in the same directory as this scri
 '''
 
 class LOAD_VIRUS_METADATA(base.BaseETL):
-    def __init__(self, base_url, access_token):
-        super().__init__(base_url, access_token)
+    def __init__(self, base_url, access_token, s3_bucket):
+        super().__init__(base_url, access_token, s3_bucket)
 
         # Get all input strings from YAML
         script = os.path.splitext(os.path.basename(__file__))[0]
