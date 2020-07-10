@@ -32,18 +32,19 @@ class FileHelper:
 
     def update_authz(self, did, rev):
         url = f"{self.base_url}/index/index/{did}?rev={rev}"
-        r = requests.put(
-            url,
-            json={
-                "authz": [
-                    f"/programs/{self.program_name}/projects/{self.project_code}"
-                ],
-                "uploader": None,
-            },
-        )
-        if r.status_code == 200:
-            return True
-        return False
+        try:
+            r = requests.put(
+                url,
+                json={
+                    "authz": [
+                        f"/programs/{self.program_name}/projects/{self.project_code}"
+                    ],
+                    "uploader": None,
+                },
+            )
+            r.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            print(err)
 
     def get_presigned_url(self, filename):
         upload_url = f"{self.base_url}/user/data/upload"

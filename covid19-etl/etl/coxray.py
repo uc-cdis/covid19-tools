@@ -103,14 +103,9 @@ class COXRAY(base.BaseETL):
                     if k in self.nodes:
                         self.nodes[k].append(v)
 
-    def upload_file(self, filename):
-        path = Path(COXRAY_DATA_PATH).joinpath("images", filename)
-        guid = self.file_helper.upload_file(path)
-        return guid
-
     def parse_row(self, headers, row):
         cmc_submitter_id = format_submitter_id(
-            "cmc_coxray", {"patientid": row[headers.index("patientid")]}
+            "cmc_coxray", {}
         )
         subject_submitter_id = format_submitter_id(
             "subject_coxray", {"patientid": row[headers.index("patientid")]}
