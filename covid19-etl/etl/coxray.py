@@ -175,7 +175,7 @@ class COXRAY(base.BaseETL):
                 "object_id": did,
             }
         else:
-            print(f"{filepath} doesn't exist in the data")
+            print(f"subject references the file that doesn't exist as a file: {filepath}")
 
         for k, (node, field, converter) in fields_mapping.items():
             value = row[headers.index(k)]
