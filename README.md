@@ -62,6 +62,10 @@ covid19-tools
 ...
 ```
 
+`COXRAY_FILE` should run first. It will upload the files.
+`COXRAY` should run after `COXRAY_FILE` and it will create clinical data and it will link it to files in indexd.
+
+
   [chi-nbhd]: https://covid19neighborhoods.southsideweekly.com/
   [chi-nbhd-json]: https://covid19neighborhoods.southsideweekly.com/page-data/index/page-data.json
   [jhu]: https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series
