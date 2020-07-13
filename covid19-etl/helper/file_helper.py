@@ -3,9 +3,13 @@ import requests
 
 def upload_file(path, url):
     with open(path, "rb") as data:
-        r = requests.put(url, data=data)
-        print("status: {}\ncontent: {}".format(r.status_code, r.content))
-        return r.status_code
+        try:
+            r = requests.put(url, data=data)
+            r.raise_for_status()
+        except requests.exceptions.HTTPError as err:
+            print(err)
+        finally:
+            return r.status_code
 
 
 class FileHelper:
@@ -21,7 +25,7 @@ class FileHelper:
         data = r.json()
         if data["records"]:
             assert (
-                len(data["records"]) == 1
+                    len(data["records"]) == 1
             ), f"multiple records for filename, something wrong: {filename}"
             did = data["records"][0]["did"]
             rev = data["records"][0]["rev"]
@@ -59,6 +63,6 @@ class FileHelper:
         basename = path.name
         presigned_url, guid = self.get_presigned_url(basename)
         upload_status = upload_file(path, presigned_url)
-        if upload_status == 200:
-            return guid, upload_status
-        return None, upload_status
+        if upload_status == requests.codes.ok:
+            return guid
+        return None
