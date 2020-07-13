@@ -179,12 +179,11 @@ class COXRAY(base.BaseETL):
 
         for k, (node, field, converter) in fields_mapping.items():
             value = row[headers.index(k)]
-            if node in nodes:
-                if value:
-                    if converter:
-                        nodes[node][field] = converter(value)
-                    else:
-                        nodes[node][field] = value
+            if node in nodes and value:
+                if converter:
+                    nodes[node][field] = converter(value)
+                else:
+                    nodes[node][field] = value
 
         return nodes
 
