@@ -1,72 +1,34 @@
 # Tools to work with the COVID-19 Data Commons
 
-## ETL tools
+| Jira | Dataset | Source | Scheduled / One-time |
+| --- | --- | --- | --- |
+| [COV-24][cov-24] | John Hopkins Data | [here][jhu] | Scheduled |
+| [COV-12][cov-12] | IDPH County-level data | ([JSON][idph-county-json]) | Scheduled |
+| [COV-79][cov-79] | IDPH Zipcode data| ([JSON][idph-zipcode-json]) | Scheduled |
+| [COV-273][cov-273] | IDPH Facility data | [here][idph-facility] ([JSON][idph-facility-json]) | Scheduled |
+| [COV-34][cov-34] | CTP | [here][ctp] | Scheduled |
+| [COV-97][cov-97] | DS4C | [Kaggle][ds4c] | One-time |
+| [COV-126][cov-126] | DSCI | [Kaggle][dsci] | One-time |
+| [COV-172][cov-172] | DSFSI | [here][dsfsi] | One-time |
+| [COV-170][cov-170] | CCMap | [here][ccmap] | One-time |
+| [COV-192][cov-192] | OWID | [here][owid] | Scheduled |
+| [COV-237][cov-237] | Chicago Neighborhoods Data | [here][chi-nbhd] ([JSON][chi-nbhd-json]) | Scheduled |
+| [COV-361][cov-361] | NPI-PRO | [here][npi-pro] | One-time |
+| [COV-220][cov-220] | COXRAY | [Kaggle][coxray] | One-time |
 
-### Chicago Neighborhoods ETL ([Jira](https://occ-data.atlassian.net/browse/COV-237))
+## Deployment
 
-This ETL will grab the data for Chicago Neighborhoods data from South Side Weekly from [here](https://covid19neighborhoods.southsideweekly.com/).
-The data is located in JSON [here](https://covid19neighborhoods.southsideweekly.com/page-data/index/page-data.json).
-
-### Johns Hopkins ([Jira](https://occ-data.atlassian.net/browse/COV-24))
-
-Parses the CSV files located [here](https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series) and submits them to https://chicagoland.pandemicresponsecommons.org via Sheepdog.
-
-### Illinois Department of Public Health
-
-#### County level data ([Jira](https://occ-data.atlassian.net/browse/COV-12))
-
-Parses the JSON file located [here](http://www.dph.illinois.gov/sitefiles/COVIDTestResults.json) and submits them to https://chicagoland.pandemicresponsecommons.org via Sheepdog.
-
-Before April 1, 2020 the URL has daily format like this:
-
-    https://www.dph.illinois.gov/sites/default/files/COVID19/COVID19CountyResults%date%.json
-
-where `%date%` is in format `YYYYMMDD`, e.g. `20200330` for March 30, 2020.
-
-#### Zipcode-level data ([Jira](https://occ-data.atlassian.net/browse/COV-79))
-
-Parses the JSON file located [here](http://dph.illinois.gov/sitefiles/COVIDZip.json?nocache=1).
-
-#### Facility data ([Jira](https://occ-data.atlassian.net/browse/COV-273))
-
-Parses the JSON file located [here](https://dph.illinois.gov/sitefiles/COVIDLTC.json).
-
-### Covid Tracking Project
-
-Parses CSV file from Github repository [here](https://raw.githubusercontent.com/COVID19Tracking/covid-tracking-data/master/data/states_daily_4pm_et.csv).
-
-### Kaggle datasets
-
-#### DS4C ([Jira](https://occ-data.atlassian.net/browse/COV-97))
-
-The ETL for Kaggle dataset from [here](https://www.kaggle.com/kimjihoo/coronavirusdataset?select=PatientInfo.csv).
-
-#### DSCI ([Jira](https://occ-data.atlassian.net/browse/COV-126))
-
-The ETL for Kaggle dataset from [here](https://www.kaggle.com/ardisragen/indonesia-coronavirus-cases?select=patient.csv).
-
-### DSFSI ([Jira](https://occ-data.atlassian.net/browse/COV-172))
-
-The ETL for dataset from [here](https://github.com/dsfsi/covid19africa/tree/master/data/line_lists).
-
-### OWID ([Jira](https://occ-data.atlassian.net/browse/COV-192))
-
-The ETL for OWID dataset for number of testing from [here](https://github.com/owid/covid-19-data/tree/master/public/data/testing).
-
-### NPI-PRO ([Jira](https://occ-data.atlassian.net/browse/COV-361))
-
-The ETL for USA providers data from [here](https://www.arcgis.com/home/item.html?id=7e80baf1773e4fd9b44fe9fb054677db).
-Currently, only Illinois data would submitted. Until solution for submitting the whole providers data, which contain approximately 3 million nodes.
-
-## Run ETL jobs
-
-Setup in adminVM in `crontab`:
-
+To deploy the daily/weekly ETLs, use the following setup in adminVM in `crontab`:
 ```
 crontab -e
 ```
 
+And add the following:
+
 ```
+USER=<username with submission access>
+S3_BUCKET=<name of bucket to upload data to>
+
  0   1   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=jhu bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
  0  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
  0  40   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph_zipcode bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
@@ -78,3 +40,59 @@ crontab -e
 ```
 
 *Note*: The time in adminVM is in UTC.
+
+## Special instructions
+
+### COXRAY
+
+*This is local-only ETL.*
+It requires data available locally.
+Before running the ETL, the data, which is available [here](https://www.kaggle.com/bachrr/covid-chest-xray) and requires Kaggle account.
+The content of archive should go into the folder `./data` (this can be changed via `COXRAY_DATA_PATH` in `coxray.py` and `coxray_file.py`) resulting in the following structure:
+
+```
+covid19-tools
+...
+├── data
+│   ├── annotations
+│   │   └── ...
+│   └── images
+│   │   └── ...
+│   └── metadata.csv
+...
+```
+
+The ETL is consist of two parts: `COXRAY_FILE` - for file upload and `COXRAY` for metadata submission.
+
+`COXRAY_FILE` should run first. It will upload the files.
+`COXRAY` should run after `COXRAY_FILE` and it will create clinical data and it will link it to files in indexd.
+
+
+  [chi-nbhd]: https://covid19neighborhoods.southsideweekly.com/
+  [chi-nbhd-json]: https://covid19neighborhoods.southsideweekly.com/page-data/index/page-data.json
+  [jhu]: https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series
+  [idph-county-json]: http://www.dph.illinois.gov/sitefiles/COVIDTestResults.json?nocache=1
+  [idph-zipcode-json]: http://dph.illinois.gov/sitefiles/COVIDZip.json?nocache=1
+  [idph-facility]: https://dph.illinois.gov/covid19/long-term-care-facility-outbreaks-covid-19
+  [idph-facility-json]: https://dph.illinois.gov/sitefiles/COVIDLTC.json?nocache=1
+  [ds4c]: https://www.kaggle.com/kimjihoo/coronavirusdataset#PatientInfo.csv
+  [dsci]: https://www.kaggle.com/ardisragen/indonesia-coronavirus-cases
+  [dsfsi]: https://github.com/dsfsi/covid19africa/tree/master/data/line_lists
+  [owid]: https://github.com/owid/covid-19-data/blob/master/public/data/testing/covid-testing-latest-data-source-details.csv
+  [coxray]: https://www.kaggle.com/bachrr/covid-chest-xray
+  [ccmap]: https://github.com/covidcaremap/covid19-healthsystemcapacity/tree/master/data/published
+  [ctp]: https://covidtracking.com/data
+  [npi-pro]: https://www.arcgis.com/home/item.html?id=7e80baf1773e4fd9b44fe9fb054677db
+  [cov-12]: https://occ-data.atlassian.net/browse/COV-12
+  [cov-24]: https://occ-data.atlassian.net/browse/COV-24
+  [cov-34]: https://occ-data.atlassian.net/browse/COV-34
+  [cov-79]: https://occ-data.atlassian.net/browse/COV-79
+  [cov-97]: https://occ-data.atlassian.net/browse/COV-97
+  [cov-126]: https://occ-data.atlassian.net/browse/COV-126
+  [cov-170]: https://occ-data.atlassian.net/browse/COV-170
+  [cov-172]: https://occ-data.atlassian.net/browse/COV-172
+  [cov-192]: https://occ-data.atlassian.net/browse/COV-192
+  [cov-220]: https://occ-data.atlassian.net/browse/COV-220
+  [cov-237]: https://occ-data.atlassian.net/browse/COV-237
+  [cov-273]: https://occ-data.atlassian.net/browse/COV-273
+  [cov-361]: https://occ-data.atlassian.net/browse/COV-361
