@@ -174,6 +174,8 @@ class COXRAY(base.BaseETL):
                 "md5sum": md5sum,
                 "object_id": did,
             }
+        else:
+            print(f"{filepath} doesn't exist in the data")
 
         for k, (node, field, converter) in fields_mapping.items():
             value = row[headers.index(k)]
