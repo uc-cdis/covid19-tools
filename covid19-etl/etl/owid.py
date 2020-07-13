@@ -70,7 +70,7 @@ class OWID(base.BaseETL):
             ("Source label", ("summary_clinical", "source_label", str)),
             ("Notes", ("summary_clinical", "notes", str)),
             ("Number of observations", ("summary_clinical", "num_observations", int)),
-            ("Cumulative total", ("summary_clinical", "cumulative_total", int)),
+            ("Cumulative total", ("summary_clinical", "testing", int)),
             (
                 "Cumulative total per thousand",
                 ("summary_clinical", "cumulative_total_per_thousand", int),
