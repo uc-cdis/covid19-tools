@@ -45,9 +45,9 @@ S3_BUCKET=<name of bucket to upload data to>
 
 ### COXRAY
 
-The ETL is consist of two parts: `COXRAY_FILE` - for file upload and `COXRAY` for metadata submission.
-
-The data is available [here](https://www.kaggle.com/bachrr/covid-chest-xray) (requires Kaggle account).
+*This is local-only ETL.*
+It requires data available locally.
+Before running the ETL, the data, which is available [here](https://www.kaggle.com/bachrr/covid-chest-xray) and requires Kaggle account.
 The content of archive should go into the folder `./data` (this can be changed via `COXRAY_DATA_PATH` in `coxray.py` and `coxray_file.py`) resulting in the following structure:
 
 ```
@@ -61,6 +61,8 @@ covid19-tools
 │   └── metadata.csv
 ...
 ```
+
+The ETL is consist of two parts: `COXRAY_FILE` - for file upload and `COXRAY` for metadata submission.
 
 `COXRAY_FILE` should run first. It will upload the files.
 `COXRAY` should run after `COXRAY_FILE` and it will create clinical data and it will link it to files in indexd.
