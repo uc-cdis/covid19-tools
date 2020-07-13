@@ -25,7 +25,7 @@ class FileHelper:
         data = r.json()
         if data["records"]:
             assert (
-                    len(data["records"]) == 1
+                len(data["records"]) == 1
             ), f"multiple records for filename, something wrong: {filename}"
             did = data["records"][0]["did"]
             rev = data["records"][0]["rev"]

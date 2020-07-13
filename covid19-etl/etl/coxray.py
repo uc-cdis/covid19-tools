@@ -104,9 +104,7 @@ class COXRAY(base.BaseETL):
                         self.nodes[k].append(v)
 
     def parse_row(self, headers, row):
-        cmc_submitter_id = format_submitter_id(
-            "cmc_coxray", {}
-        )
+        cmc_submitter_id = format_submitter_id("cmc_coxray", {})
         subject_submitter_id = format_submitter_id(
             "subject_coxray", {"patientid": row[headers.index("patientid")]}
         )
@@ -160,7 +158,9 @@ class COXRAY(base.BaseETL):
             did, rev, md5sum, filesize = self.file_helper.find_by_name(
                 filename=filename
             )
-            assert did, f"file {filename} does not exist in the index, rerun COXRAY_FILE ETL"
+            assert (
+                did
+            ), f"file {filename} does not exist in the index, rerun COXRAY_FILE ETL"
             self.file_helper.update_authz(did=did, rev=rev)
 
             nodes["imaging_file"] = {
@@ -175,7 +175,9 @@ class COXRAY(base.BaseETL):
                 "object_id": did,
             }
         else:
-            print(f"subject references the file that doesn't exist as a file: {filepath}")
+            print(
+                f"subject references the file that doesn't exist as a file: {filepath}"
+            )
 
         for k, (node, field, converter) in fields_mapping.items():
             value = row[headers.index(k)]
