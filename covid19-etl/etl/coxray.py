@@ -100,8 +100,7 @@ class COXRAY(base.BaseETL):
             for row in reader:
                 row_nodes = self.parse_row(headers, row)
                 for k, v in row_nodes.items():
-                    if k in self.nodes:
-                        self.nodes[k].append(v)
+                    self.nodes[k].append(v)
 
     def parse_row(self, headers, row):
         cmc_submitter_id = format_submitter_id("cmc_coxray", {})
