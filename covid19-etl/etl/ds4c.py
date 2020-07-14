@@ -47,27 +47,14 @@ class DS4C(base.BaseETL):
                 else:
                     subject["country"] = country
 
-                global_num = row[header["global_num"]]
-                if global_num:
-                    subject["global_num"] = int(global_num)
-
-                infection_order = row[header["infection_order"]]
-                if infection_order:
-                    subject["infection_order"] = int(infection_order)
-
-                infected_by = row[header["infected_by"]]
-                if infected_by:
-                    subject["infected_by"] = int(infected_by)
+                # infected_by = row[header["infected_by"]]
+                # if infected_by:
+                #     subject["infected_by"] = map(lambda v: int(v.strip()), infected_by.split(","))
 
                 contact_number = row[header["contact_number"]]
                 if contact_number:
-                    subject["contact_number"] = int(contact_number)
-
-                disease = row[header["disease"]]
-                if disease:
-                    subject["disease"] = "True"
-                else:
-                    subject["disease"] = "False"
+                    if contact_number != "-":
+                        subject["contact_number"] = int(contact_number)
 
                 released_date = row[header["released_date"]]
                 if released_date:
@@ -78,12 +65,16 @@ class DS4C(base.BaseETL):
                     subject["date_death_or_discharge"] = deceased_date
 
                 state = row[header["state"]]
-                if state == "isolated":
-                    subject["isolated"] = "True"
-                elif state == "released":
-                    subject["recovered"] = "recovered"
-                elif state == "deceased":
-                    subject["death"] = "True"
+                if state:
+                    subject["current_state"] = state
+
+                # explicitly remove old variables
+                subject["global_num"] = None
+                subject["infection_order"] = None
+                subject["disease"] = None
+                subject["isolated"] = None
+                subject["recovered"] = None
+                subject["death"] = None
 
                 subject = {k: v if v else None for k, v in subject.items()}
                 self.subjects.append(subject)
@@ -99,9 +90,7 @@ class DS4C(base.BaseETL):
                 else:
                     demographic["gender"] = gender
 
-                year_of_birth = row[header["birth_year"]]
-                if year_of_birth:
-                    demographic["year_of_birth"] = int(year_of_birth)
+                demographic["year_of_birth"] = None
 
                 demographic = {k: v for k, v in demographic.items() if v}
                 self.demographics.append(demographic)
