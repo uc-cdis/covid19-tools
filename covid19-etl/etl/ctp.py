@@ -67,6 +67,8 @@ class CTP(base.BaseETL):
             "positiveTestsViral",
             "negativeTestsViral",
             "positiveCasesViral",
+            "deathConfirmed",
+            "deathProbable",
             "fips",
             "positiveIncrease",
             "negativeIncrease",
@@ -81,8 +83,6 @@ class CTP(base.BaseETL):
             "negativeRegularScore",
             "negativeScore",
             "positiveScore",
-            "score",
-            "grade",
         ]
 
         self.header_to_column = {
@@ -203,6 +203,8 @@ class CTP(base.BaseETL):
             "positiveTestsViral": "positiveTestsViral",
             "negativeTestsViral": "negativeTestsViral",
             "positiveCasesViral": "positiveCasesViral",
+            # "": "deathConfirmed",
+            # "": "deathProbable",
             # "": "fips",
             "positiveIncrease": "positiveIncrease",
             "negativeIncrease": "negativeIncrease",
@@ -217,8 +219,6 @@ class CTP(base.BaseETL):
             # "": "negativeRegularScore",
             # "": "negativeScore",
             # "": "positiveScore",
-            # "": "score",
-            # "": "grade"
         }
 
         for k, v in map_csv_fields.items():
