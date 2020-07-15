@@ -44,5 +44,5 @@ sh run.sh us_mobility 50 4000
 echo "Copying to S3 bucket..."
 if [[ -n "$S3_BUCKET" ]]; then
   # don't copy over the .keep (or any non-image or county list) file
-  aws s3 sync "./modelOutput/figures" "$S3_BUCKET/bayes-by-county/" --exclude ".keep" --delete
+  aws s3 sync "./modelOutput/figures" "$S3_BUCKET/bayes-by-county/" --exclude ".keep"
 fi
