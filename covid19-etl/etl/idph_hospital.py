@@ -16,6 +16,12 @@ from helper.metadata_helper import MetadataHelper
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
+def strip_prefix(region):
+    # removes any digits, spaces and dashes from begining of string
+    # used to cleanup the hospital region
+    return re.sub(r"^[\d\s-]+", "", region)
+
+
 class IDPH_HOSPITAL(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
@@ -229,7 +235,7 @@ class IDPH_HOSPITAL(base.BaseETL):
             "projects": [{"code": self.project_code}],
             "province_state": self.state,
             "state_hospital_region": region,
-            "state_region_description": region_description,
+            "state_region_description": strip_prefix(region_description),
         }
 
         summary_clinical_submitter_id = derived_submitter_id(
