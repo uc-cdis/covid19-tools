@@ -19,7 +19,7 @@ CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 def strip_prefix(region):
     # removes any digits, spaces and dashes from begining of string
     # used to cleanup the hospital region
-    return re.sub(r'^[\d\s-]+', '', region)
+    return re.sub(r"^[\d\s-]+", "", region)
 
 
 class IDPH_HOSPITAL(base.BaseETL):
