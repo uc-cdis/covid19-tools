@@ -3,8 +3,6 @@ data {
   int <lower=1> N0; // number of days for which to impute infections
   int<lower=1> N[M]; // days of observed data for country m. each entry must be <= N2
   int<lower=1> N2; // days of observed data + # of days to forecast
-  real<lower=0> x[N2]; // index of days (starting at 1)
-  int cases[N2,M]; // reported cases
   int deaths[N2, M]; // reported deaths -- the rows with i > N contain -1 and should be ignored
   matrix[N2, M] f; // h * s
   int EpidemicStart[M];
@@ -14,10 +12,6 @@ data {
   matrix[N2, P_partial_county] X_partial_county[M];
   int W; // number of weeks for weekly effects
   int week_index[M,N2];
-}
-
-transformed data {
-  real delta = 1e-5;
 }
 
 parameters {
@@ -68,23 +62,19 @@ model {
   weekly_sd ~ normal(0,0.2);
   weekly_rho ~ normal(0.8, 0.05);
   weekly_rho1 ~ normal(0.1, 0.05);
+  kappa ~ normal(0,0.5);
+  mu ~ normal(3.28, kappa); // citation: https://academic.oup.com/jtm/article/27/2/taaa021/5735319
+  phi ~ normal(0,5);
   for (m in 1:M) {
+      alpha_county[m] ~ normal(0,gamma_county);
       y[m] ~ exponential(1/tau);
       weekly_effect[3:(W+1), m] ~ normal(weekly_effect[2:W,m]* weekly_rho + weekly_effect[1:(W-1),m]* weekly_rho1, 
                                             weekly_sd *sqrt(1-pow(weekly_rho,2)-pow(weekly_rho1,2) - 2 * pow(weekly_rho,2) * weekly_rho1/(1-weekly_rho1)));
+      for(i in EpidemicStart[m]:N[m]){
+        deaths[i,m] ~ neg_binomial_2(E_deaths[i,m],phi); 
+      }
   }
   weekly_effect[2, ] ~ normal(0,weekly_sd *sqrt(1-pow(weekly_rho,2)-pow(weekly_rho1,2) - 2 * pow(weekly_rho,2) * weekly_rho1/(1-weekly_rho1)));
   weekly_effect[1, ] ~ normal(0, 0.01);
-  for (q in 1:M){
-     alpha_county[q] ~ normal(0,gamma_county);
-  }
-  phi ~ normal(0,5);
-  kappa ~ normal(0,0.5);
-  mu ~ normal(3.28, kappa); // citation: https://academic.oup.com/jtm/article/27/2/taaa021/5735319
-  for(m in 1:M){
-    for(i in EpidemicStart[m]:N[m]){
-       deaths[i,m] ~ neg_binomial_2(E_deaths[i,m],phi); 
-    }
-  }
 }
 
