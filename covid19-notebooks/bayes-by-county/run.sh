@@ -20,7 +20,7 @@ python3 etl.py
 ## MOBILITY DATA
 echo "\n- Fetch Mobility Data  -"
 cd ../modelInput/mobility/
-curl https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv > Global_Mobility_Report.csv
+wget -O Global_Mobility_Report.csv https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv 
 cd ./visit-data/
 sh get-visit-data.sh
 cd ../../../r
