@@ -32,8 +32,7 @@ RUN apt-get update && \
 	r-cran-isoband
 
 RUN apt-get update && \
-	apt-get install -y libboost-all-dev \
-	curl
+	apt-get install -y libboost-all-dev
 
 RUN Rscript -e "install.packages('EnvStats', dependencies=TRUE)"
 RUN Rscript -e "install.packages('BH', dependencies=TRUE)"
