@@ -47,13 +47,14 @@ class DS4C(base.BaseETL):
                 else:
                     subject["country"] = country
 
-                # infected_by = row[header["infected_by"]]
-                # if infected_by:
-                #     subject["infected_by"] = map(lambda v: int(v.strip()), infected_by.split(","))
+                infected_by = row[header["infected_by"]]
+                if infected_by:
+                    subject["infected_by"] = list(map(lambda v: v.strip(), infected_by.split(",")))
 
                 contact_number = row[header["contact_number"]]
                 if contact_number:
-                    if contact_number != "-":
+                    # only include numeric "contact_number"
+                    if contact_number.isdigit():
                         subject["contact_number"] = int(contact_number)
 
                 released_date = row[header["released_date"]]
