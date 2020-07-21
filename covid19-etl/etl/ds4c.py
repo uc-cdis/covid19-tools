@@ -49,7 +49,9 @@ class DS4C(base.BaseETL):
 
                 infected_by = row[header["infected_by"]]
                 if infected_by:
-                    subject["infected_by"] = list(map(lambda v: v.strip(), infected_by.split(",")))
+                    subject["infected_by"] = list(
+                        map(lambda v: v.strip(), infected_by.split(","))
+                    )
 
                 contact_number = row[header["contact_number"]]
                 if contact_number:
