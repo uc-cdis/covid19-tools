@@ -31,7 +31,7 @@ cd /nb-etl/bayes-by-county/
 # sh run.sh us_mobility 50 4000
 
 # test
-sh run.sh us_mobility 430 200
+sh run.sh us_mobility 10 200
 
 
 # copy images to S3 under prefix "bayes-by-county"
