@@ -59,7 +59,7 @@ class IDPH_HOSPITAL(base.BaseETL):
 
     def parse_file(self, latest_submitted_date, url):
         """
-        Converts a JSON files to data we can submit via Sheepdog. Stores the 
+        Converts a JSON files to data we can submit via Sheepdog. Stores the
         records to submit in `self.summary_locations` and `self.summary_clinicals`.
 
         Args:

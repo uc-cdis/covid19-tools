@@ -60,19 +60,19 @@ recovered_table <- read.csv(text = getURL("https://raw.githubusercontent.com/CSS
 
 pattern_date <- "^[[:digit:]]+/[[:digit:]]+/[[:digit:]]{2}$"
 confirmed_table <- confirmed_table %>%
-    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>% 
+    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>%
     subset(!is.na(Cases))
 
 confirmed_table <- reformat.date(confirmed_table, "Date")
 
 deaths_table <- deaths_table %>%
-    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>% 
+    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>%
     subset(!is.na(Cases))
 
 deaths_table <- reformat.date(deaths_table, "Date")
 
 recovered_table <- recovered_table %>%
-    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>% 
+    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>%
     subset(!is.na(Cases))
 
 recovered_table <- reformat.date(recovered_table, "Date")
@@ -83,11 +83,11 @@ confirmed_us_table <- read.csv(text = getURL("https://raw.githubusercontent.com/
 deaths_us_table <- read.csv(text = getURL("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv"),check.names=FALSE)
 
 confirmed_us_table <- confirmed_us_table %>%
-    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>% 
+    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>%
     subset(!is.na(Cases))
 
 deaths_us_table <- deaths_us_table %>%
-    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>% 
+    pivot_longer(matches(pattern_date), names_to = "Date", values_to = "Cases") %>%
     subset(!is.na(Cases))
 
 confirmed_us_table <- reformat.date(confirmed_us_table, "Date")

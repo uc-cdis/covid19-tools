@@ -12,7 +12,7 @@ colnames(df)=tolower(str_replace(string = colnames(df),pattern = "\\.",replaceme
 df=mutate(df,submitter_id=paste(country,id,sep = "_"),type="subject",projects.code="nCoV2019",symptoms=symptom)
 
 demo=select(df,submitter_id,gender)%>%mutate(type="demographic",subjects.submitter_id=submitter_id, submitter_id=paste(submitter_id,"_demo",sep=""))
-  
+
 subjects=select(df,-gender,-id)
 
 ##################
@@ -23,10 +23,10 @@ subjects=select(df,-gender,-id)
 
 for (y in 1:length(subjects$symptoms)){
   string_vec=unique(trimws(unlist(str_split(subjects$symptoms[y],pattern = ","))))
-  
+
   for (s in 1:length(string_vec)){
     rep_nums=grep(pattern = string_vec[s],x = ttable$property)[1]
-    
+
     string_vec[s]=str_replace(string = string_vec[s],pattern = ttable$property[rep_nums],replacement = ttable$`harmonized property`[rep_nums])
 
   }
@@ -53,7 +53,7 @@ subjects$visiting_wuhan[grep(pattern = 1,x = subjects$visiting_wuhan)]<-"True"
 
 subjects$from_wuhan[grep(pattern = 0,x = subjects$from_wuhan)]<-"False"
 subjects$from_wuhan[grep(pattern = 1,x = subjects$from_wuhan)]<-"True"
-  
+
 # There are a few instances of dates instead of 1/0 and these were assigned to a 1, for True, by manual means
 subjects$death[grep(pattern = 0,x = subjects$death)]<-"False"
 subjects$death[grep(pattern = 1,x = subjects$death)]<-"True"
