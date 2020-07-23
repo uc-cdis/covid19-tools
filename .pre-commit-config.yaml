@@ -4,9 +4,6 @@ repos:
     hooks:
     -   id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
-        # exclude copies of open data (CSVs) and HTML versions of notebooks
-        # (R and Python versions are scanned) to avoid 3 min long run
-        exclude: .*\.(html|csv)
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.5.0
     hooks:
