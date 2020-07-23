@@ -1117,7 +1117,7 @@ a.UNIT.convert&&("GEOGCS"===a.type?a.DATUM&&a.DATUM.SPHEROID&&(a.to_meter=parseF
 		// See discussion in https://github.com/kartena/Proj4Leaflet/pull/147
 		proj4 = proj4.default;
 	}
- 
+
 	L.Proj = {};
 
 	L.Proj._isProj4Obj = function(a) {
@@ -5048,19 +5048,19 @@ recovered_table &lt;- read.csv(text = getURL(&quot;https://raw.githubusercontent
 
 pattern_date &lt;- &quot;^[[:digit:]]+/[[:digit:]]+/[[:digit:]]{2}$&quot;
 confirmed_table &lt;- confirmed_table %&gt;%
-    pivot_longer(matches(pattern_date), names_to = &quot;Date&quot;, values_to = &quot;Cases&quot;) %&gt;% 
+    pivot_longer(matches(pattern_date), names_to = &quot;Date&quot;, values_to = &quot;Cases&quot;) %&gt;%
     subset(!is.na(Cases))
 
 confirmed_table &lt;- reformat.date(confirmed_table, &quot;Date&quot;)
 
 deaths_table &lt;- deaths_table %&gt;%
-    pivot_longer(matches(pattern_date), names_to = &quot;Date&quot;, values_to = &quot;Cases&quot;) %&gt;% 
+    pivot_longer(matches(pattern_date), names_to = &quot;Date&quot;, values_to = &quot;Cases&quot;) %&gt;%
     subset(!is.na(Cases))
 
 deaths_table &lt;- reformat.date(deaths_table, &quot;Date&quot;)
 
 recovered_table &lt;- recovered_table %&gt;%
-    pivot_longer(matches(pattern_date), names_to = &quot;Date&quot;, values_to = &quot;Cases&quot;) %&gt;% 
+    pivot_longer(matches(pattern_date), names_to = &quot;Date&quot;, values_to = &quot;Cases&quot;) %&gt;%
     subset(!is.na(Cases))
 
 recovered_table &lt;- reformat.date(recovered_table, &quot;Date&quot;)
@@ -5071,11 +5071,11 @@ confirmed_us_table &lt;- read.csv(text = getURL(&quot;https://raw.githubusercont
 deaths_us_table &lt;- read.csv(text = getURL(&quot;https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv&quot;),check.names=FALSE)
 
 confirmed_us_table &lt;- confirmed_us_table %&gt;%
-    pivot_longer(matches(pattern_date), names_to = &quot;Date&quot;, values_to = &quot;Cases&quot;) %&gt;% 
+    pivot_longer(matches(pattern_date), names_to = &quot;Date&quot;, values_to = &quot;Cases&quot;) %&gt;%
     subset(!is.na(Cases))
 
 deaths_us_table &lt;- deaths_us_table %&gt;%
-    pivot_longer(matches(pattern_date), names_to = &quot;Date&quot;, values_to = &quot;Cases&quot;) %&gt;% 
+    pivot_longer(matches(pattern_date), names_to = &quot;Date&quot;, values_to = &quot;Cases&quot;) %&gt;%
     subset(!is.na(Cases))
 
 confirmed_us_table &lt;- reformat.date(confirmed_us_table, &quot;Date&quot;)

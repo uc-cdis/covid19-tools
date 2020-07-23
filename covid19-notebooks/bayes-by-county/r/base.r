@@ -102,7 +102,7 @@ for(i in 1:ncol(mobility)){
 
 # Read predicted mobility
 google_pred <- read.csv('../modelInput/mobility/google-mobility-forecast.csv', stringsAsFactors = FALSE)
-google_pred$date <- as.Date(google_pred$date, format = '%Y-%m-%d') 
+google_pred$date <- as.Date(google_pred$date, format = '%Y-%m-%d')
 
 # replicate statewide prediction by county -> this can be MUCH more nuanced, but for now - just get something working
 stateAndCounty <- codeToName
@@ -155,15 +155,15 @@ for(Country in countries) {
 
   tmp=d[d$countryterritoryCode==Country,]
   # tmp$date = as.Date(tmp$dateRep,format='%m/%d/%y')
-  tmp$t = decimal_date(tmp$date) 
+  tmp$t = decimal_date(tmp$date)
   tmp=tmp[order(tmp$t),]
 
-  index1 = which(cumsum(tmp$deaths)>=10)[1] 
+  index1 = which(cumsum(tmp$deaths)>=10)[1]
   index2 = index1-30
-  
+
   tmp=tmp[index2:nrow(tmp),]
-  
-  N = length(tmp$cases)  
+
+  N = length(tmp$cases)
   if(N2 - N < 0) {
     print(sprintf("raising N2 from %d to %d", N2, N))
     N2 = N + 7
@@ -180,13 +180,13 @@ for(Country in countries) {
 
   d1=d[d$countryterritoryCode==Country,]
 
-  d1$t = decimal_date(d1$date) 
+  d1$t = decimal_date(d1$date)
   d1=d1[order(d1$t),]
 
   index = which(d1$cases>0)[1]
-  index1 = which(cumsum(d1$deaths)>=10)[1] 
+  index1 = which(cumsum(d1$deaths)>=10)[1]
   index2 = index1-30
-  
+
   print(sprintf("First non-zero cases is on day %d, and 30 days before %d cumulative deaths is day %d",index,minimumReportedDeaths,index2))
   d1=d1[index2:nrow(d1),]
   stan_data$EpidemicStart = c(stan_data$EpidemicStart,index1+1-index2)
@@ -200,8 +200,8 @@ for(Country in countries) {
   # hazard estimation
   N = length(d1$cases)
   print(sprintf("%s has %d days of data",Country,N))
-  
-  # at least a seven day forecast 
+
+  # at least a seven day forecast
   # testing this
   forecast <- max(N2 - N, 7)
 
@@ -224,7 +224,7 @@ for(Country in countries) {
 
   # creating features -> only want "partial_state"
   df_features <- create_features(padded_covariates, transit_usage)
-  features_partial_county <- model.matrix(formula_partial_county, df_features)    
+  features_partial_county <- model.matrix(formula_partial_county, df_features)
   covariate_list_partial_county[[k]] <- features_partial_county
 
   # <<<<<<<<<<< mobility <<<<<<<<<<<<< #
@@ -241,18 +241,18 @@ for(Country in countries) {
   f = ecdf(x1+x2)
 
   convolution = function(u) (CFR * f(u))
-  h[1] = (convolution(1.5) - convolution(0)) 
+  h[1] = (convolution(1.5) - convolution(0))
   for(i in 2:length(h)) {
     h[i] = (convolution(i+.5) - convolution(i-.5)) / (1-convolution(i-.5))
   }
   s = rep(0,N2)
-  s[1] = 1 
+  s[1] = 1
   for(i in 2:N2) {
     s[i] = s[i-1]*(1-h[i-1])
   }
 
   f = s * h
-  
+
   y=c(as.vector(as.numeric(d1$cases)),rep(-1,forecast))
   reported_cases[[Country]] = as.vector(as.numeric(d1$cases))
   deaths=c(as.vector(as.numeric(d1$deaths)),rep(-1,forecast))
@@ -262,7 +262,7 @@ for(Country in countries) {
   ## icl: append data
   stan_data$N = c(stan_data$N,N)
   stan_data$y = c(stan_data$y,y[1]) # icl: just the index case!
-  
+
   # county population
   # stan_data$pop <- c(stan_data$pop, pop_county)
 
@@ -274,7 +274,7 @@ for(Country in countries) {
 
   stan_data$deaths = cbind(stan_data$deaths,deaths)
   stan_data$cases = cbind(stan_data$cases,cases)
-  
+
   stan_data$N2=N2
   stan_data$x=1:N2
   if(length(stan_data$N) == 1) {
@@ -298,7 +298,7 @@ for (i in 1:stan_data$M){
 }
 
 # newSTAN - ok
-stan_data$W <- ceiling(stan_data$N2/7) 
+stan_data$W <- ceiling(stan_data$N2/7)
 # newSTAN - ok
 stan_data$week_index <- matrix(1,stan_data$M,stan_data$N2)
 for(j in 1:stan_data$M) {
@@ -353,7 +353,7 @@ exportJSON <- toJSON(summary, pretty=TRUE, auto_unbox=TRUE)
 # sent to stdout
 print("--- summary ---")
 print(exportJSON)
-# write summary to log 
+# write summary to log
 write(exportJSON, "../modelOutput/log.json")
 
 #### now -> visualize model results -> ####
@@ -363,7 +363,7 @@ write(exportJSON, "../modelOutput/log.json")
 # still save the R data and fit though, for backup, etc.
 
 filename <- paste0(StanModel, '-', JOBID)
-system(paste0("Rscript plot-trend.r ", filename,'.Rdata')) 
+system(paste0("Rscript plot-trend.r ", filename,'.Rdata'))
 # system(paste0("Rscript plot-forecast.r ", filename,'.Rdata')) ## icl: to run this code you will need to adjust manual values of forecast required
 
 # suppressing for now
@@ -371,5 +371,5 @@ system(paste0("Rscript plot-trend.r ", filename,'.Rdata'))
 
 if (validateFlag == "--validate"){
   print("validating model output ...")
-  system(paste0("Rscript validate.r ", filename,'.Rdata')) 
-} 
+  system(paste0("Rscript validate.r ", filename,'.Rdata'))
+}

@@ -30,7 +30,7 @@ In this notebook, we explore some of the demographic data associated with COVID-
 
 ### "extended-seir" notebook:
 
-In this notebook we implement an extended SEIR model of the COVID-19 outbreak, 
+In this notebook we implement an extended SEIR model of the COVID-19 outbreak,
 fit probability distributions to model parameters, and apply monte carlo methods to the resulting stochastic model.
 
 ### "A live View of COVID-19's Global Presense" notebook:
@@ -39,4 +39,4 @@ In this R markdown, we track COVID-19 local (US) and global cases with active, c
 
 ### "COVID-19 Testing Over Time in the US" notebook:
 
-COVID-19 testing is very crucial to understand the spread of the pandemic. In this python notebook, we have focused our efforts on visualizing the COVID-19 testing data across the U.S. States and Territories from the COVID Tracking Project. The animations will allow you to see how testing data has changed over time. 
+COVID-19 testing is very crucial to understand the spread of the pandemic. In this python notebook, we have focused our efforts on visualizing the COVID-19 testing data across the U.S. States and Territories from the COVID Tracking Project. The animations will allow you to see how testing data has changed over time.

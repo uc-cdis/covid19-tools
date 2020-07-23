@@ -16,10 +16,10 @@ data {
 transformed data {
   vector[N2] SI_rev; // SI in reverse order
   vector[N2] f_rev[M]; // f in reversed order
-  
+
   for(i in 1:N2)
     SI_rev[i] = SI[N2-i+1];
-    
+
   for(m in 1:M){
     for(i in 1:N2) {
      f_rev[m, i] = f[N2-i+1,m];
@@ -46,7 +46,7 @@ transformed parameters {
     matrix[N2, M] E_deaths  = rep_matrix(0,N2,M);
     matrix[N2, M] Rt = rep_matrix(0,N2,M);
     matrix[N2, M] Rt_adj = Rt;
-    
+
     {
       matrix[N2,M] cumm_sum = rep_matrix(0,N2,M);
       for(i in 1:P){
@@ -55,7 +55,7 @@ transformed parameters {
       for (m in 1:M){
         prediction[1:N0,m] = rep_vector(y[m],N0); // learn the number of cases in the first N0 days
         cumm_sum[2:N0,m] = cumulative_sum(prediction[2:N0,m]);
-        
+
         Rt[,m] = mu[m] * exp(-X[m] * alpha - X[m][,5] * lockdown[m]);
         Rt_adj[1:N0,m] = Rt[1:N0,m];
         for (i in (N0+1):N2) {
@@ -91,14 +91,14 @@ model {
 generated quantities {
     matrix[N2, M] prediction0 = rep_matrix(0,N2,M);
     matrix[N2, M] E_deaths0  = rep_matrix(0,N2,M);
-    
+
     {
       matrix[N2,M] cumm_sum0 = rep_matrix(0,N2,M);
       for (m in 1:M){
          for (i in 2:N0){
-          cumm_sum0[i,m] = cumm_sum0[i-1,m] + y[m]; 
+          cumm_sum0[i,m] = cumm_sum0[i-1,m] + y[m];
         }
-        prediction0[1:N0,m] = rep_vector(y[m],N0); 
+        prediction0[1:N0,m] = rep_vector(y[m],N0);
         for (i in (N0+1):N2) {
           real convolution0 = dot_product(sub_col(prediction0, 1, m, i-1), tail(SI_rev, i-1));
           cumm_sum0[i,m] = cumm_sum0[i-1,m] + prediction0[i-1,m];

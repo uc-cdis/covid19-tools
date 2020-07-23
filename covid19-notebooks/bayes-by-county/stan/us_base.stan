@@ -40,7 +40,7 @@ transformed parameters {
         }
         prediction[i, m] = Rt[i,m] * convolution;
       }
-      
+
       E_deaths[1, m]= 1e-9;
       for (i in 2:N2){
         E_deaths[i,m]= 0;
@@ -63,11 +63,11 @@ model {
   }
   phi ~ normal(0,5);
   kappa ~ normal(0,0.5);
-  mu ~ normal(2.4, kappa); // citation needed 
+  mu ~ normal(2.4, kappa); // citation needed
   alpha ~ gamma(.5,1);
   for(m in 1:M){
     for(i in EpidemicStart[m]:N[m]){
-       deaths[i,m] ~ neg_binomial_2(E_deaths[i,m],phi); 
+       deaths[i,m] ~ neg_binomial_2(E_deaths[i,m],phi);
     }
    }
 }
@@ -87,7 +87,7 @@ generated quantities {
         }
         prediction0[i, m] = mu[m] * convolution0;
       }
-      
+
       E_deaths0[1, m]= 1e-9;
       for (i in 2:N2){
         E_deaths0[i,m]= 0;
@@ -96,8 +96,8 @@ generated quantities {
         }
       }
       for(i in 1:N[m]){
-        lp0[i,m] = neg_binomial_2_lpmf(deaths[i,m] | E_deaths[i,m],phi); 
-        lp1[i,m] = neg_binomial_2_lpmf(deaths[i,m] | E_deaths0[i,m],phi); 
+        lp0[i,m] = neg_binomial_2_lpmf(deaths[i,m] | E_deaths[i,m],phi);
+        lp1[i,m] = neg_binomial_2_lpmf(deaths[i,m] | E_deaths0[i,m],phi);
       }
     }
 

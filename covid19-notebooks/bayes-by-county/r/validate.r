@@ -48,7 +48,7 @@ for(i in 1:length(countries)){
     vdf$county <- county
 
     l[[i]] <- vdf
-} 
+}
 
 # could save this df - not sure how necessary that is though
 fullSet <- do.call(rbind, l)
@@ -56,7 +56,7 @@ fullSet <- do.call(rbind, l)
 # look at it
 # print(fullSet)
 
-# number of points 
+# number of points
 pts <- nrow(fullSet)
 
 # compute the score
@@ -84,7 +84,7 @@ exportJSON <- toJSON(summary, pretty=TRUE, auto_unbox=TRUE)
 # sent to stdout
 print("--- validation summary ---")
 print(exportJSON)
-# write summary to log 
+# write summary to log
 write(exportJSON, file.path(outDir, "log.json"))
 
 # save plot
