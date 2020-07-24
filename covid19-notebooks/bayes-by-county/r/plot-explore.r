@@ -7,7 +7,7 @@
 # load("../modelOutput/results/nine_county_big/us_base-606037.Rdata") # -> 24K iterations on 9 counties with most data
 
 # automating ..
-args <- commandArgs(trailingOnly = TRUE)  
+args <- commandArgs(trailingOnly = TRUE)
 filename2 <- args[1]
 load(paste0("../modelOutput/results/", filename2))
 
@@ -35,7 +35,7 @@ for(i in 1:length(countries)){
     country <- countries[[i]]
 
     dimensions <- dim(out$Rt)
-    Rt <- mean(out$Rt[,dimensions[2],i]) 
+    Rt <- mean(out$Rt[,dimensions[2],i])
     R0 <- mean(out$mu[,i])
 
     total_predicted_cases <- sum(colMeans(prediction[,1:N,i]))
@@ -73,7 +73,7 @@ exploreNoCook$County <- NULL
 
 ## plots -> save them, name them, easily readable axes
 
-# look at everything 
+# look at everything
 png(filename="../modelOutput/explorePlots/exploreVars.png", width=1600, height=1600, units="px", pointsize=36)
 # todo: fix this manual toggling
 # plot(exploreNoCook)
@@ -137,10 +137,10 @@ dev.off()
 # Reported Deaths vs. Reported Cases
 # y is reported deaths -> "x vs. y"
 png(filename="../modelOutput/explorePlots/ReportedDeaths_vs_ReportedCases.png", width=1600, height=1600, units="px", pointsize=36)
-# plot(exploreNoCook$Reported_Cases, exploreNoCook$Reported_Deaths, 
+# plot(exploreNoCook$Reported_Cases, exploreNoCook$Reported_Deaths,
 #     main="Reported Deaths vs. Reported Cases",
 #     xlab="log(Reported Cases)", ylab="log(Reported Deaths)")
-plot(explore$Reported_Cases, explore$Reported_Deaths, 
+plot(explore$Reported_Cases, explore$Reported_Deaths,
     main="Reported Deaths vs. Reported Cases",
     xlab="log(Reported Cases)", ylab="log(Reported Deaths)")
 dev.off()
@@ -161,4 +161,3 @@ plot(explore$R0, explore$Rt, main="Rt vs. R0", xlab="R0", ylab="Rt")
 dev.off()
 
 #### todo! : fetch soc-ec vars, pop dens, etc. -> plot reduction in Rt, and Rt, or whatever, against these other soc-ec vars by county
-

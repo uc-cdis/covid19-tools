@@ -6,7 +6,7 @@ Use google mobility data to generate real-time estimates of Rt.
 
 ## Visualizations
 
-Get written to `modelOutput/figures/`. 
+Get written to `modelOutput/figures/`.
 
 ## List of Counties
 
@@ -33,7 +33,7 @@ These times are from running the model on Matt's laptop, without any kind of ext
 
 - Input: reported deaths
 - Output: Rt, modeled deaths, modeled true cases
-- The model seems to be pretty good - correlation of 0.9478155 on 9 counties modeled deaths vs. reported deaths, validated over the time period June 2-5. So we input data up through June 1st, forecasted forward, and compared forecast to observed. 
+- The model seems to be pretty good - correlation of 0.9478155 on 9 counties modeled deaths vs. reported deaths, validated over the time period June 2-5. So we input data up through June 1st, forecasted forward, and compared forecast to observed.
 - Rt is a step-function, drops at lockdown from initial R0, which is computed by-county based on early observed deaths
 - Rt model "expires", so to speak, on June 1st, but there is a lag before the effect shows up - estimates will begin looking off in the final third of June (so replace the Rt model asap, if not sooner)
 - More observations -> better estimates. Counties with small number of reported deaths tend to have bigger posterior credible intervals

@@ -4,7 +4,7 @@
 # todo: refactor
 
 ## HERE! -> not handled here in python -> Serial Interval Table -> would be worthwhile to reproduce the R for that here
-## "serial interval table" <--> that discretized gamma distribution 
+## "serial interval table" <--> that discretized gamma distribution
 ## so that this script does indeed produce all the required input tables for the model
 ## alternatively, could just generate that discretized gamma distribution in the R code itself, pre-simulation
 ## I don't like that idea -> will try to reproduce results in python - but not now -> other more pressing tasks now
@@ -12,11 +12,15 @@
 import os
 import numpy as np
 import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning) # suppress pandas "future warning"
+
+warnings.simplefilter(
+    action="ignore", category=FutureWarning
+)  # suppress pandas "future warning"
 import pandas as pd
 
+
 def makeCaseMortalityTable(dirPath):
-        
+
     print("\n~ COVID-19 CASE-MORTALITY TABLE ~")
 
     # E
@@ -44,19 +48,19 @@ def makeCaseMortalityTable(dirPath):
     ## get daily counts -> make this a fn
 
     # take this out, put it back after compute
-    dc = cases.copy().iloc[:,11:].astype(np.int64)
+    dc = cases.copy().iloc[:, 11:].astype(np.int64)
 
     # fix monotone errors
     # rows
-    for i in range(len(dc.iloc[:,0])):
+    for i in range(len(dc.iloc[:, 0])):
         # cols
-        for j in range(len(dc.columns)-1):
+        for j in range(len(dc.columns) - 1):
             # per row:
             # if the next value is bigger than current value -> set next val to current val
             # ensures monotonically increasing sequences
             # allows coherent compute of daily counts (increments -> prevents negative increments)
-            if dc.iloc[i,j] > dc.iloc[i,j+1]:
-                dc.iloc[i,j+1] = dc.iloc[i,j]
+            if dc.iloc[i, j] > dc.iloc[i, j + 1]:
+                dc.iloc[i, j + 1] = dc.iloc[i, j]
 
     # look, they're all monotone now!
     # print(dc.apply(lambda x: x.is_monotonic, axis=1).unique())
@@ -64,7 +68,7 @@ def makeCaseMortalityTable(dirPath):
     dailyCounts = cases.copy()
 
     # replace cumulative counts with daily counts (i.e., increments)
-    dailyCounts.iloc[:,12:] = dc.diff(axis=1, periods=1).iloc[:,1:]
+    dailyCounts.iloc[:, 12:] = dc.diff(axis=1, periods=1).iloc[:, 1:]
 
     # treat the daily counts as our working table from here forward
     # note: need to do the same procedure for the death counts
@@ -74,7 +78,7 @@ def makeCaseMortalityTable(dirPath):
     # US counties: UID = 840 (country code3) + XXXXX (5-digit FIPS code)
 
     # drop redundant columns
-    cases = cases.drop(cases.columns[[1,2,3,4,7,10]], axis=1)
+    cases = cases.drop(cases.columns[[1, 2, 3, 4, 7, 10]], axis=1)
 
     # "melt" df into desired form
     # i.e., rows correspond to dates
@@ -97,22 +101,22 @@ def makeCaseMortalityTable(dirPath):
 
     # take this out, put it back after compute
     # note: this table has "population" column - 1 additional column, so dates start at 12, not 11
-    dc = deaths.copy().iloc[:,12:].astype(np.int64)
+    dc = deaths.copy().iloc[:, 12:].astype(np.int64)
 
     ## fix monotone errors -> make this a fn
     # rows
-    for i in range(len(dc.iloc[:,0])):
+    for i in range(len(dc.iloc[:, 0])):
         # cols
-        for j in range(len(dc.columns)-1):
-            if dc.iloc[i,j] > dc.iloc[i,j+1]:
-                dc.iloc[i,j+1] = dc.iloc[i,j]
+        for j in range(len(dc.columns) - 1):
+            if dc.iloc[i, j] > dc.iloc[i, j + 1]:
+                dc.iloc[i, j + 1] = dc.iloc[i, j]
 
     # look, they're all monotone now!
     # print(dc.apply(lambda x: x.is_monotonic, axis=1).unique())
 
     dailyCounts = deaths.copy()
     # replace cumulative counts with daily counts (i.e., increments)
-    dailyCounts.iloc[:,13:] = dc.diff(axis=1, periods=1).iloc[:,1:]
+    dailyCounts.iloc[:, 13:] = dc.diff(axis=1, periods=1).iloc[:, 1:]
     # take a look at cook (county)
     dailyCounts[dailyCounts["Admin2"] == "Cook"]
 
@@ -120,7 +124,7 @@ def makeCaseMortalityTable(dirPath):
     deaths = dailyCounts
 
     # drop redundant columns -> keep population column
-    deaths = deaths.drop(deaths.columns[[1,2,3,4,7,10]], axis=1)
+    deaths = deaths.drop(deaths.columns[[1, 2, 3, 4, 7, 10]], axis=1)
 
     # "melt" df into desired form
     # i.e., rows correspond to dates
@@ -137,18 +141,20 @@ def makeCaseMortalityTable(dirPath):
     # merge df's
     # i.e., inject population and deaths data from deaths df into cases df
     cols_to_use = deaths.columns.difference(cases.columns)
-    ILCaseAndMortality = pd.merge(cases, deaths[cols_to_use], left_index=True, right_index=True, how="outer")
+    ILCaseAndMortality = pd.merge(
+        cases, deaths[cols_to_use], left_index=True, right_index=True, how="outer"
+    )
 
     # cut out rows where Admin2 is "Out of IL" or "Unassigned" (both have population 0)
     ILCaseAndMortality = ILCaseAndMortality.loc[ILCaseAndMortality["Population"] > 0]
 
     # rename some columns; improve readability
     renameColsMap = {
-        "UID": "CountyID", # fairly certain this is appropriate, though will double check
-        "Admin2": "Town", # ? -> probably a better name for this
+        "UID": "CountyID",  # fairly certain this is appropriate, though will double check
+        "Admin2": "Town",  # ? -> probably a better name for this
         "Province_State": "State",
         "Lat": "Latitude",
-        "Long_": "Longitude"
+        "Long_": "Longitude",
     }
     ILCaseAndMortality = ILCaseAndMortality.rename(renameColsMap, axis=1)
 
@@ -162,7 +168,7 @@ def makeCaseMortalityTable(dirPath):
         "State",
         "Population",
         "Latitude",
-        "Longitude"
+        "Longitude",
     ]
 
     ILCaseAndMortality = ILCaseAndMortality[columnOrder]
@@ -171,7 +177,7 @@ def makeCaseMortalityTable(dirPath):
     # suppressing this for now, so as not to create "unused" tables -> simplify output of this script
     # ILCaseAndMortality.to_csv(dirPath + "/ILCaseAndMortality.csv")
 
-    # next: 
+    # next:
     # 1. preserving this table; modify this table to exactly match the scheme of the Euro table
     # 2. save that as a separate file
     # 3. run the model with that table as input
@@ -189,8 +195,8 @@ def makeCaseMortalityTable(dirPath):
         "Date": "dateRep",
         "Cases": "cases",
         "Deaths": "deaths",
-        "CountyID": "countryterritoryCode", # ?
-        "Town": "countriesAndTerritories", # ?
+        "CountyID": "countryterritoryCode",  # ?
+        "Town": "countriesAndTerritories",  # ?
         "Population": "popData2018",
     }
 
@@ -201,16 +207,16 @@ def makeCaseMortalityTable(dirPath):
 
     # reorder the columns to match Euro table # probably don't hardcode this -> make proper config file (?)
     CaseMortalityColumnOrder = [
-        'dateRep', 
-        'day', 
-        'month', 
-        'year', 
-        'cases', 
-        'deaths', 
-        'countriesAndTerritories', 
-        'geoId', 
-        'countryterritoryCode', 
-        'popData2018'
+        "dateRep",
+        "day",
+        "month",
+        "year",
+        "cases",
+        "deaths",
+        "countriesAndTerritories",
+        "geoId",
+        "countryterritoryCode",
+        "popData2018",
     ]
     df = df[CaseMortalityColumnOrder]
 
@@ -222,11 +228,14 @@ def makeCaseMortalityTable(dirPath):
 
     countyIDList = ILCaseAndMortality["CountyID"].unique()
 
-    population_df = ILCaseAndMortality[["CountyID", "Population"]].copy().drop_duplicates()
+    population_df = (
+        ILCaseAndMortality[["CountyID", "Population"]].copy().drop_duplicates()
+    )
 
-    return(p, countyIDList, population_df)
+    return (p, countyIDList, population_df)
 
-def makeInterventionsTable(dirPath, countyIDList): 
+
+def makeInterventionsTable(dirPath, countyIDList):
     print("\n~ INTERVENTIONS TABLE ~")
 
     # -> should remove all their tables, comparisons to their tables etc.
@@ -254,13 +263,14 @@ def makeInterventionsTable(dirPath, countyIDList):
     p = dirPath + "/ILInterventionsV1.csv"
     ourCovariates.to_csv(p)
 
-    return(p)
+    return p
+
 
 def makeIFRTable(dirPath, population_df):
 
     print("\n~ IFR TABLE ~")
     print("--- constructing IFR table ---")
-    
+
     ourIFR = population_df
 
     # now need:
@@ -280,20 +290,22 @@ def makeIFRTable(dirPath, population_df):
     # source:
     # https://censusreporter.org/profiles/04000US17-illinois/
     ILAgeDistr = {
-        "0-9": [.119],
-        "10-19": [.131],
-        "20-29": [.136],
-        "30-39": [.135],
-        "40-49": [.127],
-        "50-59": [.132],
-        "60-69": [.114],
-        "70-79": [.067],
-        "80+"  : [.039]
+        "0-9": [0.119],
+        "10-19": [0.131],
+        "20-29": [0.136],
+        "30-39": [0.135],
+        "40-49": [0.127],
+        "50-59": [0.132],
+        "60-69": [0.114],
+        "70-79": [0.067],
+        "80+": [0.039],
     }
 
     ageDist = pd.DataFrame(ILAgeDistr)
 
-    ourIFR[list(ageDist)] = pd.DataFrame(np.repeat(ageDist.values, len(ourIFR.index), axis=0))
+    ourIFR[list(ageDist)] = pd.DataFrame(
+        np.repeat(ageDist.values, len(ourIFR.index), axis=0)
+    )
     strata = list(ILAgeDistr.keys())
     ourIFR[strata] = ourIFR[strata].mul(ourIFR["Population"], axis=0)
 
@@ -307,9 +319,9 @@ def makeIFRTable(dirPath, population_df):
     # right now the value for this column doesn't really matter
     # so will do the simplest thing for now and extend later
 
-    # this is the paper ICL consulted for picking their ifr numbers: 
+    # this is the paper ICL consulted for picking their ifr numbers:
     # https://www.thelancet.com/journals/laninf/article/PIIS1473-3099(20)30243-7/fulltext
-    ourIFR["weighted_fatality"] = .00657
+    ourIFR["weighted_fatality"] = 0.00657
 
     # reorder columns
     ourIFRColumnOrder = ["CountyID", "weighted_fatality", "Population"] + strata
@@ -322,8 +334,8 @@ def makeIFRTable(dirPath, population_df):
     # now map to euro table for input to model
     mapILToEuroIFR = {
         "CountyID": "country",
-        "10-19": "Oct-19", # extraordinarily painful to look at, but will be fixed soon enough
-        "Population": "population"
+        "10-19": "Oct-19",  # extraordinarily painful to look at, but will be fixed soon enough
+        "Population": "population",
     }
 
     ILInputIFR = ourIFR.copy()
@@ -334,20 +346,20 @@ def makeIFRTable(dirPath, population_df):
 
     # reorder to match their order
     EUColumnOrder = [
-        'Unnamed: 0', 
-        'Region, subregion, country or area *', 
-        '0-9', 
-        'Oct-19', 
-        '20-29', 
-        '30-39', 
-        '40-49', 
-        '50-59', 
-        '60-69', 
-        '70-79', 
-        '80+', 
-        'weighted_fatality', 
-        'population', 
-        'country'
+        "Unnamed: 0",
+        "Region, subregion, country or area *",
+        "0-9",
+        "Oct-19",
+        "20-29",
+        "30-39",
+        "40-49",
+        "50-59",
+        "60-69",
+        "70-79",
+        "80+",
+        "weighted_fatality",
+        "population",
+        "country",
     ]
     ILInputIFR = ILInputIFR[EUColumnOrder]
 
@@ -357,7 +369,8 @@ def makeIFRTable(dirPath, population_df):
     p = dirPath + "/ILWeightedFatalityV1.csv"
     ILInputIFR.to_csv(p)
 
-    return(p)
+    return p
+
 
 # paper: https://arxiv.org/abs/2004.00756
 # data: https://github.com/JieYingWu/COVID-19_US_County-level_Summaries
@@ -365,14 +378,15 @@ def fetchSocEc(dirPath):
     print("\n~ SOC-EC TABLE ~")
 
     print("--- fetching soc-ec table ---")
-    path = 'https://raw.githubusercontent.com/JieYingWu/COVID-19_US_County-level_Summaries/master/data/counties.csv'
+    path = "https://raw.githubusercontent.com/JieYingWu/COVID-19_US_County-level_Summaries/master/data/counties.csv"
     df = pd.read_csv(path)
 
     print("--- saving soc-ec table ---")
     p = dirPath + "/SocEc.csv"
     df.to_csv(p)
 
-    return(p)
+    return p
+
 
 # wow I want to really, thoroughly refactor all this so bad
 # make a class - the whole thing -> not the most time pressing task though
@@ -393,5 +407,5 @@ if __name__ == "__main__":
     print("\t", p1)
     print("\t", p2)
     print("\t", p3)
-    print("\t", p4)    
+    print("\t", p4)
     print("\n")

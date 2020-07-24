@@ -45,7 +45,7 @@ transformed parameters {
       }
       prediction[i, m] = Rt[i,m] * convolution;
     }
-    
+
     E_deaths[1, m]= 1e-9;
     for (i in 2:N2){
       E_deaths[i,m]= 0;
@@ -68,13 +68,12 @@ model {
   for (m in 1:M) {
       alpha_county[m] ~ normal(0,gamma_county);
       y[m] ~ exponential(1/tau);
-      weekly_effect[3:(W+1), m] ~ normal(weekly_effect[2:W,m]* weekly_rho + weekly_effect[1:(W-1),m]* weekly_rho1, 
+      weekly_effect[3:(W+1), m] ~ normal(weekly_effect[2:W,m]* weekly_rho + weekly_effect[1:(W-1),m]* weekly_rho1,
                                             weekly_sd *sqrt(1-pow(weekly_rho,2)-pow(weekly_rho1,2) - 2 * pow(weekly_rho,2) * weekly_rho1/(1-weekly_rho1)));
       for(i in EpidemicStart[m]:N[m]){
-        deaths[i,m] ~ neg_binomial_2(E_deaths[i,m],phi); 
+        deaths[i,m] ~ neg_binomial_2(E_deaths[i,m],phi);
       }
   }
   weekly_effect[2, ] ~ normal(0,weekly_sd *sqrt(1-pow(weekly_rho,2)-pow(weekly_rho1,2) - 2 * pow(weekly_rho,2) * weekly_rho1/(1-weekly_rho1)));
   weekly_effect[1, ] ~ normal(0, 0.01);
 }
-
