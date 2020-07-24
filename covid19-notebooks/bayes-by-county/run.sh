@@ -18,10 +18,10 @@ cd py
 python3 etl.py
 
 ## MOBILITY DATA
-# NOTE: need to manually download latest Google mobility report whenever it gets updated
-# fetch latest visit-data and impute difference in Google mobility report
-echo "\n- Mobility Regression -"
-cd ../modelInput/mobility/visit-data/
+echo "\n- Fetch Mobility Data  -"
+cd ../modelInput/mobility/
+wget -O Global_Mobility_Report.csv https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv
+cd ./visit-data/
 sh get-visit-data.sh
 cd ../../../r
 Rscript mobility-regression.r > /dev/null 2>&1

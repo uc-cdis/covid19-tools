@@ -43,6 +43,7 @@ stan/*.rds
 
 # others
 modelOutput/*
+modelInput/*
 Rplots.pdf
 
 *.DS_Store
