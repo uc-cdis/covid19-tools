@@ -41,6 +41,7 @@ RUN Rscript -e "install.packages('BH', dependencies=TRUE)"
 RUN Rscript -e "install.packages('visdat', dependencies=TRUE)"
 RUN Rscript -e "install.packages('mlr3verse', dependencies=TRUE)"
 RUN Rscript -e "install.packages('ranger', dependencies=TRUE)"
+RUN Rscript -e "install.packages('zoo', dependencies=TRUE)"
 
 # install Python dependencies
 RUN pip3 install --upgrade pip==20.1.*
