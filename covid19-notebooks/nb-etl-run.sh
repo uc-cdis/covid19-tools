@@ -28,10 +28,7 @@ cd /nb-etl/bayes-by-county/
 # sh run.sh <stan_model> <deaths_cutoff> <nIterations>
 
 # actual
-# sh run.sh us_mobility 10 200
-
-# small test
-sh run.sh us_mobility 440 200
+sh run.sh us_mobility 10 200
 
 # copy images to S3 under prefix "bayes-by-county"
 # directory structure:
