@@ -23,10 +23,10 @@ data {
 transformed data {
   vector[N2] SI_rev; // SI in reverse order
   vector[N2] f_rev[M]; // f in reversed order
-
+  
   for(i in 1:N2)
     SI_rev[i] = SI[N2-i+1];
-
+    
   for(m in 1:M){
     for(i in 1:N2) {
      f_rev[m, i] = f[N2-i+1,m];
@@ -35,8 +35,8 @@ transformed data {
 }
 
 parameters {
-  real<lower=0> mu[M];
-  vector[P] alpha;
+  real<lower=0> mu[M]; 
+  vector[P] alpha; 
   vector[P_partial_regional] alpha_region[Q];
   vector[P_partial_state] alpha_state[M];
   real<lower=0> gamma_region;
@@ -58,16 +58,16 @@ transformed parameters {
     matrix[N2, M] Rt = rep_matrix(0,N2,M);
     matrix[N2, M] Rt_adj = Rt;
     matrix[N2, M] infectiousness = rep_matrix(0,N2,M);
-
+    
     {
       matrix[N2,M] cumm_sum = rep_matrix(0,N2,M);
       for (m in 1:M){
         prediction[1:N0,m] = rep_vector(y[m],N0); // learn the number of cases in the first N0 days
         cumm_sum[2:N0,m] = cumulative_sum(prediction[2:N0,m]);
-
-        Rt[,m] = mu[m] * 2 * inv_logit(-X[m] * alpha
-                          -X_partial_regional[m] * alpha_region[Region[m]]
-                          -X_partial_state[m] * alpha_state[m]
+        
+        Rt[,m] = mu[m] * 2 * inv_logit(-X[m] * alpha 
+                          -X_partial_regional[m] * alpha_region[Region[m]] 
+                          -X_partial_state[m] * alpha_state[m] 
                           -weekly_effect[week_index[m],m]);
         Rt_adj[1:N0,m] = Rt[1:N0,m];
          for (i in 2:N0){
@@ -79,7 +79,7 @@ transformed parameters {
         }
         for (i in (N0+1):N2) {
           real convolution = dot_product(sub_col(prediction, 1, m, i-1), tail(SI_rev, i-1));
-
+          
           cumm_sum[i,m] = cumm_sum[i-1,m] + prediction[i-1,m];
           Rt_adj[i,m] = ((pop[m]-cumm_sum[i,m]) / pop[m]) * Rt[i,m];
           prediction[i, m] = prediction[i, m] + Rt_adj[i,m] * convolution;
@@ -101,7 +101,7 @@ model {
   weekly_rho1 ~ normal(0.1, 0.05);
   for (m in 1:M) {
       y[m] ~ exponential(1/tau);
-       weekly_effect[3:(W+1), m] ~ normal( weekly_effect[2:W,m]* weekly_rho + weekly_effect[1:(W-1),m]* weekly_rho1,
+       weekly_effect[3:(W+1), m] ~ normal( weekly_effect[2:W,m]* weekly_rho + weekly_effect[1:(W-1),m]* weekly_rho1, 
                                             weekly_sd *sqrt(1-pow(weekly_rho,2)-pow(weekly_rho1,2) - 2 * pow(weekly_rho,2) * weekly_rho1/(1-weekly_rho1)));
   }
   weekly_effect[2, ] ~ normal(0,weekly_sd *sqrt(1-pow(weekly_rho,2)-pow(weekly_rho1,2) - 2 * pow(weekly_rho,2) * weekly_rho1/(1-weekly_rho1)));

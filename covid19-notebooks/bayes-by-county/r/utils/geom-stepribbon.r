@@ -51,10 +51,10 @@ geom_stepribbon <- function(
 #' @usage NULL
 #' @export
 GeomStepribbon <- ggproto(
-  "GeomStepribbon", GeomRibbon,
-
+  "GeomStepribbon", GeomRibbon, 
+  
   extra_params = c("na.rm", "kmplot"),
-
+  
   draw_group = function(data, panel_scales, coord, na.rm = FALSE) {
     if (na.rm) data <- data[complete.cases(data[c("x", "ymin", "ymax")]), ]
     data <- rbind(data, data)
@@ -63,7 +63,7 @@ GeomStepribbon <- ggproto(
     data <- data[complete.cases(data["x"]), ]
     GeomRibbon$draw_group(data, panel_scales, coord, na.rm = FALSE)
   },
-
+  
   setup_data = function(data, params) {
     if (params$kmplot) {
       data <- data[order(data$PANEL, data$group, data$x), ]
@@ -81,5 +81,5 @@ GeomStepribbon <- ggproto(
     }
     data
   }
-
+  
 )

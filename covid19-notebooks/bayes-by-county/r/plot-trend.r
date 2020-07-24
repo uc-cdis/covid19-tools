@@ -44,9 +44,9 @@ make_three_pannel_plot <- function(){
 
   # visualize it
   colnames(Rt) <- codeToName$name
-  g = mcmc_intervals(Rt,prob = .9) +
+  g = mcmc_intervals(Rt,prob = .9) + 
     ggtitle(sprintf("Average Rt %s to %s", format(lastObs-6, "%B %d"),format(lastObs, "%B %d")), "with 90% posterior credible intervals") +
-    xlab("Rt") + ylab("County") +
+    xlab("Rt") + ylab("County") + 
     theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5)) # center title and subtitle
   ggsave(sprintf("../modelOutput/figures/Rt_All.png"),g,width=6,height=4)
 
@@ -62,7 +62,7 @@ make_three_pannel_plot <- function(){
   # two transitions
   # lockdownStart <- as.Date("03/21/2020", format="%m/%d/%y")
   # lockdownEnd <- as.Date("05/30/2020", format="%m/%d/%y") # source: https://www.usatoday.com/storytelling/coronavirus-reopening-america-map/
-
+  
   # datesRef <- dates[[1]]
 
   # cd <- cd[cd > lastObs]
@@ -98,9 +98,9 @@ make_three_pannel_plot <- function(){
 
   # move this
   # plot_Rt_by_time_period <- function(Rt, title, path){
-  #   g = mcmc_intervals(Rt,prob = .9) +
+  #   g = mcmc_intervals(Rt,prob = .9) + 
   #     ggtitle(title, "with 90% posterior credible intervals") +
-  #     xlab("Rt") + ylab("County") +
+  #     xlab("Rt") + ylab("County") + 
   #     theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5)) # center title and subtitle
   #   ggsave(file.path("../modelOutput/figures", path),g,width=6,height=4)
   # }
@@ -113,8 +113,8 @@ make_three_pannel_plot <- function(){
 
   ##### ////////////// #####
 
-  # interventions table
-  # NOTE: "covariate" == "intervention";
+  # interventions table 
+  # NOTE: "covariate" == "intervention"; 
   # e.g., if there are 3 different interventions in the model, then there are 3 covariates here in the code
   covariates = read.csv("../modelInput/ILInterventionsV1.csv", stringsAsFactors = FALSE)
   covariates$Country <- sapply(covariates$Country, as.character)
@@ -137,26 +137,26 @@ make_three_pannel_plot <- function(){
     predicted_cases_ui <- colQuantiles(prediction[,1:N,i], probs=.975)
     predicted_cases_li2 <- colQuantiles(prediction[,1:N,i], probs=.25)
     predicted_cases_ui2 <- colQuantiles(prediction[,1:N,i], probs=.75)
-
+        
     estimated_deaths <- colMeans(estimated.deaths[,1:N,i])
     estimated_deaths_li <- colQuantiles(estimated.deaths[,1:N,i], probs=.025)
     estimated_deaths_ui <- colQuantiles(estimated.deaths[,1:N,i], probs=.975)
     estimated_deaths_li2 <- colQuantiles(estimated.deaths[,1:N,i], probs=.25)
     estimated_deaths_ui2 <- colQuantiles(estimated.deaths[,1:N,i], probs=.75)
-
+    
     rt <- colMeans(out$Rt[,1:N,i])
     rt_li <- colQuantiles(out$Rt[,1:N,i],probs=.025)
     rt_ui <- colQuantiles(out$Rt[,1:N,i],probs=.975)
     rt_li2 <- colQuantiles(out$Rt[,1:N,i],probs=.25)
     rt_ui2 <- colQuantiles(out$Rt[,1:N,i],probs=.75)
-
+        
     # NOTE: `country` is an integer - should be okay here
     covariates_country <- covariates[which(covariates$Country == country), 3:ncol(covariates), drop=FALSE]
-
+    
     covariates_country_long <- gather(covariates_country[], key = "key", value = "value")
     covariates_country_long$x <- rep(NULL, length(covariates_country_long$key))
     un_dates <- unique(covariates_country_long$value)
-
+    
     for (k in 1:length(un_dates)){
       idxs <- which(covariates_country_long$value == un_dates[k])
       max_val <- round(max(rt_ui)) + 0.3
@@ -165,14 +165,14 @@ make_three_pannel_plot <- function(){
         max_val <- max_val - 0.3
       }
     }
-
-    covariates_country_long$value <- as_date(covariates_country_long$value)
+    
+    covariates_country_long$value <- as_date(covariates_country_long$value) 
     covariates_country_long$country <- rep(country, length(covariates_country_long$value))
-
-    data_country <- data.frame("time" = as_date(as.character(dates[[i]])),
+    
+    data_country <- data.frame("time" = as_date(as.character(dates[[i]])), 
                                "country" = rep(country, length(dates[[i]])),
-                               "reported_cases" = reported_cases[[i]],
-                               "reported_cases_c" = cumsum(reported_cases[[i]]),
+                               "reported_cases" = reported_cases[[i]], 
+                               "reported_cases_c" = cumsum(reported_cases[[i]]), 
                                "predicted_cases_c" = cumsum(predicted_cases),
                                "predicted_min_c" = cumsum(predicted_cases_li),
                                "predicted_max_c" = cumsum(predicted_cases_ui),
@@ -196,8 +196,8 @@ make_three_pannel_plot <- function(){
                                "rt_max" = rt_ui,
                                "rt_min2" = rt_li2,
                                "rt_max2" = rt_ui2)
-
-    county_deaths_and_est <- make_plots(data_country = data_country,
+    
+    county_deaths_and_est <- make_plots(data_country = data_country, 
                covariates_country_long = covariates_country_long,
                filename2 = filename2,
                country = countryName,
@@ -250,7 +250,7 @@ make_three_pannel_plot <- function(){
 
   ### scaled error weekly
   # weekly_error_plot(
-  #   df = err_df,
+  #   df = err_df, 
   #   title = "All County Weekly Deaths",
   #   path = "../modelOutput/figures/%sse_weekly_all.png"
   # )
@@ -261,9 +261,9 @@ weekly_error_plot <- function(df, title, path){
   weeklyDeaths <- unname(tapply(df$deaths, (seq_along(df$deaths)-1) %/% 7, sum))
   weeklyEst <- unname(tapply(df$est, (seq_along(df$est)-1) %/% 7, sum))
   weeklyDates <- as.Date(unname(tapply(df$time, (seq_along(df$time)-1) %/% 7, min)))
-
+  
   w <- data.frame(time = weeklyDates, deaths = weeklyDeaths, est = weeklyEst)
-
+  
   error_plot(
     df = w,
     title = title,
@@ -305,17 +305,17 @@ abs_and_signed_error  <- function(df, title, path) {
 
 gg_error <- function(df, target, title, path){
   p <- ggplot(df) +
-    ggtitle(title) +
-    geom_bar(data = df, aes(x = time, y = !!sym(target)),
-            fill = "coral4", stat='identity', alpha=0.5) +
+    ggtitle(title) + 
+    geom_bar(data = df, aes(x = time, y = !!sym(target)), 
+            fill = "coral4", stat='identity', alpha=0.5) + 
     xlab("Time") +
     ylab("Error") +
     labs(subtitle=sprintf("avg_err: %f", mean(df[[target]]))) +
-    scale_x_date(date_breaks = "weeks", labels = date_format("%e %b")) +
-    theme_pubr() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1),
+    scale_x_date(date_breaks = "weeks", labels = date_format("%e %b")) + 
+    theme_pubr() + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), 
         plot.title = element_text(hjust = 0.5),
-        legend.position = "None") +
+        legend.position = "None") + 
     guides(fill=guide_legend(ncol=1))
 
   save_plot(filename = path, p)
@@ -325,7 +325,7 @@ gg_error <- function(df, target, title, path){
 
 # todo: break down into 3 fn's - modular, man, modular
 
-make_plots <- function(data_country, covariates_country_long,
+make_plots <- function(data_country, covariates_country_long, 
                        filename2, country, code){
 
     countyDir <- file.path("../modelOutput/figures", code)
@@ -356,50 +356,50 @@ make_plots <- function(data_country, covariates_country_long,
 
     ## p1
 
-    data_cases_95 <- data.frame(data_country$time, data_country$predicted_min,
+    data_cases_95 <- data.frame(data_country$time, data_country$predicted_min, 
                                 data_country$predicted_max)
     names(data_cases_95) <- c("time", "cases_min", "cases_max")
     data_cases_95$key <- rep("nintyfive", length(data_cases_95$time))
-    data_cases_50 <- data.frame(data_country$time, data_country$predicted_min2,
+    data_cases_50 <- data.frame(data_country$time, data_country$predicted_min2, 
                                 data_country$predicted_max2)
     names(data_cases_50) <- c("time", "cases_min", "cases_max")
     data_cases_50$key <- rep("fifty", length(data_cases_50$time))
     data_cases <- rbind(data_cases_95, data_cases_50)
     levels(data_cases$key) <- c("ninetyfive", "fifty")
-
+    
     p1 <- ggplot(data_country) +
-        ggtitle(paste0(country, " County Daily Cases")) +
-        geom_bar(data = data_country, aes(x = time, y = reported_cases),
-                fill = "coral4", stat='identity', alpha=0.5) +
-        geom_ribbon(data = data_cases,
+        ggtitle(paste0(country, " County Daily Cases")) + 
+        geom_bar(data = data_country, aes(x = time, y = reported_cases), 
+                fill = "coral4", stat='identity', alpha=0.5) + 
+        geom_ribbon(data = data_cases, 
                     aes(x = time, ymin = cases_min, ymax = cases_max, fill = key)) +
         xlab("Time") +
         ylab("Cases") +
-        scale_x_date(date_breaks = "weeks", labels = date_format("%e %b")) +
+        scale_x_date(date_breaks = "weeks", labels = date_format("%e %b")) + 
         scale_fill_manual(name = "", labels = c("50%", "95%"),
-                        values = c(alpha("deepskyblue4", 0.55),
-                                    alpha("deepskyblue4", 0.45))) +
-        theme_pubr() +
-        theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                        values = c(alpha("deepskyblue4", 0.55), 
+                                    alpha("deepskyblue4", 0.45))) + 
+        theme_pubr() + 
+        theme(axis.text.x = element_text(angle = 45, hjust = 1), 
             plot.title = element_text(hjust = 0.5),
-            legend.position = "None") +
+            legend.position = "None") + 
         guides(fill=guide_legend(ncol=1))
 
     save_plot(filename = file.path(countyDir, "cases.png"), p1)
 
     ### p2
 
-    data_deaths_95 <- data.frame(data_country$time, data_country$death_min,
+    data_deaths_95 <- data.frame(data_country$time, data_country$death_min, 
                                 data_country$death_max)
     names(data_deaths_95) <- c("time", "death_min", "death_max")
     data_deaths_95$key <- rep("nintyfive", length(data_deaths_95$time))
-    data_deaths_50 <- data.frame(data_country$time, data_country$death_min2,
+    data_deaths_50 <- data.frame(data_country$time, data_country$death_min2, 
                                 data_country$death_max2)
     names(data_deaths_50) <- c("time", "death_min", "death_max")
     data_deaths_50$key <- rep("fifty", length(data_deaths_50$time))
     data_deaths <- rbind(data_deaths_95, data_deaths_50)
     levels(data_deaths$key) <- c("ninetyfive", "fifty")
-
+    
     p2 <-   ggplot(data_country, aes(x = time)) +
         ggtitle(paste0(country, " County Daily Deaths")) +
         geom_bar(data = data_country, aes(y = deaths, fill = "reported"),
@@ -411,58 +411,58 @@ make_plots <- function(data_country, covariates_country_long,
         ylab("Deaths") +
         scale_x_date(date_breaks = "weeks", labels = date_format("%e %b")) +
         scale_fill_manual(name = "", labels = c("50%", "95%"),
-                        values = c(alpha("deepskyblue4", 0.55),
-                                    alpha("deepskyblue4", 0.45))) +
-        theme_pubr() +
-        theme(axis.text.x = element_text(angle = 45, hjust = 1),
+                        values = c(alpha("deepskyblue4", 0.55), 
+                                    alpha("deepskyblue4", 0.45))) + 
+        theme_pubr() + 
+        theme(axis.text.x = element_text(angle = 45, hjust = 1), 
             plot.title = element_text(hjust = 0.5),
-            legend.position = "None") +
+            legend.position = "None") + 
         guides(fill=guide_legend(ncol=1))
 
     save_plot(filename = file.path(countyDir, "deaths.png"), p2)
-
+    
     ### p3
 
     plot_labels <- c("lockdown")
-
+    
     # Plotting interventions
-    data_rt_95 <- data.frame(data_country$time,
+    data_rt_95 <- data.frame(data_country$time, 
                             data_country$rt_min, data_country$rt_max)
     names(data_rt_95) <- c("time", "rt_min", "rt_max")
     data_rt_95$key <- rep("nintyfive", length(data_rt_95$time))
-    data_rt_50 <- data.frame(data_country$time, data_country$rt_min2,
+    data_rt_50 <- data.frame(data_country$time, data_country$rt_min2, 
                             data_country$rt_max2)
     names(data_rt_50) <- c("time", "rt_min", "rt_max")
     data_rt_50$key <- rep("fifty", length(data_rt_50$time))
     data_rt <- rbind(data_rt_95, data_rt_50)
     levels(data_rt$key) <- c("ninetyfive", "fifth")
-
+    
     p3 <- ggplot(data_country) +
         ggtitle(paste0(country, " County Estimated Rt")) +
-        geom_stepribbon(data = data_rt, aes(x = time,
-                                            ymin = rt_min, ymax = rt_max,
+        geom_stepribbon(data = data_rt, aes(x = time, 
+                                            ymin = rt_min, ymax = rt_max, 
                                             group = key,
                                             fill = key)) +
-        geom_hline(yintercept = 1, color = 'black', size = 0.1) +
+        geom_hline(yintercept = 1, color = 'black', size = 0.1) + 
         # missing values in one row -> warning -> td: double check this
         geom_segment(data = covariates_country_long,
-                    aes(x = value, y = 0, xend = value, yend = max(x)),
+                    aes(x = value, y = 0, xend = value, yend = max(x)), 
                     linetype = "dashed", colour = "grey", alpha = 0.75) +
         # missing values in one row -> warning
-        geom_point(data = covariates_country_long, aes(x = value,
-                                                    y = x,
-                                                    group = key,
-                                                    shape = key,
+        geom_point(data = covariates_country_long, aes(x = value, 
+                                                    y = x, 
+                                                    group = key, 
+                                                    shape = key, 
                                                     col = key), size = 2) +
-        xlab("Time") +
+        xlab("Time") + 
         ylab(expression(R[t])) +
         scale_fill_manual(name = "", labels = c("50%", "95%"),
-                        values = c(alpha("seagreen", 0.75), alpha("seagreen", 0.5))) +
+                        values = c(alpha("seagreen", 0.75), alpha("seagreen", 0.5))) + 
         scale_shape_manual(name = "Interventions", labels = plot_labels,
-                        values = c(21, 22, 23, 24, 25, 12)) +
-        scale_colour_discrete(name = "Interventions", labels = plot_labels) +
-        scale_x_date(date_breaks = "weeks", labels = date_format("%e %b")) +
-        theme_pubr() +
+                        values = c(21, 22, 23, 24, 25, 12)) + 
+        scale_colour_discrete(name = "Interventions", labels = plot_labels) + 
+        scale_x_date(date_breaks = "weeks", labels = date_format("%e %b")) + 
+        theme_pubr() + 
         theme(axis.text.x = element_text(angle = 45, hjust = 1),
                     plot.title = element_text(hjust = 0.5),
                     legend.position="right")

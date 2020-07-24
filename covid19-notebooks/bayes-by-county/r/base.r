@@ -81,8 +81,6 @@ cfr.by.country$country <-  sub("840", "", cfr.by.country$country) # cutoff US pr
 # serial interval discrete gamma distribution
 serial.interval = read.csv("../modelInput/ILSerialIntervalV1.csv") # new table
 
-# number of days to forecast beyond date of last observation
-forecast = 0
 # N2 is Number of time points with data plus forecast
 N2 = 0
 
@@ -102,7 +100,7 @@ for(i in 1:ncol(mobility)){
 
 # Read predicted mobility
 google_pred <- read.csv('../modelInput/mobility/google-mobility-forecast.csv', stringsAsFactors = FALSE)
-google_pred$date <- as.Date(google_pred$date, format = '%Y-%m-%d')
+google_pred$date <- as.Date(google_pred$date, format = '%Y-%m-%d') 
 
 # replicate statewide prediction by county -> this can be MUCH more nuanced, but for now - just get something working
 stateAndCounty <- codeToName
@@ -155,18 +153,19 @@ for(Country in countries) {
 
   tmp=d[d$countryterritoryCode==Country,]
   # tmp$date = as.Date(tmp$dateRep,format='%m/%d/%y')
-  tmp$t = decimal_date(tmp$date)
+  tmp$t = decimal_date(tmp$date) 
   tmp=tmp[order(tmp$t),]
 
-  index1 = which(cumsum(tmp$deaths)>=10)[1]
+  index1 = which(cumsum(tmp$deaths)>=10)[1] 
   index2 = index1-30
-
+  
   tmp=tmp[index2:nrow(tmp),]
-
-  N = length(tmp$cases)
+  
+  N = length(tmp$cases)  
   if(N2 - N < 0) {
     print(sprintf("raising N2 from %d to %d", N2, N))
-    N2 = N + 7
+    N2 = N
+    # N2 = N + 7
   }
 }
 
@@ -180,13 +179,13 @@ for(Country in countries) {
 
   d1=d[d$countryterritoryCode==Country,]
 
-  d1$t = decimal_date(d1$date)
+  d1$t = decimal_date(d1$date) 
   d1=d1[order(d1$t),]
 
   index = which(d1$cases>0)[1]
-  index1 = which(cumsum(d1$deaths)>=10)[1]
+  index1 = which(cumsum(d1$deaths)>=10)[1] 
   index2 = index1-30
-
+  
   print(sprintf("First non-zero cases is on day %d, and 30 days before %d cumulative deaths is day %d",index,minimumReportedDeaths,index2))
   d1=d1[index2:nrow(d1),]
   stan_data$EpidemicStart = c(stan_data$EpidemicStart,index1+1-index2)
@@ -200,15 +199,8 @@ for(Country in countries) {
   # hazard estimation
   N = length(d1$cases)
   print(sprintf("%s has %d days of data",Country,N))
-
-  # at least a seven day forecast
-  # testing this
-  forecast <- max(N2 - N, 7)
-
-  # fix it at 7 -> uniform forecast across counties..
-  # can't do this - breaks routine as of now
-  # forecast doesn't even matter at this point
-  # forecast <- 7
+  
+  short <- N2 - N
 
   # >>>>>>>>>>> mobility >>>>>>>>>>>>> #
 
@@ -220,16 +212,16 @@ for(Country in countries) {
   padded_covariates <- nu_pad_mobility(min_date, covariates_county, Country, N2)
 
   # include transit
-  transit_usage <- rep(1, (N + forecast))
+  transit_usage <- rep(1, (N + short))
 
   # creating features -> only want "partial_state"
   df_features <- create_features(padded_covariates, transit_usage)
-  features_partial_county <- model.matrix(formula_partial_county, df_features)
+  features_partial_county <- model.matrix(formula_partial_county, df_features)    
   covariate_list_partial_county[[k]] <- features_partial_county
 
   # <<<<<<<<<<< mobility <<<<<<<<<<<<< #
 
-  h = rep(0,forecast+N) # discrete hazard rate from time t = 1, ..., 100
+  h = rep(0,short+N) # discrete hazard rate from time t = 1, ..., 100
   mean1 = 5.1; cv1 = 0.86; # infection to onset
   mean2 = 18.8; cv2 = 0.45 # onset to death
 
@@ -241,42 +233,35 @@ for(Country in countries) {
   f = ecdf(x1+x2)
 
   convolution = function(u) (CFR * f(u))
-  h[1] = (convolution(1.5) - convolution(0))
+  h[1] = (convolution(1.5) - convolution(0)) 
   for(i in 2:length(h)) {
     h[i] = (convolution(i+.5) - convolution(i-.5)) / (1-convolution(i-.5))
   }
   s = rep(0,N2)
-  s[1] = 1
+  s[1] = 1 
   for(i in 2:N2) {
     s[i] = s[i-1]*(1-h[i-1])
   }
 
   f = s * h
-
-  y=c(as.vector(as.numeric(d1$cases)),rep(-1,forecast))
+  
+  y=c(as.vector(as.numeric(d1$cases)),rep(-1,short))
   reported_cases[[Country]] = as.vector(as.numeric(d1$cases))
-  deaths=c(as.vector(as.numeric(d1$deaths)),rep(-1,forecast))
-  cases=c(as.vector(as.numeric(d1$cases)),rep(-1,forecast))
+  deaths=c(as.vector(as.numeric(d1$deaths)),rep(-1,short))
+  cases=c(as.vector(as.numeric(d1$cases)),rep(-1,short))
   deaths_by_country[[Country]] = as.vector(as.numeric(d1$deaths))
 
   ## icl: append data
   stan_data$N = c(stan_data$N,N)
   stan_data$y = c(stan_data$y,y[1]) # icl: just the index case!
-
-  # county population
-  # stan_data$pop <- c(stan_data$pop, pop_county)
-
-  stan_data$x1=poly(1:N2,2)[,1]
-  stan_data$x2=poly(1:N2,2)[,2]
+  
   stan_data$SI=serial.interval$fit[1:N2]
 
   stan_data$f = cbind(stan_data$f,f)
 
   stan_data$deaths = cbind(stan_data$deaths,deaths)
-  stan_data$cases = cbind(stan_data$cases,cases)
-
+  
   stan_data$N2=N2
-  stan_data$x=1:N2
   if(length(stan_data$N) == 1) {
     stan_data$N = as.array(stan_data$N)
   }
@@ -298,7 +283,7 @@ for (i in 1:stan_data$M){
 }
 
 # newSTAN - ok
-stan_data$W <- ceiling(stan_data$N2/7)
+stan_data$W <- ceiling(stan_data$N2/7) 
 # newSTAN - ok
 stan_data$week_index <- matrix(1,stan_data$M,stan_data$N2)
 for(j in 1:stan_data$M) {
@@ -353,7 +338,7 @@ exportJSON <- toJSON(summary, pretty=TRUE, auto_unbox=TRUE)
 # sent to stdout
 print("--- summary ---")
 print(exportJSON)
-# write summary to log
+# write summary to log 
 write(exportJSON, "../modelOutput/log.json")
 
 #### now -> visualize model results -> ####
@@ -363,7 +348,7 @@ write(exportJSON, "../modelOutput/log.json")
 # still save the R data and fit though, for backup, etc.
 
 filename <- paste0(StanModel, '-', JOBID)
-system(paste0("Rscript plot-trend.r ", filename,'.Rdata'))
+system(paste0("Rscript plot-trend.r ", filename,'.Rdata')) 
 # system(paste0("Rscript plot-forecast.r ", filename,'.Rdata')) ## icl: to run this code you will need to adjust manual values of forecast required
 
 # suppressing for now
@@ -371,5 +356,5 @@ system(paste0("Rscript plot-trend.r ", filename,'.Rdata'))
 
 if (validateFlag == "--validate"){
   print("validating model output ...")
-  system(paste0("Rscript validate.r ", filename,'.Rdata'))
-}
+  system(paste0("Rscript validate.r ", filename,'.Rdata')) 
+} 

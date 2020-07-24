@@ -5,10 +5,10 @@ se <- read.csv("../modelInput/SocEc.csv", stringsAsFactors=FALSE)
 se <- data.frame(
     fips = se$FIPS,
     state = se$State,
-    area_name = se$Area_Name,
+    area_name = se$Area_Name,   
     pop = se$POP_ESTIMATE_2018,
-    ## vars ##
-    # income
+    ## vars ##     
+    # income 
     income = se$Median_Household_Income_2018,
     # density
     density = se$Density.per.square.mile.of.land.area...Population,
