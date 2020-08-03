@@ -28,6 +28,9 @@ class SSR(base.BaseETL):
 
         self.program_name = "controlled"
         self.project_code = "PRIVATE"
+        self.country = "US"
+        self.state = "IL"
+
         self.metadata_helper = MetadataHelper(
             base_url=self.base_url,
             program_name=self.program_name,
@@ -107,6 +110,8 @@ class SSR(base.BaseETL):
                         "type": "summary_location",
                         "submitter_id": summary_location_submitter_id,
                         "projects": {"code": self.project_code},
+                        "country_region": self.country,
+                        "province_state": self.state,
                     }
                 )
 
