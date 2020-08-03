@@ -27,7 +27,7 @@ class SSR(base.BaseETL):
         self.demographics = []
 
         self.program_name = "controlled"
-        self.project_code = "PRIVATE"
+        self.project_code = "SSR"
         self.country = "US"
         self.state = "IL"
 
