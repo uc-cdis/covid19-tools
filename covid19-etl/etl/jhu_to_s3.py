@@ -488,6 +488,7 @@ class JHU_TO_S3(base.BaseETL):
         aggregated country-level data because it duplicates the province-level
         data.
         """
+        print("Generating {}...".format(GEOJSON_FILENAME))
         LATEST_DATE_ONLY = True
         features = []
         for country_data in self.nested_dict.values():
@@ -571,6 +572,7 @@ class JHU_TO_S3(base.BaseETL):
         """
         See `nested_dict_to_geojson` docstring for details on the aggregation.
         """
+        print("Generating {}...".format(JSON_BY_LEVEL_FILENAME))
         LATEST_DATE_ONLY = True
         js = {
             "country": {},  # aggregated data for all countries
@@ -661,6 +663,7 @@ class JHU_TO_S3(base.BaseETL):
             json.dump(js, f)
 
     def nested_dict_to_time_series_by_level(self):
+        print("Generating time series files...")
         tmp = {"country": {}, "state": {}, "county": {}}
         for country_data in self.nested_dict.values():
             iso3 = country_data["iso3"]
