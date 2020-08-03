@@ -15,6 +15,7 @@
 | [COV-237][cov-237] | Chicago Neighborhoods Data | [here][chi-nbhd] ([JSON][chi-nbhd-json]) | Scheduled |
 | [COV-361][cov-361] | NPI-PRO | [here][npi-pro] | One-time |
 | [COV-220][cov-220] | COXRAY | [Kaggle][coxray] | One-time |
+| [COV-422][cov-422] | SSR | Controlled data | One-time (for now) |
 
 ## Deployment
 
@@ -96,3 +97,4 @@ The ETL is consist of two parts: `COXRAY_FILE` - for file upload and `COXRAY` fo
   [cov-237]: https://occ-data.atlassian.net/browse/COV-237
   [cov-273]: https://occ-data.atlassian.net/browse/COV-273
   [cov-361]: https://occ-data.atlassian.net/browse/COV-361
+  [cov-422]: https://occ-data.atlassian.net/browse/COV-422
