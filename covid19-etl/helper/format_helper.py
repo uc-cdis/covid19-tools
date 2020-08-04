@@ -55,3 +55,9 @@ def idph_get_date(date_json):
     """
     date = datetime.date(**date_json)
     return date.strftime("%Y-%m-%d")
+
+
+def check_date_format(date):
+    # will throw an error if the date format is not as expected
+    # (international date format)
+    datetime.datetime.strptime(date, "%Y-%m-%d")
