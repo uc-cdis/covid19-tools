@@ -31,8 +31,8 @@ class IDPH_FACILITY(base.BaseETL):
         self.country = "US"
         self.state = "IL"
 
-        self.summary_locations = []
-        self.summary_clinicals = []
+        self.summary_locations = {}
+        self.summary_clinicals = {}
 
     def files_to_submissions(self):
         """
@@ -100,16 +100,24 @@ class IDPH_FACILITY(base.BaseETL):
                         {"submitter_id": summary_location_submitter_id}
                     ],
                 }
-                self.summary_locations.append(summary_location)
-                self.summary_clinicals.append(summary_clinical)
+                self.summary_locations[summary_location_submitter_id] = summary_location
+                self.summary_clinicals[summary_clinical_submitter_id] = summary_clinical
 
             for facility in data["FacilityValues"]:
                 (summary_location, summary_clinical,) = self.parse_facility(
                     date, facility
                 )
+                summary_location_submitter_id = summary_location["submitter_id"]
+                summary_clinical_submitter_id = summary_clinical["submitter_id"]
 
-                self.summary_locations.append(summary_location)
-                self.summary_clinicals.append(summary_clinical)
+                self.summary_locations[summary_location_submitter_id] = summary_location
+
+                if summary_clinical_submitter_id in self.summary_clinicals:
+                    existed = self.summary_clinicals[summary_clinical_submitter_id]
+                    summary_clinical["confirmed"] = max(summary_clinical["confirmed"], existed["confirmed"])
+                    summary_clinical["deaths"] = max(summary_clinical["deaths"], existed["deaths"])
+
+                self.summary_clinicals[summary_clinical_submitter_id] = summary_clinical
 
     def parse_facility(self, date, facility):
         """
@@ -162,14 +170,14 @@ class IDPH_FACILITY(base.BaseETL):
     def submit_metadata(self):
         print("Submitting data...")
         print("Submitting summary_location data")
-        for sl in self.summary_locations:
+        for sl in self.summary_locations.values():
             sl_record = {"type": "summary_location"}
             sl_record.update(sl)
             self.metadata_helper.add_record_to_submit(sl_record)
         self.metadata_helper.batch_submit_records()
 
         print("Submitting summary_clinical data")
-        for sc in self.summary_clinicals:
+        for sc in self.summary_clinicals.values():
             sc_record = {"type": "summary_clinical"}
             sc_record.update(sc)
             self.metadata_helper.add_record_to_submit(sc_record)
