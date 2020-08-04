@@ -114,8 +114,12 @@ class IDPH_FACILITY(base.BaseETL):
 
                 if summary_clinical_submitter_id in self.summary_clinicals:
                     existed = self.summary_clinicals[summary_clinical_submitter_id]
-                    summary_clinical["confirmed"] = max(summary_clinical["confirmed"], existed["confirmed"])
-                    summary_clinical["deaths"] = max(summary_clinical["deaths"], existed["deaths"])
+                    summary_clinical["confirmed"] = max(
+                        summary_clinical["confirmed"], existed["confirmed"]
+                    )
+                    summary_clinical["deaths"] = max(
+                        summary_clinical["deaths"], existed["deaths"]
+                    )
 
                 self.summary_clinicals[summary_clinical_submitter_id] = summary_clinical
 

@@ -88,10 +88,18 @@ fields_mapping = {
     "finding": ("observation", "pneumonia_type", harmonize_finding),
     "survival": ("subject", "vital_status", harmonize_survival),
     "intubated": ("observation", "ventilator_status", harmonize_intubated),
-    "intubation_present": ("follow_up", "intubation_present", harmonize_intubation_present),
+    "intubation_present": (
+        "follow_up",
+        "intubation_present",
+        harmonize_intubation_present,
+    ),
     "went_icu": ("observation", "icu_status", harmonize_went_icu),
     "in_icu": ("follow_up", "in_icu", harmonize_in_icu),
-    "needed_supplemental_O2": ("observation", "needed_supplemental_O2", harmonize_needed_supplemental_O2),
+    "needed_supplemental_O2": (
+        "observation",
+        "needed_supplemental_O2",
+        harmonize_needed_supplemental_O2,
+    ),
     "extubated": ("follow_up", "extubated", harmonize_extubated),
     "temperature": ("follow_up", "temperature", float),
     "pO2_saturation": ("follow_up", "pO2_saturation", float),
@@ -157,10 +165,7 @@ class COXRAY(base.BaseETL):
             "subject_coxray", {"patientid": row[headers.index("patientid")]}
         )
         observation_submitter_id = derived_submitter_id(
-            subject_submitter_id,
-            "subject_coxray",
-            "observation_coxray",
-            {}
+            subject_submitter_id, "subject_coxray", "observation_coxray", {}
         )
         follow_up_submitter_id = derived_submitter_id(
             subject_submitter_id,
