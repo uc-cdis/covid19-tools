@@ -14,9 +14,6 @@ from helper.format_helper import (
 from helper.metadata_helper import MetadataHelper
 
 
-CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-
-
 class IDPH_ZIPCODE(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)

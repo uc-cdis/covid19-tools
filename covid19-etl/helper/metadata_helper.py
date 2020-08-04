@@ -154,6 +154,9 @@ class MetadataHelper:
     def add_record_to_submit(self, record):
         self.records_to_submit.append(record)
 
+    def add_records_to_submit(self, records):
+        self.records_to_submit.extend(records)
+
     def batch_submit_records(self):
         """
         Submits Sheepdog records in batch
