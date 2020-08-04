@@ -124,22 +124,38 @@ def normalize_date_list(dates_string):
 def normalize_location(loc):
     loc = loc.strip()
 
-    if loc in ["NA"]:
+    if loc in ["", "NA"]:
         return None
 
-    if loc == "UK Licester City":
-        loc = "Leicester, United Kingdom"
-    elif loc == "UK London":
-        loc = "London, United Kingdom"
-    elif loc == "UK":
-        loc = "United Kingdom"
-    elif loc in ["United States of America", "US"]:
-        loc = "USA"
+    if loc.lower().startswith("the "):
+        loc = loc[4:]
+    if loc.lower().startswith("and "):
+        loc = loc[4:]
 
-    return loc
+    mapping = {
+        "travelled": "Unknown location",
+        "travel": "Unknown location",
+        "local": "Local travel",
+        "wa": "Local travel",  # Wa is a city in Guana. There is only 1 subject with this location and their country is Guana
+        "united kingdom": "UK",
+        "uk licester city": "UK",
+        "uk london": "UK",
+        "united states of america": "USA",
+        "the united states of america": "USA",
+        "us": "USA",
+        "visiting resident of turkey travelled": "Turkey",
+        "congo brazaville": "Congo Brazzaville",
+    }
+
+    res = mapping.get(loc.lower(), loc)
+    res = res[0].upper() + res[1:]  # capitalize only 1st char
+
+    return res
 
 
 def normalize_location_list(loc_string):
+    loc_string = loc_string.strip()
+
     # special cases...
     if loc_string == "Madrid  Spain via Doha  Qatar  Namibia":
         loc_string = "Madrid, Spain, Qatar, Namibia"
@@ -157,6 +173,19 @@ def normalize_location_list(loc_string):
         == "studying at WITS University in South Africa. He was tested in South Africa  but travelled back before results came out"
     ):
         loc_string = "South Africa"
+    elif loc_string.startswith("Travelled to the United Kingdom Austria and "):
+        loc_string = loc_string.replace(
+            "Travelled to the United Kingdom Austria and ", "United Kingdom, Austria, "
+        )
+    elif loc_string == "Travelled to Germany France Switzerland and Austria":
+        loc_string = "Germany, France, Switzerland, Austria"
+    elif loc_string == "Travelled to France Germany and the Netherlands":
+        loc_string = "France, Germany, the Netherlands"
+    elif (
+        loc_string
+        == "Travelled to Saudi Arabia the United Kingdom Switzerland and Austria"
+    ):
+        loc_string = "Saudi Arabia, the United Kingdom, Switzerland, Austria"
     elif loc_string in [
         "no travel history",
         "no international travel history",
@@ -167,9 +196,13 @@ def normalize_location_list(loc_string):
         loc_string = ""
 
     loc_string = loc_string.replace("Travelled from", "")
-
+    loc_string = loc_string.replace("Travelled to", "")
+    loc_string = loc_string.replace(" and ", ", ")
     loc_string = loc_string.strip()
-    loc_list = re.split(r" & |\, | to ", loc_string)
+    if loc_string.lower().startswith("the "):
+        loc_string = loc_string[4:]
+
+    loc_list = re.split(r" & |\, | to |; ", loc_string)
 
     # locations with multiple words that should not be split on spaces
     no_space_split = [
@@ -187,9 +220,15 @@ def normalize_location_list(loc_string):
         "South Africa",
         "High risk country",
         "South Sudan",
+        "the Democratic Republic of Congo",
+        "Democratic Republic of Congo",
+        "New Zealand",
     ]
+
+    # split by space
     if len(loc_list) == 1 and " " in loc_string and loc_string not in no_space_split:
         loc_list = loc_string.split(" ")
+        loc_list = [l for l in loc_list if l]
 
     loc_list = [normalize_location(l) for l in loc_list]
     loc_list = [l for l in loc_list if l]
@@ -267,7 +306,7 @@ class DSFSI(base.BaseETL):
             ),
             (
                 "source",
-                ("observation", "reporting_source_url", None),
+                ("observation", "reporting_source_url", str),
             ),  # type of fields "None" is used to remove the value
             ("symptoms", ("observation", "symptoms", normalize_symptoms)),
             (
