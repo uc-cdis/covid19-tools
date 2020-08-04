@@ -16,8 +16,8 @@ def format_subject_submitter_id(country, submitter_id):
     return submitter_id
 
 
-def format_demographic_submitter_id(subject_submitter_id):
-    return subject_submitter_id.replace("subject_", "demographic_")
+def format_node_submitter_id(subject_submitter_id, node_name):
+    return subject_submitter_id.replace("subject_", f"{node_name}_")
 
 
 def normalize_current_status(status):
@@ -79,21 +79,122 @@ def normalize_symptoms(symptoms):
     return result
 
 
-def normalize_date(d):
-    if not d:
+def normalize_date(date):
+    if not date or date in ["NA", "N/A"]:
         return None
 
+    d = date
+    d = d.replace("Returned", "")
+    d = d.replace("between", "")
+    d = d.strip()
+
+    if d == "early March":
+        d = "2020-03-01"
+
     parsed_date = None
-    for fmt in ("%Y/%m/%d", "%Y-%m-%d", "%d-%m-%y", "%m/%d/%Y", "%d-%b-%y"):
+    for fmt in ("%Y/%m/%d", "%Y-%m-%d", "%d-%m-%y", "%m/%d/%Y", "%d-%b-%y", "%m.%d.%Y"):
         try:
             parsed_date = datetime.datetime.strptime(d, fmt)
         except ValueError:
             pass
 
     if not parsed_date:
+        print(f"Couldn't parse date '{date}', returning date=None")
         return None
 
-    return parsed_date.strftime("%m/%d/%y")
+    return parsed_date.strftime("%Y-%m-%d")
+
+
+def normalize_date_list(dates_string):
+    # split dates by:
+    # - `,`
+    # - ` and `
+    # - `  `
+    date_list = re.split(r"\,| and |  ", dates_string)
+
+    # handle data such as "3/14/2020-3/21/2020"
+    if len(date_list) == 1 and "/" in dates_string:
+        date_list = dates_string.split("-")
+
+    date_list = [normalize_date(d.strip()) for d in date_list]
+    date_list = [d for d in date_list if d]
+    return date_list
+
+
+def normalize_location(loc):
+    loc = loc.strip()
+
+    if loc in ["NA"]:
+        return None
+
+    if loc == "UK Licester City":
+        loc = "Leicester, United Kingdom"
+    elif loc == "UK London":
+        loc = "London, United Kingdom"
+    elif loc == "UK":
+        loc = "United Kingdom"
+    elif loc in ["United States of America", "US"]:
+        loc = "USA"
+
+    return loc
+
+
+def normalize_location_list(loc_string):
+    # special cases...
+    if loc_string == "Madrid  Spain via Doha  Qatar  Namibia":
+        loc_string = "Madrid, Spain, Qatar, Namibia"
+    elif loc_string == "Djibuti Brazil India Congo Brazaville":
+        loc_string = "Djibuti, Brazil, India, Congo Brazaville"
+    elif loc_string == "Namibia from London on 18 March":
+        loc_string = "Namibia"
+    elif (
+        loc_string
+        == "Johannesburg on 07 February 2020 and returned on 13 February 2020"
+    ):
+        loc_string = "Johannesburg, South Africa"
+    elif (
+        loc_string
+        == "studying at WITS University in South Africa. He was tested in South Africa  but travelled back before results came out"
+    ):
+        loc_string = "South Africa"
+    elif loc_string in [
+        "no travel history",
+        "no international travel history",
+        "with no international travel history",
+        "with pending travel history",
+        "Contact with patient confirmed positive",
+    ]:
+        loc_string = ""
+
+    loc_string = loc_string.replace("Travelled from", "")
+
+    loc_string = loc_string.strip()
+    loc_list = re.split(r" & |\, | to ", loc_string)
+
+    # locations with multiple words that should not be split on spaces
+    no_space_split = [
+        "Saudi Arabia",
+        "Burkina Faso",
+        "Cote d'Ivoire",
+        "United Kingdom",
+        "Congo Brazzaville",
+        "UK London",
+        "UK Licester City",
+        "High risk countries",
+        "United Arab Emirates",
+        "Middle East",
+        "United States of America",
+        "South Africa",
+        "High risk country",
+        "South Sudan",
+    ]
+    if len(loc_list) == 1 and " " in loc_string and loc_string not in no_space_split:
+        loc_list = loc_string.split(" ")
+
+    loc_list = [normalize_location(l) for l in loc_list]
+    loc_list = [l for l in loc_list if l]
+
+    return loc_list
 
 
 def normalize_condition(condition):
@@ -110,17 +211,17 @@ def normalize_condition(condition):
 
 def normalize_gender(gender):
     normalized = {
-        "?": None,
-        "f": "female",
-        "female": "female",
-        "m": "male",
-        "male ?": "male",
-        "male": "male",
-        "na": None,
-        "not specified": "unspecified",
-        "suleja": None,
-        "woman": "female",
-        "x": None,
+        "m": "Male",
+        "male": "Male",
+        "male ?": "Male",
+        "f": "Female",
+        "female": "Female",
+        "woman": "Female",
+        "not specified": "Unknown",
+        "suleja": "Not reported",
+        "na": "Not reported",
+        "x": "Not reported",
+        "?": "Not reported",
     }
 
     return normalized[gender.lower()]
@@ -138,6 +239,7 @@ class DSFSI(base.BaseETL):
         super().__init__(base_url, access_token, s3_bucket)
         self.subjects = []
         self.demographics = []
+        self.observations = []
 
         self.program_name = "open"
         self.project_code = "DSFSI"
@@ -153,32 +255,35 @@ class DSFSI(base.BaseETL):
         self.countries_fields = [
             ("case_id", ("subject", "submitter_id", str)),
             ("origin_case_id", (None, None, None)),
-            ("date", ("subject", "reporting_date", normalize_date)),
-            ("age", ("subject", "age", normalize_age)),
+            ("date", ("observation", "reporting_date", normalize_date)),
+            ("age", ("demographic", "age", normalize_age)),
             ("gender", ("demographic", "gender", normalize_gender)),
-            ("city", ("subject", "city", str)),
-            ("province/state", ("subject", "province", str)),
-            ("country", ("subject", "country", str)),
-            ("current_status", ("subject", "current_state", normalize_current_status)),
+            ("city", ("demographic", "city", str)),
+            ("province/state", ("demographic", "province_state", str)),
+            ("country", ("demographic", "country_region", str)),
+            (
+                "current_status",
+                ("subject", "tmp_current_status", normalize_current_status),
+            ),
             (
                 "source",
-                ("subject", "source", None),
+                ("observation", "reporting_source_url", None),
             ),  # type of fields "None" is used to remove the value
-            ("symptoms", ("subject", "symptoms", normalize_symptoms)),
-            ("date_onset_symptoms", ("subject", "date_onset_symptoms", normalize_date)),
+            ("symptoms", ("observation", "symptoms", normalize_symptoms)),
+            (
+                "date_onset_symptoms",
+                ("observation", "date_onset_symptoms", normalize_date),
+            ),
             (
                 "date_admission_hospital",
-                ("subject", "date_admission_hospital", normalize_date),
+                ("observation", "date_admission_hospital", normalize_date),
             ),
             ("date_confirmation", ("subject", "date_confirmation", normalize_date)),
-            (
-                "underlying_conditions",
-                ("subject", "underlying_conditions", normalize_condition),
-            ),
-            ("travel_history_dates", ("subject", "travel_history_dates", list)),
-            ("travel_history_location", ("subject", "travel_history_location", list)),
-            ("death_date", ("subject", "date_death_or_discharge", normalize_date)),
-            ("notes_for_discussion", ("subject", "additional_information", str)),
+            ("underlying_conditions", (None, None, None)),
+            ("travel_history_dates", ("subject", "travel_history_dates", str),),
+            ("travel_history_location", ("subject", "travel_history_location", str)),
+            ("death_date", ("subject", "deceased_date", normalize_date)),
+            ("notes_for_discussion", (None, None, None)),
         ]
 
     def files_to_submissions(self):
@@ -312,7 +417,7 @@ class DSFSI(base.BaseETL):
             if country in countries_with_mistyped_column:
                 tmp[14] = (
                     "underlyng_conditions",
-                    ("subject", "underlying_conditions", str),
+                    (None, None, None),
                 )
 
             if country in countries_without_notes:
@@ -357,18 +462,20 @@ class DSFSI(base.BaseETL):
                 if last and idx == last:
                     break
 
-                subject, demographic = self.parse_row(
+                subject, demographic, observation = self.parse_row(
                     country, row, updated_headers_mapping
                 )
 
                 self.subjects.append(subject)
                 self.demographics.append(demographic)
+                self.observations.append(observation)
 
     def parse_row(self, country, row, mapping):
-        subject = {"country": country}
+        subject = {}
         demographic = {}
+        observation = {}
 
-        for k, (i, (node_type, node_field, type_conv)) in mapping.items():
+        for (i, (node_type, node_field, type_conv)) in mapping.values():
             if node_field:
                 value = row[i]
                 if value:
@@ -383,27 +490,69 @@ class DSFSI(base.BaseETL):
                             continue
                         demographic[node_field] = type_conv(value)
 
+        # init subject node
         case_id = subject["submitter_id"]
         subject["submitter_id"] = format_subject_submitter_id(
-            subject["country"], subject["submitter_id"]
+            country, subject["submitter_id"]
         )
+        subject["projects"] = [{"code": self.project_code}]
 
         # Only South Africa dataset has a record with the same case_id...
         # Because this code deals only with individual rows, it's hard coded right now
-        if subject["country"] == "South Africa" and case_id == "110":
-            if subject["age"] == 34:
+        if country == "South Africa" and case_id == "110":
+            if demographic["age"] == 34:
                 subject["submitter_id"] += "_1"
-            if subject["age"] == 27:
+            elif demographic["age"] == 27:
                 subject["submitter_id"] += "_2"
 
-        subject["projects"] = [{"code": self.project_code}]
-
-        demographic["submitter_id"] = format_demographic_submitter_id(
-            subject["submitter_id"]
+        # init demographic node
+        demographic["submitter_id"] = format_node_submitter_id(
+            subject["submitter_id"], "demographic"
         )
         demographic["subjects"] = [{"submitter_id": subject["submitter_id"]}]
 
-        return subject, demographic
+        # init observation node
+        observation["submitter_id"] = format_node_submitter_id(
+            subject["submitter_id"], "observation"
+        )
+        observation["subjects"] = [{"submitter_id": subject["submitter_id"]}]
+
+        if subject.get("date_confirmation"):
+            subject["covid_19_status"] = "Positive"
+
+        state = subject.get("tmp_current_status")
+        if "tmp_current_status" in subject:
+            del subject["tmp_current_status"]
+        if state == "deceased":
+            subject["vital_status"] = "Dead"
+        elif state in ["alive"]:
+            subject["vital_status"] = state.capitalize()
+        elif state in ["positive"]:
+            subject["covid_19_status"] = state.capitalize()
+        elif state == "isolated":
+            observation["isolation_status"] = state.capitalize()
+        elif state in ["released", "recovered", "in recovery", "in treatment"]:
+            observation["treatment_status"] = state.capitalize()
+        elif state in ["stable", "unstable", "critical"]:
+            observation["condition"] = state.capitalize()
+        elif state:
+            raise Exception('State "{}" is unknown'.format(state))
+
+        if "travel_history_dates" in subject:
+            date_list = normalize_date_list(subject["travel_history_dates"])
+            if date_list:
+                subject["travel_history_dates"] = date_list
+            else:
+                del subject["travel_history_dates"]
+
+        if "travel_history_location" in subject:
+            loc_list = normalize_location_list(subject["travel_history_location"])
+            if loc_list:
+                subject["travel_history_location"] = loc_list
+            else:
+                del subject["travel_history_location"]
+
+        return subject, demographic, observation
 
     def submit_metadata(self):
         print("Submitting subject data")
@@ -414,8 +563,15 @@ class DSFSI(base.BaseETL):
         self.metadata_helper.batch_submit_records()
 
         print("Submitting demographic data")
-        for rep in self.demographics:
-            rep_record = {"type": "demographic"}
-            rep_record.update(rep)
-            self.metadata_helper.add_record_to_submit(rep_record)
+        for dem in self.demographics:
+            dem_record = {"type": "demographic"}
+            dem_record.update(dem)
+            self.metadata_helper.add_record_to_submit(dem_record)
+        self.metadata_helper.batch_submit_records()
+
+        print("Submitting observation data")
+        for obs in self.observations:
+            obs_record = {"type": "observation"}
+            obs_record.update(obs)
+            self.metadata_helper.add_record_to_submit(obs_record)
         self.metadata_helper.batch_submit_records()
