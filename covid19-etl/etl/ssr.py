@@ -4,7 +4,6 @@
 
 from collections import defaultdict
 import csv
-import json
 import os
 
 from etl import base

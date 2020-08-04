@@ -1,6 +1,5 @@
 from contextlib import closing
 import datetime
-import os
 import re
 import requests
 
