@@ -104,8 +104,11 @@ class DSCI(base.BaseETL):
                 observation = {
                     "submitter_id": f"observation_{patient_id}",
                     "subjects": {"submitter_id": f"{patient_id}"},
-                    "hospital": row[header["hospital"]].strip(),
                 }
+
+                hospital = row[header["hospital"]].strip()
+                if hospital:
+                    observation["hospital"] = hospital
 
                 state = row[header["current_state"]].strip()
                 if state == "deceased":
