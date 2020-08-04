@@ -99,6 +99,8 @@ class OWID(base.BaseETL):
                     float,
                 ),
             ),
+            ("Short-term positive rate", (None, None, None)),
+            ("Short-term tests per case", (None, None, None)),
             ("General source label", ("summary_clinical", "general_source_label", str)),
             ("General source URL", ("summary_clinical", "general_source_url", str)),
             ("Short description", ("summary_clinical", "short_description", str)),
