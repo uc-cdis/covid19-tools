@@ -14,8 +14,8 @@ COXRAY_DATA_PATH = "../data"
 
 def harmonize_sex(sex):
     sex_mapping = {
-        "F": "female",
-        "M": "male",
+        "F": "Female",
+        "M": "Male",
     }
     return sex_mapping.get(sex, None)
 
@@ -32,19 +32,75 @@ def harmonize_finding(finding):
     return finding.split(",")
 
 
+def harmonize_intubated(intubated):
+    intubated_mapping = {
+        "Y": "True",
+        "N": "False",
+    }
+    return intubated_mapping.get(intubated, None)
+
+
+def harmonize_needed_supplemental_O2(needed_supplemental_O2):
+    needed_supplemental_O2_mapping = {
+        "Y": "True",
+        "N": "False",
+    }
+    return needed_supplemental_O2_mapping.get(needed_supplemental_O2, None)
+
+
+def harmonize_went_icu(went_icu):
+    went_icu_mapping = {
+        "Y": "True",
+        "N": "False",
+    }
+    return went_icu_mapping.get(went_icu, None)
+
+
+def harmonize_intubation_present(intubation_present):
+    intubation_present_mapping = {
+        "Y": "True",
+        "N": "False",
+    }
+    return intubation_present_mapping.get(intubation_present, None)
+
+
+def harmonize_in_icu(in_icu):
+    in_icu_mapping = {
+        "Y": "True",
+        "N": "False",
+    }
+    return in_icu_mapping.get(in_icu, None)
+
+
+def harmonize_extubated(extubated):
+    extubated_mapping = {
+        "Y": "True",
+        "N": "False",
+    }
+    return extubated_mapping.get(extubated, None)
+
+
 fields_mapping = {
     # "patientid": ("subject", "submitter_id", None),
     "offset": ("follow_up", "offset", int),
     "sex": ("demographic", "gender", harmonize_sex),
-    "age": ("subject", "age", int),
-    "finding": ("follow_up", "finding", harmonize_finding),
-    "survival": ("demographic", "vital_status", harmonize_survival),
-    "intubated": ("follow_up", "intubated", None),
-    "intubation_present": ("follow_up", "intubation_present", None),
-    "went_icu": ("follow_up", "went_icu", None),
-    "in_icu": ("follow_up", "in_icu", None),
-    "needed_supplemental_O2": ("follow_up", "needed_supplemental_O2", None),
-    "extubated": ("follow_up", "extubated", None),
+    "age": ("demographic", "age", int),
+    "finding": ("observation", "pneumonia_type", harmonize_finding),
+    "survival": ("subject", "vital_status", harmonize_survival),
+    "intubated": ("observation", "ventilator_status", harmonize_intubated),
+    "intubation_present": (
+        "follow_up",
+        "intubation_present",
+        harmonize_intubation_present,
+    ),
+    "went_icu": ("observation", "icu_status", harmonize_went_icu),
+    "in_icu": ("follow_up", "in_icu", harmonize_in_icu),
+    "needed_supplemental_O2": (
+        "observation",
+        "needed_supplemental_O2",
+        harmonize_needed_supplemental_O2,
+    ),
+    "extubated": ("follow_up", "extubated", harmonize_extubated),
     "temperature": ("follow_up", "temperature", float),
     "pO2_saturation": ("follow_up", "pO2_saturation", float),
     "leukocyte_count": ("follow_up", "leukocyte_count", float),
@@ -88,6 +144,7 @@ class COXRAY(base.BaseETL):
             "core_metadata_collection": [],
             "study": [],
             "subject": [],
+            "observation": [],
             "follow_up": [],
             "demographic": [],
             "imaging_file": [],
@@ -106,6 +163,9 @@ class COXRAY(base.BaseETL):
         cmc_submitter_id = format_submitter_id("cmc_coxray", {})
         subject_submitter_id = format_submitter_id(
             "subject_coxray", {"patientid": row[headers.index("patientid")]}
+        )
+        observation_submitter_id = derived_submitter_id(
+            subject_submitter_id, "subject_coxray", "observation_coxray", {}
         )
         follow_up_submitter_id = derived_submitter_id(
             subject_submitter_id,
@@ -141,6 +201,10 @@ class COXRAY(base.BaseETL):
                 "submitter_id": subject_submitter_id,
                 "projects": [{"code": self.project_code}],
                 "studies": [{"submitter_id": study_submitter_id}],
+            },
+            "observation": {
+                "submitter_id": observation_submitter_id,
+                "subjects": [{"submitter_id": subject_submitter_id}],
             },
             "follow_up": {
                 "submitter_id": follow_up_submitter_id,
