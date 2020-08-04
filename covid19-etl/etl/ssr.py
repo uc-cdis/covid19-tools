@@ -16,7 +16,6 @@ from helper.format_helper import (
 
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
-SUBMISSIONS_DIR = os.path.join(CURRENT_DIR, "data_to_submit")
 SUBMISSION_ORDER = ["summary_location", "statistical_summary_report"]
 
 
@@ -37,7 +36,6 @@ class SSR(base.BaseETL):
             project_code=self.project_code,
             access_token=access_token,
         )
-        self.submissions_dir = SUBMISSIONS_DIR
 
         # self.records = { <node ID>: { <submitter_id: { <data> } } }
         self.records = defaultdict(dict)

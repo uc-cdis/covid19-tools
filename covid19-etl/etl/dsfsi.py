@@ -127,9 +127,7 @@ def normalize_location(loc):
     if loc in ["", "NA"]:
         return None
 
-    if loc.lower().startswith("the "):
-        loc = loc[4:]
-    if loc.lower().startswith("and "):
+    if loc.lower().startswith("the ") or loc.lower().startswith("and "):
         loc = loc[4:]
 
     mapping = {
