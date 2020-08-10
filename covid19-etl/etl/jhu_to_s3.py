@@ -277,6 +277,7 @@ class JHU_TO_S3(base.BaseETL):
             },
         }
         self.latest_date = None
+        self.s3_client = boto3.client("s3")
 
     def files_to_submissions(self):
         """
@@ -732,7 +733,9 @@ class JHU_TO_S3(base.BaseETL):
                                 "recovered": ts.get("recovered", 0),
                             }
 
-        # save as JSON files
+        # save as JSON files, and upload to S3.
+        # We upload each file and then delete it to save storage
+        print("Uploading time series files to S3...")
         for data_level in ["country", "state", "county"]:
             for location_id, data_by_date in tmp[data_level].items():
                 # remove values smaller than the threshold
@@ -740,25 +743,28 @@ class JHU_TO_S3(base.BaseETL):
                     data_by_date[date] = replace_small_counts(data)
 
                 file_name = "{}.json".format(location_id)
-                with open(
-                    os.path.join(
-                        CURRENT_DIR, TIME_SERIES_DATA_FOLDER, data_level, file_name
-                    ),
-                    "w",
-                ) as f:
+                abs_path = os.path.join(
+                    CURRENT_DIR, TIME_SERIES_DATA_FOLDER, data_level, file_name
+                )
+                with open(abs_path, "w",) as f:
                     json.dump(data_by_date, f)
 
+                    s3_path = os.path.relpath(abs_path, CURRENT_DIR)
+                    self.s3_client.upload_file(abs_path, self.s3_bucket, s3_path)
+
+                    os.remove(abs_path)
+
     def submit_metadata(self):
-        print("Uploading to S3...")
+        print("Uploading map data files to S3...")
         start = time.time()
 
-        s3_client = boto3.client("s3")
-        for folder in [MAP_DATA_FOLDER, TIME_SERIES_DATA_FOLDER]:
+        # files in TIME_SERIES_DATA_FOLDER have already been uploaded to S3
+        for folder in [MAP_DATA_FOLDER]:
             for abs_path, _, files in os.walk(os.path.join(CURRENT_DIR, folder)):
                 for file_name in files:
                     local_path = os.path.join(abs_path, file_name)
                     s3_path = os.path.relpath(local_path, CURRENT_DIR)
-                    s3_client.upload_file(local_path, self.s3_bucket, s3_path)
+                    self.s3_client.upload_file(local_path, self.s3_bucket, s3_path)
 
         print("Uploaded to S3 in {} secs".format(int(time.time() - start)))
         print("Done!")
