@@ -1,16 +1,16 @@
 import boto3
+from contextlib import closing
 from copy import deepcopy
 from collections import defaultdict
 import csv
+from datetime import datetime
 import json
 import os
 import pathlib
 import re
 import requests
+import shutil
 import time
-from collections import defaultdict
-from contextlib import closing
-from datetime import datetime
 
 from etl import base
 from utils.country_codes_utils import get_codes_dictionary, get_codes_for_country_name
@@ -185,10 +185,17 @@ def get_unified_date_format(date):
     return "-".join((year, month, day))
 
 
-def replace_small_counts(data):
+def replace_small_counts(data, in_place=False):
+    # we can't use in_place=True before the aggregated data gets
+    # calculated, but we can use it for time series to avoid OOM,
+    # because the data won't be used again
+    if in_place:
+        res = data
+    else:
+        res = data.copy()
+
     # remove values smaller than the threshold
     count_replacement = f"<{MINIMUM_COUNT}"
-    res = data.copy()
     for field in ["confirmed", "deaths", "recovered"]:
         if field in res and res[field] < MINIMUM_COUNT:
             res[field] = count_replacement
@@ -297,8 +304,6 @@ class JHU_TO_S3(base.BaseETL):
             },
         }
 
-        start = time.time()
-
         for file_type in ["global", "US_counties"]:
             for data_type, url in urls[file_type].items():
                 self.parse_file_to_nexted_dict(file_type, data_type, url)
@@ -319,7 +324,6 @@ class JHU_TO_S3(base.BaseETL):
         self.nested_dict_to_data_by_level()
         self.nested_dict_to_time_series_by_level()
 
-        print("Generated files in {} secs".format(int(time.time() - start)))
         print("Latest date: {}".format(self.latest_date))
 
     def parse_file_to_nexted_dict(self, file_type, data_type, url):
@@ -733,29 +737,45 @@ class JHU_TO_S3(base.BaseETL):
                                 "recovered": ts.get("recovered", 0),
                             }
 
-        # save as JSON files, and upload to S3.
-        # We upload each file and then delete it to save storage
+        # save as JSON files, and upload to S3
         print("Uploading time series files to S3...")
+
         for data_level in ["country", "state", "county"]:
+            print("  Uploading {} files".format(data_level.capitalize()))
+            n_items = len(tmp[data_level].items())
+            i = 1
             for location_id, data_by_date in tmp[data_level].items():
+                if data_level == "county":
+                    # TODO remove debug log:
+                    print("{} / {}".format(i, n_items))
+
                 # remove values smaller than the threshold
-                for date, data in data_by_date.items():
-                    data_by_date[date] = replace_small_counts(data)
+                for data in data_by_date.values():
+                    replace_small_counts(data, in_place=True)
 
                 file_name = "{}.json".format(location_id)
                 abs_path = os.path.join(
                     CURRENT_DIR, TIME_SERIES_DATA_FOLDER, data_level, file_name
                 )
-                with open(abs_path, "w",) as f:
+
+                # - write file
+                # - upload to S3
+                # - delete file
+                with open(abs_path, "w") as f:
                     json.dump(data_by_date, f)
+                s3_path = os.path.relpath(abs_path, CURRENT_DIR)
+                # TODO add back:
+                # self.s3_client.upload_file(abs_path, self.s3_bucket, s3_path)
+                os.remove(abs_path)
+                i += 1
 
-                    s3_path = os.path.relpath(abs_path, CURRENT_DIR)
-                    self.s3_client.upload_file(abs_path, self.s3_bucket, s3_path)
-
-                    os.remove(abs_path)
+            # delete files
+            # shutil.rmtree(
+            #     os.path.join(CURRENT_DIR, TIME_SERIES_DATA_FOLDER, data_level)
+            # )
 
     def submit_metadata(self):
-        print("Uploading map data files to S3...")
+        print("Uploading to S3...")
         start = time.time()
 
         # files in TIME_SERIES_DATA_FOLDER have already been uploaded to S3
@@ -764,7 +784,7 @@ class JHU_TO_S3(base.BaseETL):
                 for file_name in files:
                     local_path = os.path.join(abs_path, file_name)
                     s3_path = os.path.relpath(local_path, CURRENT_DIR)
-                    self.s3_client.upload_file(local_path, self.s3_bucket, s3_path)
-
+                    # TODO add back:
+                    # self.s3_client.upload_file(local_path, self.s3_bucket, s3_path)
         print("Uploaded to S3 in {} secs".format(int(time.time() - start)))
         print("Done!")
