@@ -78,7 +78,7 @@ class NPI_PRO(base.BaseETL):
             ),
             "Provider_Business_Practice_ST": [
                 ("summary_location", "provider_business_practice_st",),
-                ("summary_location", "state",),
+                ("summary_location", "province_state",),
             ],
             "TaxonomyCode": ("summary_clinical", "taxonomy_code"),
             "ProviderType": ("summary_clinical", "provider_type"),
@@ -115,7 +115,10 @@ class NPI_PRO(base.BaseETL):
                     result[node][node_field] = row[original_field]
             else:
                 node, node_field = mappings
-                result[node][node_field] = row[original_field]
+                if node_field == "npi":
+                    result[node][node_field] = str(row[original_field])
+                else:
+                    result[node][node_field] = row[original_field]
 
         return result["summary_location"], result["summary_clinical"]
 
