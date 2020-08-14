@@ -229,6 +229,7 @@ class COXRAY(base.BaseETL):
             nodes["imaging_file"] = {
                 "submitter_id": imaging_file_submitter_id,
                 "subjects": [{"submitter_id": subject_submitter_id}],
+                "follow_ups": [{"submitter_id": follow_up_submitter_id}],
                 "core_metadata_collections": [{"submitter_id": cmc_submitter_id}],
                 "data_type": data_type,
                 "data_format": "Image File",
