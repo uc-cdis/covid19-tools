@@ -66,20 +66,14 @@ class NPI_PRO(base.BaseETL):
             "NPI": ("summary_location", "npi"),
             "Provider_First_Line_Business_Pra": (
                 "summary_location",
-                "provider_first_line_business_pr",
+                "first_line_address",
             ),
             "Provider_Second_Line_Business_Pr": (
                 "summary_location",
-                "provider_second_line_business_pr",
+                "second_line_address",
             ),
-            "Provider_Business_Practice_City": (
-                "summary_location",
-                "provider_business_practice_city",
-            ),
-            "Provider_Business_Practice_ST": [
-                ("summary_location", "provider_business_practice_st",),
-                ("summary_location", "province_state",),
-            ],
+            "Provider_Business_Practice_City": ("summary_location", "city",),
+            "Provider_Business_Practice_ST": ("summary_location", "province_state",),
             "TaxonomyCode": ("summary_clinical", "taxonomy_code"),
             "ProviderType": ("summary_clinical", "provider_type"),
             "ProviderSubtype": ("summary_clinical", "provider_subtype"),
@@ -109,16 +103,11 @@ class NPI_PRO(base.BaseETL):
         }
 
         for original_field, mappings in fields_mapping.items():
-            if isinstance(mappings, list):
-                for mapping in mappings:
-                    node, node_field = mapping
-                    result[node][node_field] = row[original_field]
+            node, node_field = mappings
+            if node_field == "npi":
+                result[node][node_field] = str(row[original_field])
             else:
-                node, node_field = mappings
-                if node_field == "npi":
-                    result[node][node_field] = str(row[original_field])
-                else:
-                    result[node][node_field] = row[original_field]
+                result[node][node_field] = row[original_field]
 
         return result["summary_location"], result["summary_clinical"]
 

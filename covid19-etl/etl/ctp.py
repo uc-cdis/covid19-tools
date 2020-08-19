@@ -69,6 +69,18 @@ class CTP(base.BaseETL):
             "positiveCasesViral",
             "deathConfirmed",
             "deathProbable",
+            "totalTestEncountersViral",
+            "totalTestsPeopleViral",
+            "totalTestsAntibody",
+            "positiveTestsAntibody",
+            "negativeTestsAntibody",
+            "totalTestsPeopleAntibody",
+            "positiveTestsPeopleAntibody",
+            "negativeTestsPeopleAntibody",
+            "totalTestsPeopleAntigen",
+            "positiveTestsPeopleAntigen",
+            "totalTestsAntigen",
+            "positiveTestsAntigen",
             "fips",
             "positiveIncrease",
             "negativeIncrease",
@@ -93,7 +105,7 @@ class CTP(base.BaseETL):
         """
         Reads CSV files and converts the data to Sheepdog records
         """
-        url = "https://raw.githubusercontent.com/COVID19Tracking/covid-tracking-data/master/data/states_daily_4pm_et.csv"
+        url = "https://api.covidtracking.com/v1/states/daily.csv"
         self.parse_file(url)
 
     def parse_file(self, url):
@@ -205,6 +217,18 @@ class CTP(base.BaseETL):
             "positiveCasesViral": "positiveCasesViral",
             "deaths": "deathConfirmed",
             # "": "deathProbable",
+            # "": "totalTestEncountersViral",
+            # "": "totalTestsPeopleViral",
+            # "": "totalTestsAntibody",
+            # "": "positiveTestsAntibody",
+            # "": "negativeTestsAntibody",
+            # "": "totalTestsPeopleAntibody",
+            # "": "positiveTestsPeopleAntibody",
+            # "": "negativeTestsPeopleAntibody",
+            # "": "totalTestsPeopleAntigen",
+            # "": "positiveTestsPeopleAntigen",
+            # "": "totalTestsAntigen",
+            # "": "positiveTestsAntigen",
             # "": "fips",
             "positiveIncrease": "positiveIncrease",
             "negativeIncrease": "negativeIncrease",
