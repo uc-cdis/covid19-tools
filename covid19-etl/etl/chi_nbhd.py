@@ -47,7 +47,9 @@ class CHI_NBHD(base.BaseETL):
                 build_time_str, "%Y-%m-%dT%H:%M:%S.%fZ"
             )
             current_date = build_time.strftime("%Y-%m-%d")
-            nbhd_stats = data["community_areas_all"]["nodes"][0]["childGeoJson"]["features"]
+            nbhd_stats = data["community_areas_all"]["nodes"][0]["childGeoJson"][
+                "features"
+            ]
 
             for nbhd_object in nbhd_stats:
                 summary_location, summary_clinical = self.parse_nbhd(
