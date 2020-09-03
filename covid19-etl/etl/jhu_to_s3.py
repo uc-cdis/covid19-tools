@@ -189,10 +189,8 @@ def replace_small_counts(data, in_place=False):
     # we can't use in_place=True before the aggregated data gets
     # calculated, but we can use it for time series to avoid OOM,
     # because the data won't be used again
-    if in_place:
-        res = data
-    else:
-        res = data.copy()
+    res = {}
+    res.update(data)
 
     # remove values smaller than the threshold
     count_replacement = f"<{MINIMUM_COUNT}"
