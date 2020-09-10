@@ -43,7 +43,7 @@ class CTP(base.BaseETL):
             access_token=access_token,
         )
 
-        self.expected_csv_headers = [
+        self.expected_file_headers = [
             "date",
             "state",
             "positive",
@@ -85,6 +85,7 @@ class CTP(base.BaseETL):
             "positiveIncrease",
             "negativeIncrease",
             "total",
+            "totalTestResultsSource",
             "totalTestResults",
             "totalTestResultsIncrease",
             "posNeg",
@@ -95,11 +96,48 @@ class CTP(base.BaseETL):
             "negativeRegularScore",
             "negativeScore",
             "positiveScore",
+            "score",
+            "grade",
         ]
 
+        self.expected_race_headers = [
+            "Date",
+            "State",
+            "Cases_Total",
+            "Cases_White",
+            "Cases_Black",
+            "Cases_LatinX",
+            "Cases_Asian",
+            "Cases_AIAN",
+            "Cases_NHPI",
+            "Cases_Multiracial",
+            "Cases_Other",
+            "Cases_Unknown",
+            "Cases_Ethnicity_Hispanic",
+            "Cases_Ethnicity_NonHispanic",
+            "Cases_Ethnicity_Unknown",
+            "Deaths_Total",
+            "Deaths_White",
+            "Deaths_Black",
+            "Deaths_LatinX",
+            "Deaths_Asian",
+            "Deaths_AIAN",
+            "Deaths_NHPI",
+            "Deaths_Multiracial",
+            "Deaths_Other",
+            "Deaths_Unknown",
+            "Deaths_Ethnicity_Hispanic",
+            "Deaths_Ethnicity_NonHispanic",
+            "Deaths_Ethnicity_Unknown",
+        ]
+
+        self.expected_csv_headers = (
+            self.expected_file_headers + self.expected_race_headers[3:]
+        )
         self.header_to_column = {
             k: self.expected_csv_headers.index(k) for k in self.expected_csv_headers
         }
+        print("Len expected csv headers: ", len(self.header_to_column))
 
     def files_to_submissions(self):
         """
@@ -107,6 +145,33 @@ class CTP(base.BaseETL):
         """
         url = "https://api.covidtracking.com/v1/states/daily.csv"
         self.parse_file(url)
+
+    def extract_races(self):
+        """
+        Extract race information. Store the data to a dictionary for
+        fast lookup during merging process.
+
+        """
+        url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR_xmYt4ACPDZCDJcY12kCiMiH0ODyx3E1ZvgOHB8ae1tRcjXbs_yWBOA4j4uoCEADVfC1PS2jYO68B/pub?gid=43720681&single=true&output=csv"
+        races = {}
+        with closing(requests.get(url, stream=True)) as r:
+            f = (line.decode("utf-8") for line in r.iter_lines())
+            reader = csv.reader(f, delimiter=",", quotechar='"')
+            headers = next(reader)
+            if headers[0] == "404: Not Found":
+                print("  Unable to get file contents, received {}.".format(headers))
+                return
+
+            expected_h = self.expected_race_headers
+            obtained_h = headers[: len(expected_h)]
+            assert (
+                obtained_h == expected_h
+            ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
+                expected_h, obtained_h
+            )
+            for row in reader:
+                races[(row[0], row[1], row[2])] = row[3:]
+        return races
 
     def parse_file(self, url):
         """
@@ -116,10 +181,9 @@ class CTP(base.BaseETL):
         `submitter_id` to check)
 
         Args:
-            data_type (str): type of the data in this file - one
-                of ["confirmed", "deaths", "recovered"]
             url (str): URL at which the CSV file is available
         """
+        races = self.extract_races()
         print("Getting data from {}".format(url))
         with closing(requests.get(url, stream=True)) as r:
             f = (line.decode("utf-8") for line in r.iter_lines())
@@ -131,7 +195,7 @@ class CTP(base.BaseETL):
                 print("  Unable to get file contents, received {}.".format(headers))
                 return
 
-            expected_h = self.expected_csv_headers
+            expected_h = self.expected_file_headers
             obtained_h = headers[: len(expected_h)]
             assert (
                 obtained_h == expected_h
@@ -142,6 +206,11 @@ class CTP(base.BaseETL):
             summary_location_list = []
 
             for row in reader:
+                if (row[0], row[1], row[2]) in races:
+                    [row.append(k) for k in races[(row[0], row[1], row[2])]]
+                else:
+                    [row.append("") for _ in range(len(self.expected_race_headers) - 3)]
+
                 summary_location, summary_clinical = self.parse_row(row)
 
                 summary_location_submitter_id = summary_location["submitter_id"]
@@ -243,12 +312,37 @@ class CTP(base.BaseETL):
             # "": "negativeRegularScore",
             # "": "negativeScore",
             # "": "positiveScore",
+            "race_white_count": "Cases_White",
+            "race_black_count": "Cases_Black",
+            "race_hispanic_count": "Cases_LatinX",
+            "race_asian_count": "Cases_Asian",
+            "race_ai_an_count": "Cases_AIAN",
+            "race_nh_pi_count": "Cases_NHPI",
+            "race_multiracial_count": "Cases_Multiracial",
+            "race_other_count": "Cases_Other",
+            "race_left_blank_count": "Cases_Unknown",
+            "ethnicity_hispanic_count": "Cases_Ethnicity_Hispanic",
+            "ethnicity_nonhispanic_count": "Cases_Ethnicity_NonHispanic",
+            "ethnicity_unknown_count": "Cases_Ethnicity_Unknown",
+            "deaths": "Deaths_Total",
+            "race_white_deaths": "Deaths_White",
+            "race_black_deaths": "Deaths_Black",
+            "race_hispanic_deaths": "Deaths_LatinX",
+            "race_asian_deaths": "Deaths_Asian",
+            "race_ai_an_deaths": "Deaths_AIAN",
+            "race_nh_pi_deaths": "Deaths_NHPI",
+            "race_multiracial_deaths": "Deaths_Multiracial",
+            "race_other_deaths": "Deaths_Other",
+            "race_left_blank_deaths": "Deaths_Unknown",
+            "ethnicity_hispanic_deaths": "Deaths_Ethnicity_Hispanic",
+            "ethnicity_nonhispanic_deaths": "Deaths_Ethnicity_NonHispanic",
+            "ethnicity_unknown_deaths": "Deaths_Ethnicity_Unknown",
         }
 
         for k, v in map_csv_fields.items():
             value = row[self.header_to_column[v]]
             if value and value.lower() != "nan":
-                summary_clinical[k] = int(value)
+                summary_clinical[k] = int(value.replace(",", ""))
 
         dataQualityGrade = row[self.header_to_column["dataQualityGrade"]]
         if dataQualityGrade:
