@@ -235,9 +235,7 @@ def normalize_location_list(loc_string):
 
 
 def normalize_condition(condition):
-    normalized = {
-        "NA": None,
-    }
+    normalized = {"NA": None}
 
     norm = normalized.get(condition, condition)
     if norm == condition:
@@ -317,7 +315,7 @@ class DSFSI(base.BaseETL):
             ),
             ("date_confirmation", ("subject", "date_confirmation", normalize_date)),
             ("underlying_conditions", (None, None, None)),
-            ("travel_history_dates", ("subject", "travel_history_dates", str),),
+            ("travel_history_dates", ("subject", "travel_history_dates", str)),
             ("travel_history_location", ("subject", "travel_history_location", str)),
             ("death_date", ("subject", "deceased_date", normalize_date)),
             ("notes_for_discussion", (None, None, None)),
@@ -421,9 +419,7 @@ class DSFSI(base.BaseETL):
                 "Zambia",
             ]
 
-            countries_with_mistyped_column = [
-                "South Africa",
-            ]
+            countries_with_mistyped_column = ["South Africa"]
 
             countries_without_notes = [
                 "Eritrea",
@@ -452,10 +448,7 @@ class DSFSI(base.BaseETL):
                 tmp.insert(0, ("", (None, None, None)))
 
             if country in countries_with_mistyped_column:
-                tmp[14] = (
-                    "underlyng_conditions",
-                    (None, None, None),
-                )
+                tmp[14] = ("underlyng_conditions", (None, None, None))
 
             if country in countries_without_notes:
                 del tmp[-1]

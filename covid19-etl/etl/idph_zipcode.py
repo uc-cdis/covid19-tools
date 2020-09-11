@@ -71,7 +71,7 @@ class IDPH_ZIPCODE(base.BaseETL):
                 return
 
             for zipcode_values in data["zip_values"]:
-                (summary_location, summary_clinical,) = self.parse_zipcode(
+                (summary_location, summary_clinical) = self.parse_zipcode(
                     date, zipcode_values
                 )
 

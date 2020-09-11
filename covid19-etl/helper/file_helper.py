@@ -52,9 +52,7 @@ class FileHelper:
 
     def get_presigned_url(self, filename):
         upload_url = f"{self.base_url}/user/data/upload"
-        body_json = {
-            "file_name": filename,
-        }
+        body_json = {"file_name": filename}
         r = requests.post(upload_url, json=body_json, headers=self.headers)
         data = r.json()
         return data["url"], data["guid"]

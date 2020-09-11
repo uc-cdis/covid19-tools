@@ -137,7 +137,7 @@ class CTP(base.BaseETL):
         self.header_to_column = {
             k: self.expected_csv_headers.index(k) for k in self.expected_csv_headers
         }
-        print("Len expected csv headers: ", len(self.header_to_column))
+        print("The length of the expected headers: ", len(self.header_to_column))
 
     def files_to_submissions(self):
         """

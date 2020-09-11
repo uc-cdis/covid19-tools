@@ -4,10 +4,7 @@ from contextlib import closing
 import requests
 
 from etl import base
-from helper.format_helper import (
-    derived_submitter_id,
-    format_submitter_id,
-)
+from helper.format_helper import derived_submitter_id, format_submitter_id
 from helper.metadata_helper import MetadataHelper
 
 

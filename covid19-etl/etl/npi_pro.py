@@ -5,10 +5,7 @@ import geopandas as gpd
 import requests
 
 from etl import base
-from helper.format_helper import (
-    derived_submitter_id,
-    format_submitter_id,
-)
+from helper.format_helper import derived_submitter_id, format_submitter_id
 from helper.metadata_helper import MetadataHelper
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -72,8 +69,8 @@ class NPI_PRO(base.BaseETL):
                 "summary_location",
                 "second_line_address",
             ),
-            "Provider_Business_Practice_City": ("summary_location", "city",),
-            "Provider_Business_Practice_ST": ("summary_location", "province_state",),
+            "Provider_Business_Practice_City": ("summary_location", "city"),
+            "Provider_Business_Practice_ST": ("summary_location", "province_state"),
             "TaxonomyCode": ("summary_clinical", "taxonomy_code"),
             "ProviderType": ("summary_clinical", "provider_type"),
             "ProviderSubtype": ("summary_clinical", "provider_subtype"),
@@ -84,7 +81,7 @@ class NPI_PRO(base.BaseETL):
         state = row["Provider_Business_Practice_ST"]
 
         summary_location_submitter_id = format_submitter_id(
-            "summary_location", {"country": self.country, "state": state, "npi": npi},
+            "summary_location", {"country": self.country, "state": state, "npi": npi}
         )
 
         summary_clinical_submitter_id = derived_submitter_id(
