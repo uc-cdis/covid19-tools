@@ -94,7 +94,7 @@ class IDPH_HOSPITAL(base.BaseETL):
                 self.summary_clinicals.append(summary_clinical)
 
             for region in data["regionValues"]:
-                (summary_location, summary_clinical,) = self.parse_region(date, region)
+                (summary_location, summary_clinical) = self.parse_region(date, region)
 
                 self.summary_locations.append(summary_location)
                 self.summary_clinicals.append(summary_clinical)
@@ -119,7 +119,7 @@ class IDPH_HOSPITAL(base.BaseETL):
 
         summary_location_submitter_id = format_submitter_id(
             "summary_location",
-            {"project": "idph_hospital", "country": self.country, "state": self.state,},
+            {"project": "idph_hospital", "country": self.country, "state": self.state},
         )
 
         summary_clinical_submitter_id = derived_submitter_id(
@@ -184,7 +184,7 @@ class IDPH_HOSPITAL(base.BaseETL):
 
         summary_location_submitter_id = format_submitter_id(
             "summary_location",
-            {"project": "idph_hospital", "country": self.country, "state": self.state,},
+            {"project": "idph_hospital", "country": self.country, "state": self.state},
         )
 
         summary_location = {

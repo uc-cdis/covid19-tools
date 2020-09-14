@@ -8,10 +8,7 @@ import os
 
 from etl import base
 from helper.metadata_helper import MetadataHelper
-from helper.format_helper import (
-    format_submitter_id,
-    derived_submitter_id,
-)
+from helper.format_helper import format_submitter_id, derived_submitter_id
 
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))

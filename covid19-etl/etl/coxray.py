@@ -3,28 +3,19 @@ from pathlib import Path
 
 from etl import base
 from helper.file_helper import FileHelper
-from helper.format_helper import (
-    derived_submitter_id,
-    format_submitter_id,
-)
+from helper.format_helper import derived_submitter_id, format_submitter_id
 from helper.metadata_helper import MetadataHelper
 
 COXRAY_DATA_PATH = "../data"
 
 
 def harmonize_sex(sex):
-    sex_mapping = {
-        "F": "Female",
-        "M": "Male",
-    }
+    sex_mapping = {"F": "Female", "M": "Male"}
     return sex_mapping.get(sex, None)
 
 
 def harmonize_survival(survival):
-    survival_mapping = {
-        "Y": "Alive",
-        "N": "Dead",
-    }
+    survival_mapping = {"Y": "Alive", "N": "Dead"}
     return survival_mapping.get(survival, None)
 
 
@@ -33,50 +24,32 @@ def harmonize_finding(finding):
 
 
 def harmonize_intubated(intubated):
-    intubated_mapping = {
-        "Y": "True",
-        "N": "False",
-    }
+    intubated_mapping = {"Y": "True", "N": "False"}
     return intubated_mapping.get(intubated, None)
 
 
 def harmonize_needed_supplemental_O2(needed_supplemental_O2):
-    needed_supplemental_O2_mapping = {
-        "Y": "True",
-        "N": "False",
-    }
+    needed_supplemental_O2_mapping = {"Y": "True", "N": "False"}
     return needed_supplemental_O2_mapping.get(needed_supplemental_O2, None)
 
 
 def harmonize_went_icu(went_icu):
-    went_icu_mapping = {
-        "Y": "True",
-        "N": "False",
-    }
+    went_icu_mapping = {"Y": "True", "N": "False"}
     return went_icu_mapping.get(went_icu, None)
 
 
 def harmonize_intubation_present(intubation_present):
-    intubation_present_mapping = {
-        "Y": "True",
-        "N": "False",
-    }
+    intubation_present_mapping = {"Y": "True", "N": "False"}
     return intubation_present_mapping.get(intubation_present, None)
 
 
 def harmonize_in_icu(in_icu):
-    in_icu_mapping = {
-        "Y": "True",
-        "N": "False",
-    }
+    in_icu_mapping = {"Y": "True", "N": "False"}
     return in_icu_mapping.get(in_icu, None)
 
 
 def harmonize_extubated(extubated):
-    extubated_mapping = {
-        "Y": "True",
-        "N": "False",
-    }
+    extubated_mapping = {"Y": "True", "N": "False"}
     return extubated_mapping.get(extubated, None)
 
 
@@ -174,7 +147,7 @@ class COXRAY(base.BaseETL):
             {"offset": row[headers.index("offset")]},
         )
         demographic_submitter_id = derived_submitter_id(
-            subject_submitter_id, "subject_coxray", "demographic_coxray", {},
+            subject_submitter_id, "subject_coxray", "demographic_coxray", {}
         )
         imaging_file_submitter_id = format_submitter_id(
             "imaging_file_coxray", {"filename": row[headers.index("filename")]}

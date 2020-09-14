@@ -74,7 +74,7 @@ class IDPH_FACILITY(base.BaseETL):
 
             if "LTC_Reported_Cases" in data:
                 summary_location_submitter_id = format_submitter_id(
-                    "summary_location", {"country": self.country, "state": self.state},
+                    "summary_location", {"country": self.country, "state": self.state}
                 )
 
                 summary_location = {
@@ -104,7 +104,7 @@ class IDPH_FACILITY(base.BaseETL):
                 self.summary_clinicals[summary_clinical_submitter_id] = summary_clinical
 
             for facility in data["FacilityValues"]:
-                (summary_location, summary_clinical,) = self.parse_facility(
+                (summary_location, summary_clinical) = self.parse_facility(
                     date, facility
                 )
                 summary_location_submitter_id = summary_location["submitter_id"]
