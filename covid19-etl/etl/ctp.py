@@ -284,7 +284,7 @@ class CTP(base.BaseETL):
             "positiveTestsViral": "positiveTestsViral",
             "negativeTestsViral": "negativeTestsViral",
             "positiveCasesViral": "positiveCasesViral",
-            "deaths": "deathConfirmed",
+            # "deaths": "deathConfirmed",
             # "": "deathProbable",
             # "": "totalTestEncountersViral",
             # "": "totalTestsPeopleViral",
