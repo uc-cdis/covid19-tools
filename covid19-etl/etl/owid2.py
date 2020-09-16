@@ -9,14 +9,9 @@ from etl import base
 from helper.metadata_helper import MetadataHelper
 
 
-def format_location_submitter_id(country, province, county=None):
-    """summary_location_<country>_<province>_<county>"""
+def format_location_submitter_id(country):
+    """summary_location_<country>"""
     submitter_id = "summary_location_{}".format(country)
-    if province:
-        submitter_id += "_{}".format(province)
-    if county:
-        submitter_id += "_{}".format(county)
-
     submitter_id = submitter_id.lower().replace(", ", "_")
     submitter_id = re.sub("[^a-z0-9-_]+", "-", submitter_id)
     return submitter_id.strip("-")
@@ -124,8 +119,6 @@ class OWID2(base.BaseETL):
 
             expected_h = self.expected_csv_headers
             obtained_h = headers[: len(expected_h)]
-            for h in headers:
-                print(f'"{h}",')
             assert (
                 obtained_h == expected_h
             ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
@@ -160,9 +153,9 @@ class OWID2(base.BaseETL):
 
         date = row[self.header_to_column["date"]]
 
-        country = "US"
-        state = row[self.header_to_column["state"]]
-        summary_location_submitter_id = format_location_submitter_id(country, state)
+        country = row[self.header_to_column["location"]]
+
+        summary_location_submitter_id = format_location_submitter_id(country)
 
         summary_location = {
             "country_region": country,
@@ -179,20 +172,58 @@ class OWID2(base.BaseETL):
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
 
-        map_csv_fields = {}
+        map_csv_fields = {
+            # "iso_code": "iso_code",
+            # "continent": "continent",
+            # "location": "location",
+            # "date": "date",
+            "testing": "total_cases",
+            "new_cases": "new_cases",
+            "new_cases_smoothed": "new_cases_smoothed",
+            "total_deaths": "total_deaths",
+            "new_deaths": "new_deaths",
+            "new_deaths_smoothed": "new_deaths_smoothed",
+            "total_cases_per_million": "total_cases_per_million",
+            "new_cases_per_million": "new_cases_per_million",
+            "new_cases_smoothed_per_million": "new_cases_smoothed_per_million",
+            "total_deaths_per_million": "total_deaths_per_million",
+            "new_deaths_per_million": "new_deaths_per_million",
+            "new_deaths_smoothed_per_million": "new_deaths_smoothed_per_million",
+            "new_tests": "new_tests",
+            "total_tests": "total_tests",
+            "total_tests_per_thousand": "total_tests_per_thousand",
+            "new_tests_per_thousand": "new_tests_per_thousand",
+            "new_tests_smoothed": "new_tests_smoothed",
+            "new_tests_smoothed_per_thousand": "new_tests_smoothed_per_thousand",
+            "tests_per_case": "tests_per_case",
+            "positive_rate": "positive_rate",
+            "tests_units": "tests_units",
+            "stringency_index": "stringency_index",
+            "population": "population",
+            "population_density": "population_density",
+            "median_age": "median_age",
+            "aged_65_older": "aged_65_older",
+            "aged_70_older": "aged_70_older",
+            "gdp_per_capita": "gdp_per_capita",
+            "extreme_poverty": "extreme_poverty",
+            "cardiovasc_death_rate": "cardiovasc_death_rate",
+            "diabetes_prevalence": "diabetes_prevalence",
+            "female_smokers": "female_smokers",
+            "male_smokers": "male_smokers",
+            "handwashing_facilities": "handwashing_facilities",
+            "hospital_beds_per_thousand": "hospital_beds_per_thousand",
+            "life_expectancy": "life_expectancy",
+            "human_development_index": "human_development_index",
+        }
 
         for k, v in map_csv_fields.items():
             value = row[self.header_to_column[v]]
             if value and value.lower() != "nan":
-                summary_clinical[k] = int(value)
-
-        dataQualityGrade = row[self.header_to_column["dataQualityGrade"]]
-        if dataQualityGrade:
-            summary_clinical["dataQualityGrade"] = dataQualityGrade
-
-        lastUpdateEt = row[self.header_to_column["lastUpdateEt"]]
-        if lastUpdateEt:
-            summary_clinical["lastUpdateEt"] = lastUpdateEt
+                if k != "tests_units":
+                    try:
+                        summary_clinical[k] = int(value.replace(",", ""))
+                    except Exception:
+                        summary_clinical[k] = float(value.replace(",", ""))
 
         return summary_location, summary_clinical
 
@@ -211,8 +242,7 @@ class OWID2(base.BaseETL):
             loc_record.update(loc)
             self.metadata_helper.add_record_to_submit(loc_record)
         self.metadata_helper.batch_submit_records()
-
-        # print("Submitting summary_clinical data")
+        print("Submitting summary_clinical data")
         for sc in self.summary_clinicals:
             sc_record = {"type": "summary_clinical"}
             sc_record.update(sc)
