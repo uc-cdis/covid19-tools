@@ -98,8 +98,6 @@ class OWID2(base.BaseETL):
         `submitter_id` to check)
 
         Args:
-            data_type (str): type of the data in this file - one
-                of ["confirmed", "deaths", "recovered"]
             url (str): URL at which the CSV file is available
         """
         print("Getting data from {}".format(url))
@@ -138,7 +136,6 @@ class OWID2(base.BaseETL):
         Converts a row of a CSV file to data we can submit via Sheepdog
 
         Args:
-            headers (list(str)): CSV file headers (first row of the file)
             row (list(str)): row of data
 
         Returns:
