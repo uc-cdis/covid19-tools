@@ -45,7 +45,6 @@ class OWID2(base.BaseETL):
             "total_cases",
             "new_cases",
             "new_cases_smoothed",
-            "total_deaths",
             "new_deaths",
             "new_deaths_smoothed",
             "total_cases_per_million",
@@ -78,7 +77,6 @@ class OWID2(base.BaseETL):
             "handwashing_facilities",
             "hospital_beds_per_thousand",
             "life_expectancy",
-            "human_development_index",
         ]
 
         self.header_to_column = {
@@ -117,9 +115,8 @@ class OWID2(base.BaseETL):
                 return
 
             expected_h = self.expected_csv_headers
-            obtained_h = headers[: len(expected_h)]
             assert (
-                obtained_h == expected_h
+                set(expected_h).issubset(headers) == True
             ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
                 expected_h, obtained_h
             )
@@ -179,7 +176,7 @@ class OWID2(base.BaseETL):
             "confirmed": ("total_cases", int),
             "new_cases": ("new_cases", int),
             "new_cases_smoothed": ("new_cases_smoothed", float),
-            "total_deaths": ("total_deaths", int),
+            # "total_deaths": ("total_deaths", int),
             "new_deaths": ("new_deaths", int),
             "new_deaths_smoothed": ("new_deaths_smoothed", float),
             "total_cases_per_million": ("total_cases_per_million", float),
@@ -217,8 +214,8 @@ class OWID2(base.BaseETL):
             "male_smokers": ("male_smokers", float),
             "handwashing_facilities": ("handwashing_facilities", float),
             "hospital_beds_per_thousand": ("hospital_beds_per_thousand", float),
-            "life_expectancy": ("life_expectancy", float),
-            "human_development_index": ("human_development_index", float),
+            "life_expectancy": ("life_expectancy", float)
+            # "human_development_index": ("human_development_index", float),
         }
 
         for k, (v, dtype) in map_csv_fields.items():
