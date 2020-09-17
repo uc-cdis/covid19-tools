@@ -1,7 +1,6 @@
 import csv
 import re
 from contextlib import closing
-from datetime import datetime
 
 import requests
 
@@ -30,7 +29,7 @@ class OWID2(base.BaseETL):
         self.summary_clinicals = []
 
         self.program_name = "open"
-        self.project_code = "OWID2"
+        self.project_code = "OWID"
         self.metadata_helper = MetadataHelper(
             base_url=self.base_url,
             program_name=self.program_name,
