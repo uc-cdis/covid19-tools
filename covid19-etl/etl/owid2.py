@@ -176,53 +176,61 @@ class OWID2(base.BaseETL):
             # "continent": "continent",
             # "location": "location",
             # "date": "date",
-            "testing": "total_cases",
-            "new_cases": "new_cases",
-            "new_cases_smoothed": "new_cases_smoothed",
-            "total_deaths": "total_deaths",
-            "new_deaths": "new_deaths",
-            "new_deaths_smoothed": "new_deaths_smoothed",
-            "total_cases_per_million": "total_cases_per_million",
-            "new_cases_per_million": "new_cases_per_million",
-            "new_cases_smoothed_per_million": "new_cases_smoothed_per_million",
-            "total_deaths_per_million": "total_deaths_per_million",
-            "new_deaths_per_million": "new_deaths_per_million",
-            "new_deaths_smoothed_per_million": "new_deaths_smoothed_per_million",
-            "new_tests": "new_tests",
-            "total_tests": "total_tests",
-            "total_tests_per_thousand": "total_tests_per_thousand",
-            "new_tests_per_thousand": "new_tests_per_thousand",
-            "new_tests_smoothed": "new_tests_smoothed",
-            "new_tests_smoothed_per_thousand": "new_tests_smoothed_per_thousand",
-            "tests_per_case": "tests_per_case",
-            "positive_rate": "positive_rate",
-            "tests_units": "tests_units",
-            "stringency_index": "stringency_index",
-            "population": "population",
-            "population_density": "population_density",
-            "median_age": "median_age",
-            "aged_65_older": "aged_65_older",
-            "aged_70_older": "aged_70_older",
-            "gdp_per_capita": "gdp_per_capita",
-            "extreme_poverty": "extreme_poverty",
-            "cardiovasc_death_rate": "cardiovasc_death_rate",
-            "diabetes_prevalence": "diabetes_prevalence",
-            "female_smokers": "female_smokers",
-            "male_smokers": "male_smokers",
-            "handwashing_facilities": "handwashing_facilities",
-            "hospital_beds_per_thousand": "hospital_beds_per_thousand",
-            "life_expectancy": "life_expectancy",
-            "human_development_index": "human_development_index",
+            "confirmed": ("total_cases", int),
+            "new_cases": ("new_cases", int),
+            "new_cases_smoothed": ("new_cases_smoothed", float),
+            "total_deaths": ("total_deaths", int),
+            "new_deaths": ("new_deaths", int),
+            "new_deaths_smoothed": ("new_deaths_smoothed", float),
+            "total_cases_per_million": ("total_cases_per_million", float),
+            "new_cases_per_million": ("new_cases_per_million", float),
+            "new_cases_smoothed_per_million": ("new_cases_smoothed_per_million", float),
+            "total_deaths_per_million": ("total_deaths_per_million", float),
+            "new_deaths_per_million": ("new_deaths_per_million", float),
+            "new_deaths_smoothed_per_million": (
+                "new_deaths_smoothed_per_million",
+                float,
+            ),
+            "new_tests": ("new_tests", int),
+            "testing": ("total_tests", int),
+            "total_tests_per_thousand": ("total_tests_per_thousand", float),
+            "new_tests_per_thousand": ("new_tests_per_thousand", float),
+            "new_tests_smoothed": ("new_tests_smoothed", float),
+            "new_tests_smoothed_per_thousand": (
+                "new_tests_smoothed_per_thousand",
+                float,
+            ),
+            "tests_per_case": ("tests_per_case", float),
+            "positive_rate": ("positive_rate", float),
+            "tests_units": ("tests_units", str),
+            "stringency_index": ("stringency_index", float),
+            "population": ("population", int),
+            "population_density": ("population_density", float),
+            "median_age": ("median_age", float),
+            "aged_65_older": ("aged_65_older", float),
+            "aged_70_older": ("aged_70_older", float),
+            "gdp_per_capita": ("gdp_per_capita", float),
+            "extreme_poverty": ("extreme_poverty", float),
+            "cardiovasc_death_rate": ("cardiovasc_death_rate", float),
+            "diabetes_prevalence": ("diabetes_prevalence", float),
+            "female_smokers": ("female_smokers", float),
+            "male_smokers": ("male_smokers", float),
+            "handwashing_facilities": ("handwashing_facilities", float),
+            "hospital_beds_per_thousand": ("hospital_beds_per_thousand", float),
+            "life_expectancy": ("life_expectancy", float),
+            "human_development_index": ("human_development_index", float),
         }
 
-        for k, v in map_csv_fields.items():
+        for k, (v, dtype) in map_csv_fields.items():
             value = row[self.header_to_column[v]]
             if value and value.lower() != "nan":
-                if k != "tests_units":
-                    try:
-                        summary_clinical[k] = int(value.replace(",", ""))
-                    except Exception:
+                try:
+                    if dtype == int:
+                        summary_clinical[k] = int(float(value.replace(",", "")))
+                    elif dtype == float:
                         summary_clinical[k] = float(value.replace(",", ""))
+                except Exception:
+                    pass
 
         return summary_location, summary_clinical
 
