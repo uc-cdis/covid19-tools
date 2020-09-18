@@ -4,7 +4,9 @@
 
 from collections import defaultdict
 import csv
+from datetime import datetime
 import os
+import xlrd
 
 from etl import base
 from helper.metadata_helper import MetadataHelper
@@ -13,6 +15,18 @@ from helper.format_helper import format_submitter_id, derived_submitter_id
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 SUBMISSION_ORDER = ["summary_location", "statistical_summary_report"]
+
+
+def format_value(key, value, date_mode=None):
+    if key == "report_date":
+        if type(value) == float and date_mode is not None:  # rush date format
+            # Excel stores dates as floats and they must be
+            # converted first to a tuple and then a string.
+            date = datetime(*xlrd.xldate_as_tuple(value, date_mode))
+            value = date.strftime("%Y-%m-%d")
+        elif " " in value:  # uchicago date format
+            value = value.split(" ")[0]
+    return value
 
 
 class SSR(base.BaseETL):
@@ -46,16 +60,40 @@ class SSR(base.BaseETL):
         """
         Reads input files and converts the data to Sheepdog records
         """
-        self.parse_input_file()
-
-    def format_value(self, key, value):
-        if key == "report_date":
-            value = value.split(" ")[0]
-        return value
-
-    def parse_input_file(self):
         print("Parsing file: {}".format(self.file_path))
+        extension = self.file_path.lower().split(".")[-1]
+        if extension == "txt":
+            self.parse_txt_input_file()
+        elif extension == "xlsx":
+            self.parse_xlsx_input_file()
+        else:
+            raise Exception(
+                f"I don't know how to parse extension {extension} for file {self.file_path}"
+            )
 
+    def parse_txt_input_file(self):
+        with open(self.file_path, newline="") as csvfile:
+            reader = csv.reader(csvfile, delimiter="|")
+            header = next(reader)
+            header = {k: v for v, k in enumerate(header)}
+
+            for row in reader:
+                row_data = dict(zip(header, row))
+                self.parse_input(row_data=row_data)
+
+    def parse_xlsx_input_file(self):
+        # Set up file path, workbook, and sheet.
+        wb = xlrd.open_workbook(self.file_path)
+        sheet = wb.sheet_by_index(0)
+
+        # Create lists for SSR properties and value from Excel sheet.
+        prop_list = sheet.col_values(0)[1:]
+        value_list = sheet.col_values(1)[1:]
+
+        col_data = dict(zip(prop_list, value_list))
+        self.parse_input(row_data=col_data, date_mode=wb.datemode)
+
+    def parse_input(self, row_data, date_mode=None):
         # (original property, (gen3 node, gen3 property, property type))
         mapping = [
             ("reportingOrg", ("summary_location", "reporting_org", str)),
@@ -78,61 +116,49 @@ class SSR(base.BaseETL):
             ("num_chf", ("statistical_summary_report", "num_chf", int)),
         ]
 
-        with open(self.file_path, newline="") as csvfile:
-            reader = csv.reader(csvfile, delimiter="|")
-            header = next(reader)
-            header = {k: v for v, k in enumerate(header)}
+        # row_records = { <node ID>: { <record data> } }
+        # (there is only 1 record of each node type per row)
+        row_records = defaultdict(dict)
 
-            for row in reader:
-                # row_records = { <node ID>: { <record data> } }
-                # (there is only 1 record of each node type per row)
-                row_records = defaultdict(dict)
-                row_data = dict(zip(header, row))
-
-                for orig_prop_name, (node_type, prop_name, _type) in mapping:
-                    row_records[node_type][prop_name] = _type(
-                        self.format_value(prop_name, row_data[orig_prop_name])
-                    )
-
-                # add missing summary_location props
-                summary_location_submitter_id = format_submitter_id(
-                    "summary_location",
-                    {"reporting_org": row_records["summary_location"]["reporting_org"]},
-                )
-                row_records["summary_location"].update(
-                    {
-                        "type": "summary_location",
-                        "submitter_id": summary_location_submitter_id,
-                        "projects": {"code": self.project_code},
-                        "country_region": self.country,
-                        "province_state": self.state,
-                    }
+        for orig_prop_name, (node_type, prop_name, _type) in mapping:
+            if row_data[orig_prop_name]:
+                row_records[node_type][prop_name] = _type(
+                    format_value(prop_name, row_data[orig_prop_name], date_mode)
                 )
 
-                # add missing statistical_summary_report props
-                ssr_submitter_id = derived_submitter_id(
-                    summary_location_submitter_id,
-                    "statistical_summary_report",
-                    "ssr",
-                    {
-                        "report_date": row_records["statistical_summary_report"][
-                            "report_date"
-                        ]
-                    },
-                )
-                row_records["statistical_summary_report"].update(
-                    {
-                        "type": "statistical_summary_report",
-                        "submitter_id": ssr_submitter_id,
-                        "summary_locations": {
-                            "submitter_id": summary_location_submitter_id
-                        },
-                    }
-                )
+        # add missing summary_location props
+        summary_location_submitter_id = format_submitter_id(
+            "summary_location",
+            {"reporting_org": row_records["summary_location"]["reporting_org"]},
+        )
+        row_records["summary_location"].update(
+            {
+                "type": "summary_location",
+                "submitter_id": summary_location_submitter_id,
+                "projects": {"code": self.project_code},
+                "country_region": self.country,
+                "province_state": self.state,
+            }
+        )
 
-                for node_type in row_records:
-                    rec = row_records[node_type]
-                    self.records[node_type][rec["submitter_id"]] = rec
+        # add missing statistical_summary_report props
+        ssr_submitter_id = derived_submitter_id(
+            summary_location_submitter_id,
+            "statistical_summary_report",
+            "ssr",
+            {"report_date": row_records["statistical_summary_report"]["report_date"]},
+        )
+        row_records["statistical_summary_report"].update(
+            {
+                "type": "statistical_summary_report",
+                "submitter_id": ssr_submitter_id,
+                "summary_locations": {"submitter_id": summary_location_submitter_id},
+            }
+        )
+
+        for node_type in row_records:
+            rec = row_records[node_type]
+            self.records[node_type][rec["submitter_id"]] = rec
 
     def submit_metadata(self):
         # TODO check which summary_locations already exist
