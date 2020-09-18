@@ -17,10 +17,13 @@ CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 SUBMISSION_ORDER = ["summary_location", "statistical_summary_report"]
 
 
-def format_value(key, value):
+def format_value(key, value, date_mode=None):
     if key == "report_date":
-        if type(value) == datetime:  # rush date format
-            value = value.strftime("%Y-%m-%d")
+        if type(value) == float and date_mode is not None:  # rush date format
+            # Excel stores dates as floats and they must be
+            # converted first to a tuple and then a string.
+            date = datetime(*xlrd.xldate_as_tuple(value, date_mode))
+            value = date.strftime("%Y-%m-%d")
         elif " " in value:  # uchicago date format
             value = value.split(" ")[0]
     return value
@@ -80,33 +83,17 @@ class SSR(base.BaseETL):
 
     def parse_xlsx_input_file(self):
         # Set up file path, workbook, and sheet.
-        loc = self.file_path
-        wb = xlrd.open_workbook(loc)
+        wb = xlrd.open_workbook(self.file_path)
         sheet = wb.sheet_by_index(0)
 
-        # Excel stores dates as floats and they must be converted first to a tuple and then a string.
-        date_cell = sheet.cell(1, 1)
-        fixed_date = datetime(*xlrd.xldate_as_tuple(date_cell.value, wb.datemode))
-
         # Create lists for SSR properties and value from Excel sheet.
-        prop_list = []
-        value_list = []
-        value_list.append(fixed_date)
-
-        # Loop to get all properties from first column.
-        for i in range(1, sheet.nrows):
-            row_prop = sheet.cell_value(i, 0)
-            prop_list.append(row_prop)
-
-        # Loop to get all values from second column.
-        for i in range(2, sheet.nrows):
-            row_data = sheet.cell_value(i, 1)
-            value_list.append(row_data)
+        prop_list = sheet.col_values(0)[1:]
+        value_list = sheet.col_values(1)[1:]
 
         col_data = dict(zip(prop_list, value_list))
-        self.parse_input(row_data=col_data)
+        self.parse_input(row_data=col_data, date_mode=wb.datemode)
 
-    def parse_input(self, row_data):
+    def parse_input(self, row_data, date_mode=None):
         # (original property, (gen3 node, gen3 property, property type))
         mapping = [
             ("reportingOrg", ("summary_location", "reporting_org", str)),
@@ -136,7 +123,7 @@ class SSR(base.BaseETL):
         for orig_prop_name, (node_type, prop_name, _type) in mapping:
             if row_data[orig_prop_name]:
                 row_records[node_type][prop_name] = _type(
-                    format_value(prop_name, row_data[orig_prop_name])
+                    format_value(prop_name, row_data[orig_prop_name], date_mode)
                 )
 
         # add missing summary_location props
