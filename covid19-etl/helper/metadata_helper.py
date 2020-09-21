@@ -191,6 +191,7 @@ class MetadataHelper:
                     tries += 1
                     sleep(5)
                 else:
+                    print("Submission progress: {}/{}".format(i + 1, n_batches))
                     break
             if tries == MAX_RETRIES:
                 raise Exception(
