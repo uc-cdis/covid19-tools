@@ -190,6 +190,8 @@ class MetadataHelper:
                 if response.status_code != 200:
                     tries += 1
                     sleep(5)
+                else:
+                    break
             if tries == MAX_RETRIES:
                 raise Exception(
                     "Unable to submit to Sheepdog: {}\n{}".format(
