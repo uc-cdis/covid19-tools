@@ -5,6 +5,8 @@ from time import sleep
 
 import requests
 
+MAX_RETRIES = 5
+
 
 class MetadataHelper:
     def __init__(self, base_url, program_name, project_code, access_token):
@@ -176,17 +178,25 @@ class MetadataHelper:
                 i * self.submit_batch_size : (i + 1) * self.submit_batch_size
             ]
 
-            response = requests.put(
-                "{}/api/v0/submission/{}/{}".format(
-                    self.base_url, self.program_name, self.project_code
-                ),
-                headers=self.headers,
-                data=json.dumps(records),
-            )
-            assert (
-                response.status_code == 200
-            ), "Unable to submit to Sheepdog: {}\n{}".format(
-                response.status_code, response.text
-            )
+            tries = 0
+            while tries < MAX_RETRIES:
+                response = requests.put(
+                    "{}/api/v0/submission/{}/{}".format(
+                        self.base_url, self.program_name, self.project_code
+                    ),
+                    headers=self.headers,
+                    data=json.dumps(records),
+                )
+                if response.status_code != 200:
+                    tries += 1
+                    sleep(5)
+                else:
+                    break
+            if tries == MAX_RETRIES:
+                raise Exception(
+                    "Unable to submit to Sheepdog: {}\n{}".format(
+                        response.status_code, response.text
+                    )
+                )
 
         self.records_to_submit = []
