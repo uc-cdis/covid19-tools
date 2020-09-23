@@ -18,6 +18,7 @@
 | [COV-361][cov-361] | NPI-PRO | [here][npi-pro] | One-time |
 | [COV-220][cov-220] | COXRAY | [Kaggle][coxray] | One-time |
 | [COV-422][cov-422] | SSR | Controlled data | One-time (for now) |
+| [COV-453][cov-453] | CHESTX-RAY8 | [here][chestxray8] | One-time |
 
 ## Deployment
 
@@ -62,7 +63,7 @@ covid19-tools
 ├── data
 │   ├── annotations
 │   │   └── ...
-│   └── images
+│   ├── images
 │   │   └── ...
 │   └── metadata.csv
 ...
@@ -72,6 +73,25 @@ The ETL is consist of two parts: `COXRAY_FILE` - for file upload and `COXRAY` fo
 
 `COXRAY_FILE` should run first. It will upload the files.
 `COXRAY` should run after `COXRAY_FILE` and it will create clinical data and it will link it to files in indexd.
+
+### CHESTX-RAY8
+
+*This is local-only ETL.*
+It requires data available locally.
+Before running the ETL, the data, which is available [here][chestxray8].
+The repository should be cloned into the folder `./data` (this can be changed via `CHESTXRAY8_DATA_PATH` in `chestxray8.py`) resulting in the following structure:
+
+```
+covid19-tools
+...
+├── data
+│   ├── COVID-19
+│   │   ├── X-Ray Image DataSet
+│   │   │   ├── No_findings
+│   │   │   ├── Pneumonia
+│   │   │   └── Pneumonia
+...
+```
 
 
   [chi-nbhd]: https://covid19neighborhoods.southsideweekly.com/
@@ -88,6 +108,7 @@ The ETL is consist of two parts: `COXRAY_FILE` - for file upload and `COXRAY` fo
   [dsfsi]: https://github.com/dsfsi/covid19africa/tree/master/data/line_lists
   [owid]: https://github.com/owid/covid-19-data/blob/master/public/data/testing/covid-testing-latest-data-source-details.csv
   [coxray]: https://www.kaggle.com/bachrr/covid-chest-xray
+  [chestxray8]: https://github.com/muhammedtalo/COVID-19
   [ccmap]: https://github.com/covidcaremap/covid19-healthsystemcapacity/tree/master/data/published
   [ctp]: https://covidtracking.com/data
   [npi-pro]: https://www.arcgis.com/home/item.html?id=7e80baf1773e4fd9b44fe9fb054677db
@@ -108,3 +129,4 @@ The ETL is consist of two parts: `COXRAY_FILE` - for file upload and `COXRAY` fo
   [cov-345]: https://occ-data.atlassian.net/browse/COV-345
   [cov-361]: https://occ-data.atlassian.net/browse/COV-361
   [cov-422]: https://occ-data.atlassian.net/browse/COV-422
+  [cov-453]: https://occ-data.atlassian.net/browse/COV-453
