@@ -30,18 +30,23 @@ class CHESTXRAY8(base.BaseETL):
         )
 
         self.cmc_submitter_id = format_submitter_id("cmc_chestxray8", {})
-        self.core_metadata_collection = [{
-            "submitter_id": self.cmc_submitter_id,
-            "projects": [{"code": self.project_code}],
-        }]
+        self.core_metadata_collection = [
+            {
+                "submitter_id": self.cmc_submitter_id,
+                "projects": [{"code": self.project_code}],
+            }
+        ]
         self.imaging_file = []
 
     def files_to_submissions(self):
         for image_type in ("No_findings", "Pneumonia"):
-            for image_filepath in Path(CHESTXRAY8_DATA_PATH). \
-                    joinpath("COVID-19"). \
-                    joinpath("X-Ray Image DataSet"). \
-                    joinpath(image_type).iterdir():
+            for image_filepath in (
+                Path(CHESTXRAY8_DATA_PATH)
+                .joinpath("COVID-19")
+                .joinpath("X-Ray Image DataSet")
+                .joinpath(image_type)
+                .iterdir()
+            ):
                 did, rev, md5, size = self.file_helper.find_by_name(image_filepath.name)
                 if not did:
                     guid = self.file_helper.upload_file(image_filepath)
@@ -54,7 +59,9 @@ class CHESTXRAY8(base.BaseETL):
                 )
                 uploaded_imaging_file = {
                     "submitter_id": imaging_file_submitter_id,
-                    "core_metadata_collections": [{"submitter_id": self.cmc_submitter_id}],
+                    "core_metadata_collections": [
+                        {"submitter_id": self.cmc_submitter_id}
+                    ],
                     "data_type": "PNG",
                     "data_format": "Image File",
                     "data_category": "X-Ray Image",
