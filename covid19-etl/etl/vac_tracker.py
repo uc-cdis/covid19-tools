@@ -41,7 +41,7 @@ def format_summary_clinical_submitter_id(location_submitter_id, date):
     )
 
 
-class VacTracker(base.BaseETL):
+class VAC_TRACKER(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
         self.summary_locations = []
