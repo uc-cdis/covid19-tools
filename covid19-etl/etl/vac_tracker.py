@@ -55,6 +55,7 @@ class VacTracker(base.BaseETL):
             project_code=self.project_code,
             access_token=access_token,
         )
+        self.clinical_trials = []
 
     def files_to_submissions(self):
         """
