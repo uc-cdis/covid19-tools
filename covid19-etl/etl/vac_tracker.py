@@ -126,8 +126,11 @@ class VAC_TRACKER(base.BaseETL):
                 #     value = None
             if key == "technology":
                 value = value.replace("*", "")
-            if key == "development_stage":
+            if key == "developmentStage":
                 if value.lower() in ["preclinical", "pre-clinical"]:
+                    import pdb
+
+                    pdb.set_trace()
                     value = "Preclinical Phase"
 
             if gen3_field_type == list:
