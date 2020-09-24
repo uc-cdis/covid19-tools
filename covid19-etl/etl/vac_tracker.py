@@ -98,7 +98,7 @@ class VacTracker(base.BaseETL):
                 - { "date1": <value>, "date2": <value> } from the row data
         """
         clinical_trial = {
-            "projects": {"code": self.project_code},
+            "projects": [{"code": self.project_code}],
             "type": "clinical_trials",
         }
         for key, value in node.items():
