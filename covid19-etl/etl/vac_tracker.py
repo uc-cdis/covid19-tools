@@ -125,8 +125,10 @@ class VAC_TRACKER(base.BaseETL):
                 # elif value not in ['Preclinical Phase', 'Phase I', 'Phase I/II', 'Phase II', 'Phase I/II/III', 'Phase III', 'Phase III/IV', 'Phase IV', 'Phase I/III/IV', 'Phase I/IV', 'Phase II/IV', 'Phase II/III/IV', 'Phase I/II/III/IV', 'Phase II/III', 'Phase N/A', None]:
                 #     value = None
             if key == "technology":
-                if value.lower() == "cell-based therapies*":
-                    value = "Cell-based therapies"
+                value = value.replace("*", "")
+            if key == "development_stage":
+                if value.lower() in ["preclinical", "pre-clinical"]:
+                    value = "Preclinical Phase"
 
             if gen3_field_type == list:
                 value = [str(v) for v in value]
