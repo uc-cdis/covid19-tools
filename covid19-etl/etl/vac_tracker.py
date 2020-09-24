@@ -48,21 +48,13 @@ class VacTracker(base.BaseETL):
         self.summary_clinicals = []
 
         self.program_name = "open"
-        self.project_code = "vac_tracker"
+        self.project_code = "ncbi-covid-19"
         self.metadata_helper = MetadataHelper(
             base_url=self.base_url,
             program_name=self.program_name,
             project_code=self.project_code,
             access_token=access_token,
         )
-
-        self.expected_csv_headers = [
-            "life_expectancy",
-        ]
-
-        self.header_to_column = {
-            k: self.expected_csv_headers.index(k) for k in self.expected_csv_headers
-        }
 
     def files_to_submissions(self):
         """
@@ -84,16 +76,13 @@ class VacTracker(base.BaseETL):
         print("Getting data from {}".format(url))
         with closing(requests.get(url, stream=True)) as r:
             data = r.json()
-            import pdb
+            try:
+                for treatment in data["result"]["pageContext"]["treatments"]:
+                    node = treatment["node"]
+                    self.clinical_trials.append(self.parse_node(node))
 
-            pdb.set_trace()
-            for treatment in data["result"]["pageContext"]["treatments"]:
-                node = treatment["node"]
-                self.parse_node(node)
-                print(node)
-
-                # self.summary_locations.append(summary_location)
-                # self.summary_clinicals.append(summary_clinical)
+            except ValueError as e:
+                print(f"ERROR: value error. Detail {e}")
 
     def parse_node(self, node):
         """
@@ -107,40 +96,23 @@ class VacTracker(base.BaseETL):
                 - location data, in a format ready to be submitted to Sheepdog
                 - { "date1": <value>, "date2": <value> } from the row data
         """
-
-        date = row[self.header_to_column["date"]]
-
-        country = row[self.header_to_column["location"]]
-
-        summary_location_submitter_id = format_location_submitter_id(country)
-
-        summary_location = {
-            "country_region": country,
-            "submitter_id": summary_location_submitter_id,
-            "projects": [{"code": self.project_code}],
+        clinical_trial = {
+            "projects": {"code": self.project_code},
+            "type": "clinical_trials",
         }
+        for key, value in node.items():
+            if key not in MAP_FIELDS:
+                continue
+            gen3_field = MAP_FIELDS.get(key)[0]
+            gen3_field_type = MAP_FIELDS.get(key)[1]
+            if type(value) != gen3_field_type:
+                print(
+                    f"ERROR: The type of {key} does not match with the one in Gen3. Skip it"
+                )
+                continue
+            clinical_trial[gen3_field] = value
 
-        summary_clinical_submitter_id = format_summary_clinical_submitter_id(
-            summary_location_submitter_id, date
-        )
-        summary_clinical = {
-            "date": date,
-            "submitter_id": summary_clinical_submitter_id,
-            "summary_locations": [{"submitter_id": summary_location_submitter_id}],
-        }
-
-        for k, (v, dtype) in map_csv_fields.items():
-            value = row[self.header_to_column[v]]
-            if value and value.lower() != "nan":
-                try:
-                    if dtype == int:
-                        summary_clinical[k] = int(float(value.replace(",", "")))
-                    elif dtype == float:
-                        summary_clinical[k] = float(value.replace(",", ""))
-                except Exception:
-                    pass
-
-        return summary_location, summary_clinical
+        return clinical_trial
 
     def submit_metadata(self):
         """
@@ -149,17 +121,7 @@ class VacTracker(base.BaseETL):
         all records in `self.location_data` and `self.time_series_data`
         """
 
-        # Commented
-        # Only required for one time submission of summary_location
-        print("Submitting summary_location data")
-        for loc in self.summary_locations:
-            loc_record = {"type": "summary_location"}
-            loc_record.update(loc)
-            self.metadata_helper.add_record_to_submit(loc_record)
-        self.metadata_helper.batch_submit_records()
-        print("Submitting summary_clinical data")
-        for sc in self.summary_clinicals:
-            sc_record = {"type": "summary_clinical"}
-            sc_record.update(sc)
-            self.metadata_helper.add_record_to_submit(sc_record)
+        print("Submitting clinical_trial data")
+        for clinical_trial in self.clinical_trials:
+            self.metadata_helper.add_record_to_submit(clinical_trial)
         self.metadata_helper.batch_submit_records()
