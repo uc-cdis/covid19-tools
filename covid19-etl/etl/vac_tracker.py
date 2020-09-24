@@ -109,12 +109,25 @@ class VAC_TRACKER(base.BaseETL):
                 )
                 continue
             if key == "fdaApproved":
-                if "FDA-approved since" in value:
+                if "FDA-approved" in value:
                     value = "Yes"
                 elif value == "":
                     value = "Unknown"
-                elif value == "N/A":
+                elif value in ["N/A", "N/A*"]:
                     value = "NA"
+                # elif value not in ['Yes', 'No', 'Unknown', 'NA', None]:
+                #     value = None
+            if key == "customClinicalPhase":
+                if value.lower() == "phase na":
+                    value = "Phase N/A"
+                elif value.lower() in ["preclinical", "pre-clinical"]:
+                    value = "Preclinical Phase"
+                # elif value not in ['Preclinical Phase', 'Phase I', 'Phase I/II', 'Phase II', 'Phase I/II/III', 'Phase III', 'Phase III/IV', 'Phase IV', 'Phase I/III/IV', 'Phase I/IV', 'Phase II/IV', 'Phase II/III/IV', 'Phase I/II/III/IV', 'Phase II/III', 'Phase N/A', None]:
+                #     value = None
+            if key == "technology":
+                if value.lower() == "cell-based therapies*":
+                    value = "Cell-based therapies"
+
             if gen3_field_type == list:
                 value = [str(v) for v in value]
             clinical_trial[gen3_field] = value
