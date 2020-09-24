@@ -113,6 +113,8 @@ class VAC_TRACKER(base.BaseETL):
                     value = "Yes"
                 elif value == "":
                     value = "Unknown"
+                elif value == "N/A":
+                    value = "NA"
             if gen3_field_type == list:
                 value = [str(v) for v in value]
             clinical_trial[gen3_field] = value
