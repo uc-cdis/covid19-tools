@@ -44,9 +44,7 @@ def format_summary_clinical_submitter_id(location_submitter_id, date):
 class VAC_TRACKER(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
-        self.summary_locations = []
-        self.summary_clinicals = []
-
+        self.clinical_trials = []
         self.program_name = "open"
         self.project_code = "ncbi-covid-19"
         self.metadata_helper = MetadataHelper(
@@ -55,18 +53,17 @@ class VAC_TRACKER(base.BaseETL):
             project_code=self.project_code,
             access_token=access_token,
         )
-        self.clinical_trials = []
 
     def files_to_submissions(self):
         """
-        Reads CSV files and converts the data to Sheepdog records
+        Reads josn files and converts the data to Sheepdog records
         """
         url = "https://biorender.com/page-data/covid-vaccine-tracker/page-data.json"
         self.parse_file(url)
 
     def parse_file(self, url):
         """
-        Converts a CSV file to data we can submit via Sheepdog. Stores the
+        Converts a json file to data we can submit via Sheepdog. Stores the
         records to submit in `self.location_data` and `self.time_series_data`.
         Ignores any records that are already in Sheepdog (relies on unique
         `submitter_id` to check)
@@ -87,18 +84,18 @@ class VAC_TRACKER(base.BaseETL):
 
     def parse_node(self, node):
         """
-        Converts a row of a CSV file to data we can submit via Sheepdog
+        Converts an element of an JSON file to data we can submit via Sheepdog
 
         Args:
-            row (list(str)): row of data
+            node (dict): node data
 
         Returns:
-            (dict, dict) tuple:
-                - location data, in a format ready to be submitted to Sheepdog
-                - { "date1": <value>, "date2": <value> } from the row data
+            dict:
+                - clinical trial data, in a format ready to be submitted to Sheepdog
         """
         clinical_trial = {
             "projects": [{"code": self.project_code}],
+            "project_id": "open-ncbi-covid-19",
             "type": "clinical_trials",
         }
         for key, value in node.items():
@@ -111,6 +108,13 @@ class VAC_TRACKER(base.BaseETL):
                     f"ERROR: The type of {key} does not match with the one in Gen3. Skip it"
                 )
                 continue
+            if key == "fdaApproved":
+                if "FDA-approved since" in value:
+                    value = "Yes"
+                elif value == "":
+                    value = "Unknown"
+            if gen3_field_type == list:
+                value = [str(v) for v in value]
             clinical_trial[gen3_field] = value
 
         return clinical_trial
