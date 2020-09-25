@@ -46,7 +46,7 @@ class VAC_TRACKER(base.BaseETL):
         super().__init__(base_url, access_token, s3_bucket)
         self.clinical_trials = []
         self.program_name = "open"
-        self.project_code = "ncbi-covid-19"
+        self.project_code = "VacTracker"
         self.metadata_helper = MetadataHelper(
             base_url=self.base_url,
             program_name=self.program_name,
@@ -77,7 +77,8 @@ class VAC_TRACKER(base.BaseETL):
             try:
                 for treatment in data["result"]["pageContext"]["treatments"]:
                     node = treatment["node"]
-                    self.clinical_trials.append(self.parse_node(node))
+                    clinical_trial = self.parse_node(node)
+                    self.clinical_trials.append(self.parse_node(clinical_trial))
 
             except ValueError as e:
                 print(f"ERROR: value error. Detail {e}")
@@ -133,7 +134,6 @@ class VAC_TRACKER(base.BaseETL):
             if gen3_field_type == list:
                 value = [str(v) for v in value]
             clinical_trial[gen3_field] = value
-
         return clinical_trial
 
     def submit_metadata(self):
