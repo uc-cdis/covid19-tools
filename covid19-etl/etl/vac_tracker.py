@@ -78,8 +78,7 @@ class VAC_TRACKER(base.BaseETL):
                 for treatment in data["result"]["pageContext"]["treatments"]:
                     node = treatment["node"]
                     clinical_trial = self.parse_node(node)
-                    self.clinical_trials.append(self.parse_node(clinical_trial))
-
+                    self.clinical_trials.append(clinical_trial)
             except ValueError as e:
                 print(f"ERROR: value error. Detail {e}")
 
@@ -99,6 +98,7 @@ class VAC_TRACKER(base.BaseETL):
             "project_id": "open-ncbi-covid-19",
             "type": "clinical_trials",
         }
+
         for key, value in node.items():
             if key not in MAP_FIELDS:
                 continue
@@ -130,7 +130,6 @@ class VAC_TRACKER(base.BaseETL):
             if key == "developmentStage":
                 if value.lower() in ["preclinical", "pre-clinical"]:
                     value = "Preclinical Phase"
-
             if gen3_field_type == list:
                 value = [str(v) for v in value]
             clinical_trial[gen3_field] = value
