@@ -15,9 +15,10 @@ from helper.format_helper import format_submitter_id, derived_submitter_id
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 SUBMISSION_ORDER = ["summary_location", "statistical_summary_report"]
+MINIMUM_COUNT = 5
 
 
-def format_value(key, value, date_mode=None):
+def format_value(key, value, _type, date_mode=None):
     if key == "report_date":
         if type(value) == float and date_mode is not None:  # rush date format
             # Excel stores dates as floats and they must be
@@ -26,6 +27,12 @@ def format_value(key, value, date_mode=None):
             value = date.strftime("%Y-%m-%d")
         elif " " in value:  # uchicago date format
             value = value.split(" ")[0]
+
+    if _type == int and int(value) < MINIMUM_COUNT:
+        raise Exception(
+            f"Found value < {MINIMUM_COUNT} ({key}: {value}). This value cannot be submitted."
+        )
+
     return value
 
 
@@ -123,7 +130,7 @@ class SSR(base.BaseETL):
         for orig_prop_name, (node_type, prop_name, _type) in mapping:
             if row_data[orig_prop_name]:
                 row_records[node_type][prop_name] = _type(
-                    format_value(prop_name, row_data[orig_prop_name], date_mode)
+                    format_value(prop_name, row_data[orig_prop_name], _type, date_mode)
                 )
 
         # add missing summary_location props

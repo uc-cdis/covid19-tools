@@ -11,6 +11,5 @@ if [ -z "$1" ]
 fi
 
 for filepath in $1/*; do
-    # echo $filepath
-    S3_BUCKET=none JOB_NAME=SSR FILE_PATH=$filepath python covid19-etl/main.py
+    S3_BUCKET=none JOB_NAME=SSR FILE_PATH=$filepath python covid19-etl/main.py || exit 1
 done
