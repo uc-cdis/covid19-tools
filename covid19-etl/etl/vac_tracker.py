@@ -19,11 +19,11 @@ MAP_FIELDS = {
     "developmentStage": ("development_stage", str),
     "description": ("description", str),
     "customClinicalPhase": ("phase", str),
-    "clinicalTrials": ("clinical_trials", list),
-    "fdaApproved": ("status", str),
+    "clinicalTrials": ("nct_number", list),
+    "fdaApproved": ("fda_regulated_drug_product", str),
     "completedClinicalTrials": ("completed_clinical_trials", list),
     "inprogressClinicalTrials": ("inprogress_clinical_trials", list),
-    "countries": ("countries", list),
+    "countries": ("location", list),
 }
 
 
@@ -113,19 +113,56 @@ class VAC_TRACKER(base.BaseETL):
                     value = "Yes"
                 elif value == "":
                     value = "Unknown"
-                elif value in ["N/A", "N/A*"]:
+                elif value in ["N/A", "N//A", "N/A*"]:
                     value = "NA"
-                # elif value not in ['Yes', 'No', 'Unknown', 'NA', None]:
-                #     value = None
+                elif value not in ["Yes", "No", "Unknown", "NA", None]:
+                    value = "Unknown"
             if key == "customClinicalPhase":
                 if value.lower() == "phase na":
                     value = "Phase N/A"
                 elif value.lower() in ["preclinical", "pre-clinical"]:
                     value = "Preclinical Phase"
-                # elif value not in ['Preclinical Phase', 'Phase I', 'Phase I/II', 'Phase II', 'Phase I/II/III', 'Phase III', 'Phase III/IV', 'Phase IV', 'Phase I/III/IV', 'Phase I/IV', 'Phase II/IV', 'Phase II/III/IV', 'Phase I/II/III/IV', 'Phase II/III', 'Phase N/A', None]:
-                #     value = None
+                elif value not in [
+                    "Preclinical Phase",
+                    "Phase I",
+                    "Phase I/II",
+                    "Phase II",
+                    "Phase I/II/III",
+                    "Phase III",
+                    "Phase III/IV",
+                    "Phase IV",
+                    "Phase I/III/IV",
+                    "Phase I/IV",
+                    "Phase II/IV",
+                    "Phase II/III/IV",
+                    "Phase I/II/III/IV",
+                    "Phase II/III",
+                    "Phase N/A",
+                    None,
+                ]:
+                    value = None
             if key == "technology":
                 value = value.replace("*", "")
+                if "to repurpose" in value.lower():
+                    value = "Repurposed"
+                if value not in [
+                    "Antibodies",
+                    "Antivirals",
+                    "Cell-based therapies",
+                    "Device",
+                    "DNA-based",
+                    "Inactivated virus",
+                    "Modified APC",
+                    "Non-replicating viral vector",
+                    "Protein subunit",
+                    "RNA-based treatments",
+                    "RNA-based vaccine",
+                    "Repurposed",
+                    "Virus Like Particle",
+                    "Other",
+                    None,
+                ]:
+                    value = "Other"
             if key == "developmentStage":
                 if value.lower() in ["preclinical", "pre-clinical"]:
                     value = "Preclinical Phase"
