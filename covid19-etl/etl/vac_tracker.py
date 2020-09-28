@@ -27,20 +27,6 @@ MAP_FIELDS = {
 }
 
 
-def format_location_submitter_id(country):
-    """summary_location_<country>"""
-    submitter_id = "summary_location_{}".format(country)
-    submitter_id = submitter_id.lower().replace(", ", "_")
-    submitter_id = re.sub("[^a-z0-9-_]+", "-", submitter_id)
-    return submitter_id.strip("-")
-
-
-def format_summary_clinical_submitter_id(location_submitter_id, date):
-    return "{}_{}".format(
-        location_submitter_id.replace("summary_location_", "summary_clinical_"), date
-    )
-
-
 class VAC_TRACKER(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
@@ -56,7 +42,7 @@ class VAC_TRACKER(base.BaseETL):
 
     def files_to_submissions(self):
         """
-        Reads josn files and converts the data to Sheepdog records
+        Reads json files and converts the data to Sheepdog records
         """
         url = "https://biorender.com/page-data/covid-vaccine-tracker/page-data.json"
         self.parse_file(url)
@@ -69,7 +55,7 @@ class VAC_TRACKER(base.BaseETL):
         `submitter_id` to check)
 
         Args:
-            url (str): URL at which the CSV file is available
+            url (str): URL at which the file is available
         """
         print("Getting data from {}".format(url))
         with closing(requests.get(url, stream=True)) as r:
@@ -175,7 +161,7 @@ class VAC_TRACKER(base.BaseETL):
         """
         Converts the data in `self.time_series_data` to Sheepdog records.
         `self.location_data already contains Sheepdog records. Batch submits
-        all records in `self.location_data` and `self.time_series_data`
+        all records in `self.clinical_trials`
         """
 
         print("Submitting clinical_trial data")
