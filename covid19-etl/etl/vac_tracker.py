@@ -95,7 +95,6 @@ class VAC_TRACKER(base.BaseETL):
         """
         clinical_trial = {
             "projects": [{"code": self.project_code}],
-            "project_id": "open-VacTracker",
             "type": "clinical_trials",
         }
 
