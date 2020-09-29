@@ -170,7 +170,10 @@ class CTP(base.BaseETL):
                 expected_h, obtained_h
             )
             for row in reader:
-                races[(row[0], row[1], row[2])] = row[3:]
+                try:
+                    races[(row[0], row[1], row[2])] = row[3:]
+                except Exception as e:
+                    print(f"Error. Detail {e}")
         return races
 
     def parse_file(self, url):
