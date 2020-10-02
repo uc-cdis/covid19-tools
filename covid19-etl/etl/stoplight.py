@@ -1,4 +1,5 @@
 import csv
+from datetime import datetime
 import re
 from contextlib import closing
 
@@ -105,8 +106,10 @@ class STOPLIGHT(base.BaseETL):
             "zipcode": zipcode,
         }
 
+        date = datetime.strptime(timestamp_created, "%Y-%m-%dT%H:%M:%S").date()
+        date = date.strftime("%Y-%m-%d")
         summary_clinical_submitter_id = format_summary_clinical_submitter_id(
-            summary_location_submitter_id, timestamp_created
+            summary_location_submitter_id, date
         )
 
         summary_clinical = {
