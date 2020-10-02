@@ -1,4 +1,3 @@
-import csv
 from datetime import datetime
 import re
 from contextlib import closing
@@ -34,7 +33,7 @@ class STOPLIGHT(base.BaseETL):
         self.summary_clinicals = []
         self.summary_locations = []
         self.program_name = "open"
-        self.project_code = "stoplight"
+        self.project_code = "covidstoplight"
         self.metadata_helper = MetadataHelper(
             base_url=self.base_url,
             program_name=self.program_name,
@@ -113,6 +112,7 @@ class STOPLIGHT(base.BaseETL):
         )
 
         summary_clinical = {
+            "date": date,
             "timestamp_created": timestamp_created,
             "submitter_id": summary_clinical_submitter_id,
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
