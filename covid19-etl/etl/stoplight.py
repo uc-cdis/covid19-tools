@@ -8,13 +8,11 @@ from etl import base
 from helper.metadata_helper import MetadataHelper
 
 
-def format_location_submitter_id(country, province, county=None):
-    """summary_location_<country>_<province>_<county>"""
+def format_location_submitter_id(country, zipcode):
+    """summary_location_<country>_<zipcode>_<county>"""
     submitter_id = "summary_location_{}".format(country)
-    if province:
-        submitter_id += "_{}".format(province)
-    if county:
-        submitter_id += "_{}".format(county)
+    if zipcode:
+        submitter_id += "_{}".format(zipcode)
 
     submitter_id = submitter_id.lower().replace(", ", "_")
     submitter_id = re.sub("[^a-z0-9-_]+", "-", submitter_id)
