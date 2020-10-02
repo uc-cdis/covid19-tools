@@ -12,7 +12,7 @@ class MetadataHelper:
     def __init__(self, base_url, program_name, project_code, access_token):
         # Note: if we end up having too much data, Sheepdog submissions may
         # time out. We'll have to use a smaller batch size and hope that's enough
-        self.submit_batch_size = 100
+        self.submit_batch_size = 30
 
         self.base_url = base_url
         self.program_name = program_name
