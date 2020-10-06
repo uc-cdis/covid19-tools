@@ -33,6 +33,7 @@ class CTP(base.BaseETL):
         super().__init__(base_url, access_token, s3_bucket)
         self.summary_locations = []
         self.summary_clinicals = []
+        self.header_to_column = {}
 
         self.program_name = "open"
         self.project_code = "CTP"
@@ -43,101 +44,97 @@ class CTP(base.BaseETL):
             access_token=access_token,
         )
 
-        self.expected_file_headers = [
-            "date",
-            "state",
-            "positive",
-            "negative",
-            "pending",
-            "totalTestResults",
-            "hospitalizedCurrently",
-            "hospitalizedCumulative",
-            "inIcuCurrently",
-            "inIcuCumulative",
-            "onVentilatorCurrently",
-            "onVentilatorCumulative",
-            "recovered",
-            "dataQualityGrade",
-            "lastUpdateEt",
-            "dateModified",
-            "checkTimeEt",
-            "death",
-            "hospitalized",
-            "dateChecked",
-            "totalTestsViral",
-            "positiveTestsViral",
-            "negativeTestsViral",
-            "positiveCasesViral",
-            "deathConfirmed",
-            "deathProbable",
-            "totalTestEncountersViral",
-            "totalTestsPeopleViral",
-            "totalTestsAntibody",
-            "positiveTestsAntibody",
-            "negativeTestsAntibody",
-            "totalTestsPeopleAntibody",
-            "positiveTestsPeopleAntibody",
-            "negativeTestsPeopleAntibody",
-            "totalTestsPeopleAntigen",
-            "positiveTestsPeopleAntigen",
-            "totalTestsAntigen",
-            "positiveTestsAntigen",
-            "fips",
-            "positiveIncrease",
-            "negativeIncrease",
-            "total",
-            "totalTestResultsSource",
-            "totalTestResultsIncrease",
-            "posNeg",
-            "deathIncrease",
-            "hospitalizedIncrease",
-            "hash",
-            "commercialScore",
-            "negativeRegularScore",
-            "negativeScore",
-            "positiveScore",
-            "score",
-            "grade",
-        ]
-
-        self.expected_race_headers = [
-            "Date",
-            "State",
-            "Cases_Total",
-            "Cases_White",
-            "Cases_Black",
-            "Cases_LatinX",
-            "Cases_Asian",
-            "Cases_AIAN",
-            "Cases_NHPI",
-            "Cases_Multiracial",
-            "Cases_Other",
-            "Cases_Unknown",
-            "Cases_Ethnicity_Hispanic",
-            "Cases_Ethnicity_NonHispanic",
-            "Cases_Ethnicity_Unknown",
-            "Deaths_Total",
-            "Deaths_White",
-            "Deaths_Black",
-            "Deaths_LatinX",
-            "Deaths_Asian",
-            "Deaths_AIAN",
-            "Deaths_NHPI",
-            "Deaths_Multiracial",
-            "Deaths_Other",
-            "Deaths_Unknown",
-            "Deaths_Ethnicity_Hispanic",
-            "Deaths_Ethnicity_NonHispanic",
-            "Deaths_Ethnicity_Unknown",
-        ]
-
-        self.expected_csv_headers = (
-            self.expected_file_headers + self.expected_race_headers[3:]
+        self.expected_file_headers = set(
+            [
+                "date",
+                "state",
+                "positive",
+                "negative",
+                "pending",
+                "totalTestResults",
+                "hospitalizedCurrently",
+                "hospitalizedCumulative",
+                "inIcuCurrently",
+                "inIcuCumulative",
+                "onVentilatorCurrently",
+                "onVentilatorCumulative",
+                "recovered",
+                "dataQualityGrade",
+                "lastUpdateEt",
+                "dateModified",
+                "checkTimeEt",
+                "death",
+                "hospitalized",
+                "dateChecked",
+                "totalTestsViral",
+                "positiveTestsViral",
+                "negativeTestsViral",
+                "positiveCasesViral",
+                "deathConfirmed",
+                "deathProbable",
+                "totalTestEncountersViral",
+                "totalTestsPeopleViral",
+                "totalTestsAntibody",
+                "positiveTestsAntibody",
+                "negativeTestsAntibody",
+                "totalTestsPeopleAntibody",
+                "positiveTestsPeopleAntibody",
+                "negativeTestsPeopleAntibody",
+                "totalTestsPeopleAntigen",
+                "positiveTestsPeopleAntigen",
+                "totalTestsAntigen",
+                "positiveTestsAntigen",
+                "fips",
+                "positiveIncrease",
+                "negativeIncrease",
+                "total",
+                "totalTestResultsSource",
+                "totalTestResultsIncrease",
+                "posNeg",
+                "deathIncrease",
+                "hospitalizedIncrease",
+                "hash",
+                "commercialScore",
+                "negativeRegularScore",
+                "negativeScore",
+                "positiveScore",
+                "score",
+                "grade",
+            ]
         )
-        self.header_to_column = {
-            k: self.expected_csv_headers.index(k) for k in self.expected_csv_headers
-        }
-        print("The length of the expected headers: ", len(self.header_to_column))
+
+        self.expected_race_headers = set(
+            [
+                "Date",
+                "State",
+                "Cases_Total",
+                "Cases_White",
+                "Cases_Black",
+                "Cases_LatinX",
+                "Cases_Asian",
+                "Cases_AIAN",
+                "Cases_NHPI",
+                "Cases_Multiracial",
+                "Cases_Other",
+                "Cases_Unknown",
+                "Cases_Ethnicity_Hispanic",
+                "Cases_Ethnicity_NonHispanic",
+                "Cases_Ethnicity_Unknown",
+                "Deaths_Total",
+                "Deaths_White",
+                "Deaths_Black",
+                "Deaths_LatinX",
+                "Deaths_Asian",
+                "Deaths_AIAN",
+                "Deaths_NHPI",
+                "Deaths_Multiracial",
+                "Deaths_Other",
+                "Deaths_Unknown",
+                "Deaths_Ethnicity_Hispanic",
+                "Deaths_Ethnicity_NonHispanic",
+                "Deaths_Ethnicity_Unknown",
+            ]
+        )
 
     def files_to_submissions(self):
         """
@@ -162,19 +159,23 @@ class CTP(base.BaseETL):
                 print("  Unable to get file contents, received {}.".format(headers))
                 return
 
-            expected_h = self.expected_race_headers
-            obtained_h = headers[: len(expected_h)]
-            assert (
-                obtained_h == expected_h
-            ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
-                expected_h, obtained_h
+            assert (headers[0], headers[1], headers[2]) == (
+                "Date",
+                "State",
+                "Cases_Total",
+            ), "The first 3 column names of the race data must be Dat, State, Cases_Total"
+
+            assert self.expected_race_headers.issubset(
+                set(headers)
+            ), "CSV headers have changed (expected {} is a subset of {}). We may need to update the ETL code".format(
+                self.expected_race_headers, headers
             )
             for row in reader:
                 try:
                     races[(row[0], row[1], row[2])] = row[3:]
                 except Exception as e:
                     print(f"Error. Detail {e}")
-        return races
+        return races, headers
 
     def parse_file(self, url):
         """
@@ -186,7 +187,7 @@ class CTP(base.BaseETL):
         Args:
             url (str): URL at which the CSV file is available
         """
-        races = self.extract_races()
+        races, race_headers = self.extract_races()
         print("Getting data from {}".format(url))
         with closing(requests.get(url, stream=True)) as r:
             f = (line.decode("utf-8") for line in r.iter_lines())
@@ -199,12 +200,16 @@ class CTP(base.BaseETL):
                 return
 
             expected_h = self.expected_file_headers
-            obtained_h = headers[: len(expected_h)]
-            assert (
-                obtained_h == expected_h
-            ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
-                expected_h, obtained_h
+            assert set(expected_h).issubset(
+                set(headers)
+            ), "CSV headers have changed (expected {} is a subset of {}). We may need to update the ETL code".format(
+                expected_h, headers
             )
+
+            headers = headers + race_headers[3:]
+
+            for i in range(0, len(headers)):
+                self.header_to_column[headers[i]] = i
 
             summary_location_list = []
 
@@ -373,7 +378,7 @@ class CTP(base.BaseETL):
             self.metadata_helper.add_record_to_submit(loc_record)
         self.metadata_helper.batch_submit_records()
 
-        # print("Submitting summary_clinical data")
+        print("Submitting summary_clinical data")
         for sc in self.summary_clinicals:
             sc_record = {"type": "summary_clinical"}
             sc_record.update(sc)
