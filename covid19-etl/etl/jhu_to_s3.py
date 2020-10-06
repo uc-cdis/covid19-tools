@@ -1,16 +1,14 @@
 import boto3
+from contextlib import closing
 from copy import deepcopy
 from collections import defaultdict
 import csv
+from datetime import datetime
 import json
 import os
 import pathlib
 import re
 import requests
-import time
-from collections import defaultdict
-from contextlib import closing
-from datetime import datetime
 
 from etl import base
 from utils.country_codes_utils import get_codes_dictionary, get_codes_for_country_name
@@ -277,6 +275,7 @@ class JHU_TO_S3(base.BaseETL):
             },
         }
         self.latest_date = None
+        self.s3_client = boto3.client("s3")
 
     def files_to_submissions(self):
         """
@@ -295,8 +294,6 @@ class JHU_TO_S3(base.BaseETL):
                 "deaths": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv",
             },
         }
-
-        start = time.time()
 
         for file_type in ["global", "US_counties"]:
             for data_type, url in urls[file_type].items():
@@ -318,7 +315,6 @@ class JHU_TO_S3(base.BaseETL):
         self.nested_dict_to_data_by_level()
         self.nested_dict_to_time_series_by_level()
 
-        print("Generated files in {} secs".format(int(time.time() - start)))
         print("Latest date: {}".format(self.latest_date))
 
     def parse_file_to_nexted_dict(self, file_type, data_type, url):
@@ -732,33 +728,38 @@ class JHU_TO_S3(base.BaseETL):
                                 "recovered": ts.get("recovered", 0),
                             }
 
-        # save as JSON files
+        # save as JSON files, and upload to S3
+        print("Uploading time series files to S3...")
+
         for data_level in ["country", "state", "county"]:
+            print("  Uploading {} files".format(data_level.capitalize()))
             for location_id, data_by_date in tmp[data_level].items():
                 # remove values smaller than the threshold
-                for date, data in data_by_date.items():
-                    data_by_date[date] = replace_small_counts(data)
+                for key, data in data_by_date.items():
+                    data_by_date[key] = replace_small_counts(data)
 
                 file_name = "{}.json".format(location_id)
-                with open(
-                    os.path.join(
-                        CURRENT_DIR, TIME_SERIES_DATA_FOLDER, data_level, file_name
-                    ),
-                    "w",
-                ) as f:
+                abs_path = os.path.join(
+                    CURRENT_DIR, TIME_SERIES_DATA_FOLDER, data_level, file_name
+                )
+
+                # write to local file, upload to S3, delete local file
+                with open(abs_path, "w") as f:
                     json.dump(data_by_date, f)
+                s3_path = os.path.relpath(abs_path, CURRENT_DIR)
+                self.s3_client.upload_file(abs_path, self.s3_bucket, s3_path)
+                os.remove(abs_path)
 
     def submit_metadata(self):
-        print("Uploading to S3...")
-        start = time.time()
+        print("Uploading other files to S3...")
 
-        s3_client = boto3.client("s3")
-        for folder in [MAP_DATA_FOLDER, TIME_SERIES_DATA_FOLDER]:
+        # files in TIME_SERIES_DATA_FOLDER have already been uploaded to S3
+        for folder in [MAP_DATA_FOLDER]:
             for abs_path, _, files in os.walk(os.path.join(CURRENT_DIR, folder)):
                 for file_name in files:
                     local_path = os.path.join(abs_path, file_name)
                     s3_path = os.path.relpath(local_path, CURRENT_DIR)
-                    s3_client.upload_file(local_path, self.s3_bucket, s3_path)
+                    self.s3_client.upload_file(local_path, self.s3_bucket, s3_path)
+                    os.remove(local_path)
 
-        print("Uploaded to S3 in {} secs".format(int(time.time() - start)))
         print("Done!")
