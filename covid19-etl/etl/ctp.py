@@ -199,11 +199,10 @@ class CTP(base.BaseETL):
                 print("  Unable to get file contents, received {}.".format(headers))
                 return
 
-            expected_h = self.expected_file_headers
-            assert set(expected_h).issubset(
+            assert self.expected_file_headers.issubset(
                 set(headers)
             ), "CSV headers have changed (expected {} is a subset of {}). We may need to update the ETL code".format(
-                expected_h, headers
+                self.expected_file_headers, headers
             )
 
             headers = headers + race_headers[3:]
@@ -233,7 +232,6 @@ class CTP(base.BaseETL):
         Converts a row of a CSV file to data we can submit via Sheepdog
 
         Args:
-            headers (list(str)): CSV file headers (first row of the file)
             row (list(str)): row of data
 
         Returns:
@@ -279,47 +277,16 @@ class CTP(base.BaseETL):
             "inIcuCurrently": "inIcuCurrently",
             "inIcuCumulative": "inIcuCumulative",
             "onVentilatorCurrently": "onVentilatorCurrently",
-            # "": "onVentilatorCumulative",
             "recovered": "recovered",
-            # "": "dataQualityGrade",
-            # "": "lastUpdateEt",
-            # "": "dateModified",
-            # "": "checkTimeEt",
-            # "": "death",
-            # "": "hospitalized",
-            # "": "dateChecked",
             "totalTestsViral": "totalTestsViral",
             "positiveTestsViral": "positiveTestsViral",
             "negativeTestsViral": "negativeTestsViral",
             "positiveCasesViral": "positiveCasesViral",
-            # "deaths": "deathConfirmed",
-            # "": "deathProbable",
-            # "": "totalTestEncountersViral",
-            # "": "totalTestsPeopleViral",
-            # "": "totalTestsAntibody",
-            # "": "positiveTestsAntibody",
-            # "": "negativeTestsAntibody",
-            # "": "totalTestsPeopleAntibody",
-            # "": "positiveTestsPeopleAntibody",
-            # "": "negativeTestsPeopleAntibody",
-            # "": "totalTestsPeopleAntigen",
-            # "": "positiveTestsPeopleAntigen",
-            # "": "totalTestsAntigen",
-            # "": "positiveTestsAntigen",
-            # "": "fips",
             "positiveIncrease": "positiveIncrease",
             "negativeIncrease": "negativeIncrease",
-            # "": "total",
-            # "": "totalTestResults",
             "totalTestResultsIncrease": "totalTestResultsIncrease",
-            # "": "posNeg",
             "deathIncrease": "deathIncrease",
             "hospitalizedIncrease": "hospitalizedIncrease",
-            # "": "hash",
-            # "": "commercialScore",
-            # "": "negativeRegularScore",
-            # "": "negativeScore",
-            # "": "positiveScore",
             "race_white_count": "Cases_White",
             "race_black_count": "Cases_Black",
             "race_hispanic_count": "Cases_LatinX",
