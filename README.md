@@ -13,12 +13,15 @@
 | [COV-126][cov-126] | DSCI | [Kaggle][dsci] | One-time |
 | [COV-172][cov-172] | DSFSI | [here][dsfsi] | One-time |
 | [COV-170][cov-170] | CCMap | [here][ccmap] | One-time |
-| [COV-192][cov-192] | OWID | [here][owid] | Scheduled |
+| [COV-192][cov-192] | OWID2 | [here][owid] | Scheduled |
 | [COV-237][cov-237] | Chicago Neighborhoods Data | [here][chi-nbhd] ([JSON][chi-nbhd-json]) | Scheduled |
 | [COV-361][cov-361] | NPI-PRO | [here][npi-pro] | One-time |
 | [COV-220][cov-220] | COXRAY | [Kaggle][coxray] | One-time |
 | [COV-422][cov-422] | SSR | Controlled data | One-time (for now) |
+| [COV-434][cov-434] | STOPLIGHT | [here][stoplight] | scheduled |
+| [COV-450][cov-422] | VAC-TRACKER | [here][vac-tracker] | scheduled |
 | [COV-453][cov-453] | CHESTX-RAY8 | [here][chestxray8] | One-time |
+
 
 ## Deployment
 
@@ -41,7 +44,7 @@ S3_BUCKET=<name of bucket to upload data to>
 20  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph_facility bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
 30  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph_hospital bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/logs/covid19-etl-$JOB_NAME-cronjob.log 2>&1
 40  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ctp bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-50  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=owid bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+50  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=owid2 bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
  0  21   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=chi_nbhd bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
  0 */3   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/etl-cronjob.sh ]; then bash $HOME/cloud-automation/files/scripts/etl-cronjob.sh; else echo "no etl-cronjob.sh"; fi) > $HOME/etl-cronjob.log 2>&1
 ```
@@ -111,8 +114,11 @@ covid19-tools
   [chestxray8]: https://github.com/muhammedtalo/COVID-19
   [ccmap]: https://github.com/covidcaremap/covid19-healthsystemcapacity/tree/master/data/published
   [ctp]: https://covidtracking.com/data
+  [race]: https://docs.google.com/spreadsheets/d/e/2PACX-1vR_xmYt4ACPDZCDJcY12kCiMiH0ODyx3E1ZvgOHB8ae1tRcjXbs_yWBOA4j4uoCEADVfC1PS2jYO68B/pub?gid=43720681&single=true&output=csv
   [npi-pro]: https://www.arcgis.com/home/item.html?id=7e80baf1773e4fd9b44fe9fb054677db
   [ncov2019]: https://www.kaggle.com/sudalairajkumar/novel-corona-virus-2019-dataset?select=COVID19_line_list_data.csv
+  [vac-tracker]:https://biorender.com/page-data/covid-vaccine-tracker/page-data.json
+  [stoplight]: https://covidstoplight.org/api/v0/location/US
   [cov-12]: https://occ-data.atlassian.net/browse/COV-12
   [cov-18]: https://occ-data.atlassian.net/browse/COV-18
   [cov-24]: https://occ-data.atlassian.net/browse/COV-24
@@ -129,4 +135,6 @@ covid19-tools
   [cov-345]: https://occ-data.atlassian.net/browse/COV-345
   [cov-361]: https://occ-data.atlassian.net/browse/COV-361
   [cov-422]: https://occ-data.atlassian.net/browse/COV-422
+  [cov-434]: https://occ-data.atlassian.net/browse/COV-434
+  [cov-450]: https://occ-data.atlassian.net/browse/COV-450
   [cov-453]: https://occ-data.atlassian.net/browse/COV-453
