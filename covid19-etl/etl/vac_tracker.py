@@ -152,6 +152,9 @@ class VAC_TRACKER(base.BaseETL):
             if key == "developmentStage":
                 if value.lower() in ["preclinical", "pre-clinical"]:
                     value = "Preclinical Phase"
+                elif value not in ["Preclinical Phase", "Clinical", "Withdrawn", None]:
+                    value = "Other"
+
             if gen3_field_type == list:
                 value = [str(v) for v in value]
             clinical_trial[gen3_field] = value
