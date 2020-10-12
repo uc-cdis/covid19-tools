@@ -375,6 +375,9 @@ class JHU_TO_S3(base.BaseETL):
         if "country" not in header_to_column:
             header_to_column = header_to_column[data_type]
 
+        if not row:
+            return
+
         country = row[header_to_column["country"]]
         latitude = row[header_to_column["latitude"]] or "0"
         longitude = row[header_to_column["longitude"]] or "0"
@@ -563,7 +566,7 @@ class JHU_TO_S3(base.BaseETL):
         See `nested_dict_to_geojson` docstring for details on the aggregation.
         """
         print("Generating {}...".format(JSON_BY_LEVEL_FILENAME))
-        LATEST_DATE_ONLY = True
+        LATEST_DATE_ONLY = True  # enabling this would break a bunch of things
         js = {
             "country": {},  # aggregated data for all countries
             "state": {},  # US only
@@ -585,7 +588,6 @@ class JHU_TO_S3(base.BaseETL):
                 if LATEST_DATE_ONLY and date != self.latest_date:
                     continue
                 if country_data["country_region"] not in ["US", "Canada"]:
-                    # TODO if we disable LATEST_DATE_ONLY, i think this should not be +=
                     js["country"][iso3]["confirmed"] += ts1["confirmed"]
                     js["country"][iso3]["deaths"] += ts1["deaths"]
                     js["country"][iso3]["recovered"] += ts1.get("recovered", 0)
@@ -606,61 +608,45 @@ class JHU_TO_S3(base.BaseETL):
                     }
 
                 # add province-level time_series data for all countries + US states
-                for date, ts2 in province_data["time_series"].items():
+                for date, ts in province_data["time_series"].items():
                     if LATEST_DATE_ONLY and date != self.latest_date:
                         continue
-                    js["country"][iso3]["confirmed"] += ts2["confirmed"]
-                    js["country"][iso3]["deaths"] += ts2["deaths"]
-                    js["country"][iso3]["recovered"] += ts2.get("recovered", 0)
+                    js["country"][iso3]["confirmed"] += ts["confirmed"]
+                    js["country"][iso3]["deaths"] += ts["deaths"]
+                    js["country"][iso3]["recovered"] += ts.get("recovered", 0)
                     if country_data["country_region"] == "US":
-                        js["state"][state_name]["confirmed"] += ts2["confirmed"]
-                        js["state"][state_name]["deaths"] += ts2["deaths"]
-                        js["state"][state_name]["recovered"] += ts2.get("recovered", 0)
+                        js["state"][state_name]["confirmed"] += ts["confirmed"]
+                        js["state"][state_name]["deaths"] += ts["deaths"]
+                        js["state"][state_name]["recovered"] += ts.get("recovered", 0)
 
                 for county_data in province_data.get("counties", {}).values():
                     county_fips = county_data["fips"]
                     # add county-level time_series data for all countries + US states + US counties
-                    for date, ts3 in county_data["time_series"].items():
+                    for date, ts in county_data["time_series"].items():
                         if LATEST_DATE_ONLY and date != self.latest_date:
                             continue
-                        js["country"][iso3]["confirmed"] += ts3["confirmed"]
-                        js["country"][iso3]["deaths"] += ts3["deaths"]
-                        js["country"][iso3]["recovered"] += ts3.get("recovered", 0)
+                        js["country"][iso3]["confirmed"] += ts["confirmed"]
+                        js["country"][iso3]["deaths"] += ts["deaths"]
+                        js["country"][iso3]["recovered"] += ts.get("recovered", 0)
                         if country_data["country_region"] == "US":
-                            js["state"][state_name]["confirmed"] += ts3["confirmed"]
-                            js["state"][state_name]["deaths"] += ts3["deaths"]
-                            js["state"][state_name]["recovered"] += ts3.get(
+                            js["state"][state_name]["confirmed"] += ts["confirmed"]
+                            js["state"][state_name]["deaths"] += ts["deaths"]
+                            js["state"][state_name]["recovered"] += ts.get(
                                 "recovered", 0
                             )
 
                             # add this US county. it shouldn't already be there
                             js["county"][county_fips] = {
-                                "confirmed": ts3["confirmed"],
-                                "deaths": ts3["deaths"],
-                                "recovered": ts3.get("recovered", 0),
+                                "confirmed": ts["confirmed"],
+                                "deaths": ts["deaths"],
+                                "recovered": ts.get("recovered", 0),
                                 "country_region": country_data["country_region"],
                                 "province_state": state_name,
                                 "county": county_data["county"],
                             }
 
-                # if the original count is greater than the aggregated
-                # count we calculated, use the original count
-                # For US states
-                if country_data["country_region"] == "US":
-                    for key in ["confirmed", "deaths", "recovered"]:
-                        original_count = ts2.get(key, 0)
-                        aggregated_count = js["state"][state_name][key]
-                        if original_count > aggregated_count:
-                            print(
-                                "  State {}: Using global {} count ({}) rather than smaller aggregated count ({})".format(
-                                    state_name, key, original_count, aggregated_count
-                                )
-                            )
-                            js["state"][state_name][key] = original_count
-
-            # if the original count is greater than the aggregated
-            # count we calculated, use the original count
-            # For countries
+            # (countries) if the original count is greater than the
+            # aggregated count we calculated, use the original count
             for key in ["confirmed", "deaths", "recovered"]:
                 original_count = ts1.get(key, 0)
                 aggregated_count = js["country"][iso3][key]
@@ -754,6 +740,15 @@ class JHU_TO_S3(base.BaseETL):
                                 "deaths": ts["deaths"],
                                 "recovered": ts.get("recovered", 0),
                             }
+
+            # (countries) if the original count is greater than the
+            # aggregated count we calculated, use the original count
+            for date in tmp["country"][iso3]:
+                for key in ["confirmed", "deaths", "recovered"]:
+                    original_count = country_data["time_series"][date].get(key, 0)
+                    aggregated_count = tmp["country"][iso3][date][key]
+                    if original_count > aggregated_count:
+                        tmp["country"][iso3][date][key] = original_count
 
         # save as JSON files, and upload to S3
         print("Uploading time series files to S3...")
