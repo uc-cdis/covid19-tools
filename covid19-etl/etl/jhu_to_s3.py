@@ -9,6 +9,7 @@ import os
 import pathlib
 import re
 import requests
+import time
 
 from etl import base
 from utils.country_codes_utils import get_codes_dictionary, get_codes_for_country_name
@@ -183,13 +184,21 @@ def get_unified_date_format(date):
     return "-".join((year, month, day))
 
 
-def replace_small_counts(data):
+def replace_small_counts(data, data_level):
     # remove values smaller than the threshold
     count_replacement = f"<{MINIMUM_COUNT}"
     res = data.copy()
     for field in ["confirmed", "deaths", "recovered"]:
         if field in res and res[field] < MINIMUM_COUNT:
             res[field] = count_replacement
+
+    # we don't have any "recovered" data for US and Canada
+    # states/counties, and displaying "<5" looks bad: removing
+    if res.get("country_region") in ["US", "Canada"] and data_level in [
+        "state",
+        "county",
+    ]:
+        del res["recovered"]
 
     return res
 
@@ -371,12 +380,12 @@ class JHU_TO_S3(base.BaseETL):
                 - location data, in a format ready to be submitted to Sheepdog
                 - { "date1": <value>, "date2": <value> } from the row data
         """
+        if not row:  # ignore empty rows
+            return
+
         header_to_column = self.header_to_column[file_type]
         if "country" not in header_to_column:
             header_to_column = header_to_column[data_type]
-
-        if not row:
-            return
 
         country = row[header_to_column["country"]]
         latitude = row[header_to_column["latitude"]] or "0"
@@ -508,7 +517,7 @@ class JHU_TO_S3(base.BaseETL):
                     continue
                 feat_country = deepcopy(feat_base)
                 feat_country["properties"]["date"] = date
-                feat_country["properties"].update(replace_small_counts(ts))
+                feat_country["properties"].update(replace_small_counts(ts, "country"))
                 del feat_country["properties"]["date"]
                 if country_data["country_region"] not in ["US", "Canada"]:
                     features.append(feat_country)
@@ -528,7 +537,7 @@ class JHU_TO_S3(base.BaseETL):
                         "province_state"
                     ]
                     feat_prov["properties"]["date"] = date
-                    feat_prov["properties"].update(replace_small_counts(ts))
+                    feat_prov["properties"].update(replace_small_counts(ts, "state"))
                     del feat_prov["properties"]["date"]
                     features.append(feat_prov)
 
@@ -551,7 +560,9 @@ class JHU_TO_S3(base.BaseETL):
                         feat_county["properties"]["fips"] = county_data["fips"]
                         feat_county["properties"]["code3"] = county_data["code3"]
                         feat_county["properties"]["date"] = date
-                        feat_county["properties"].update(replace_small_counts(ts))
+                        feat_county["properties"].update(
+                            replace_small_counts(ts, "county")
+                        )
                         del feat_county["properties"]["date"]
                         features.append(feat_county)
 
@@ -664,7 +675,7 @@ class JHU_TO_S3(base.BaseETL):
         # remove values smaller than the threshold
         for data_level, locations in js.items():
             for location_id, data in locations.items():
-                js[data_level][location_id] = replace_small_counts(data)
+                js[data_level][location_id] = replace_small_counts(data, data_level)
 
         with open(
             os.path.join(CURRENT_DIR, MAP_DATA_FOLDER, JSON_BY_LEVEL_FILENAME), "w"
@@ -752,13 +763,14 @@ class JHU_TO_S3(base.BaseETL):
 
         # save as JSON files, and upload to S3
         print("Uploading time series files to S3...")
+        start = time.time()
 
         for data_level in ["country", "state", "county"]:
             print("  Uploading {} files".format(data_level.capitalize()))
             for location_id, data_by_date in tmp[data_level].items():
                 # remove values smaller than the threshold
                 for date, data in data_by_date.items():
-                    data_by_date[date] = replace_small_counts(data)
+                    data_by_date[date] = replace_small_counts(data, data_level)
 
                 file_name = "{}.json".format(location_id)
                 abs_path = os.path.join(
@@ -771,9 +783,11 @@ class JHU_TO_S3(base.BaseETL):
                 s3_path = os.path.relpath(abs_path, CURRENT_DIR)
                 self.s3_client.upload_file(abs_path, self.s3_bucket, s3_path)
                 os.remove(abs_path)
+        print("  Done in {} secs".format(int(time.time() - start)))
 
     def submit_metadata(self):
         print("Uploading other files to S3...")
+        start = time.time()
 
         # files in TIME_SERIES_DATA_FOLDER have already been uploaded to S3
         for folder in [MAP_DATA_FOLDER]:
@@ -784,4 +798,5 @@ class JHU_TO_S3(base.BaseETL):
                     self.s3_client.upload_file(local_path, self.s3_bucket, s3_path)
                     os.remove(local_path)
 
+        print("  Done in {} secs".format(int(time.time() - start)))
         print("Done!")
