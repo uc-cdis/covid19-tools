@@ -1,16 +1,15 @@
 import boto3
+from contextlib import closing
 from copy import deepcopy
 from collections import defaultdict
 import csv
+from datetime import datetime
 import json
 import os
 import pathlib
 import re
 import requests
 import time
-from collections import defaultdict
-from contextlib import closing
-from datetime import datetime
 
 from etl import base
 from utils.country_codes_utils import get_codes_dictionary, get_codes_for_country_name
@@ -96,9 +95,9 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
                     "country_region": <country_name>,
                     "iso2": "",
                     "iso3": "",
-                    "confirmed": 5639,
-                    "deaths": 136,
-                    "recovered": 691,
+                    "confirmed": 0,
+                    "deaths": 0,
+                    "recovered": <optional>,
                     "province_state": <US state name - optional>,
                     "county": <US county name - optional>,
                     "fips": <US county FIPS - optional>,
@@ -185,7 +184,7 @@ def get_unified_date_format(date):
     return "-".join((year, month, day))
 
 
-def replace_small_counts(data):
+def replace_small_counts(data, data_level):
     # remove values smaller than the threshold
     count_replacement = f"<{MINIMUM_COUNT}"
     res = data.copy()
@@ -193,10 +192,12 @@ def replace_small_counts(data):
         if field in res and res[field] < MINIMUM_COUNT:
             res[field] = count_replacement
 
-    # right now we don't have any "recovered" data for the US and
-    # Canada, and displaying "<5" for the whole country looks bad.
-    # TODO: remove this when we add recovered data.
-    if res.get("country_region") in ["US", "Canada"]:
+    # we don't have any "recovered" data for US and Canada
+    # states/counties, and displaying "<5" looks bad: removing
+    if res.get("country_region") in ["US", "Canada"] and data_level in [
+        "state",
+        "county",
+    ]:
         del res["recovered"]
 
     return res
@@ -277,6 +278,7 @@ class JHU_TO_S3(base.BaseETL):
             },
         }
         self.latest_date = None
+        self.s3_client = boto3.client("s3")
 
     def files_to_submissions(self):
         """
@@ -296,11 +298,9 @@ class JHU_TO_S3(base.BaseETL):
             },
         }
 
-        start = time.time()
-
         for file_type in ["global", "US_counties"]:
             for data_type, url in urls[file_type].items():
-                self.parse_file_to_nexted_dict(file_type, data_type, url)
+                self.parse_file_to_nested_dict(file_type, data_type, url)
 
         # create data folders
         data_folders = [
@@ -318,10 +318,9 @@ class JHU_TO_S3(base.BaseETL):
         self.nested_dict_to_data_by_level()
         self.nested_dict_to_time_series_by_level()
 
-        print("Generated files in {} secs".format(int(time.time() - start)))
         print("Latest date: {}".format(self.latest_date))
 
-    def parse_file_to_nexted_dict(self, file_type, data_type, url):
+    def parse_file_to_nested_dict(self, file_type, data_type, url):
         """
         Converts a CSV file to self.nested_dict in the format described on
         top of this file.
@@ -381,6 +380,9 @@ class JHU_TO_S3(base.BaseETL):
                 - location data, in a format ready to be submitted to Sheepdog
                 - { "date1": <value>, "date2": <value> } from the row data
         """
+        if not row:  # ignore empty rows
+            return
+
         header_to_column = self.header_to_column[file_type]
         if "country" not in header_to_column:
             header_to_column = header_to_column[data_type]
@@ -515,7 +517,7 @@ class JHU_TO_S3(base.BaseETL):
                     continue
                 feat_country = deepcopy(feat_base)
                 feat_country["properties"]["date"] = date
-                feat_country["properties"].update(replace_small_counts(ts))
+                feat_country["properties"].update(replace_small_counts(ts, "country"))
                 del feat_country["properties"]["date"]
                 if country_data["country_region"] not in ["US", "Canada"]:
                     features.append(feat_country)
@@ -535,7 +537,7 @@ class JHU_TO_S3(base.BaseETL):
                         "province_state"
                     ]
                     feat_prov["properties"]["date"] = date
-                    feat_prov["properties"].update(replace_small_counts(ts))
+                    feat_prov["properties"].update(replace_small_counts(ts, "state"))
                     del feat_prov["properties"]["date"]
                     features.append(feat_prov)
 
@@ -558,7 +560,9 @@ class JHU_TO_S3(base.BaseETL):
                         feat_county["properties"]["fips"] = county_data["fips"]
                         feat_county["properties"]["code3"] = county_data["code3"]
                         feat_county["properties"]["date"] = date
-                        feat_county["properties"].update(replace_small_counts(ts))
+                        feat_county["properties"].update(
+                            replace_small_counts(ts, "county")
+                        )
                         del feat_county["properties"]["date"]
                         features.append(feat_county)
 
@@ -573,7 +577,7 @@ class JHU_TO_S3(base.BaseETL):
         See `nested_dict_to_geojson` docstring for details on the aggregation.
         """
         print("Generating {}...".format(JSON_BY_LEVEL_FILENAME))
-        LATEST_DATE_ONLY = True
+        LATEST_DATE_ONLY = True  # enabling this would break a bunch of things
         js = {
             "country": {},  # aggregated data for all countries
             "state": {},  # US only
@@ -591,13 +595,13 @@ class JHU_TO_S3(base.BaseETL):
                 }
 
             # country-level time_series data
-            for date, ts in country_data["time_series"].items():
+            for date, ts1 in country_data["time_series"].items():
                 if LATEST_DATE_ONLY and date != self.latest_date:
                     continue
                 if country_data["country_region"] not in ["US", "Canada"]:
-                    js["country"][iso3]["confirmed"] += ts["confirmed"]
-                    js["country"][iso3]["deaths"] += ts["deaths"]
-                    js["country"][iso3]["recovered"] += ts.get("recovered", 0)
+                    js["country"][iso3]["confirmed"] += ts1["confirmed"]
+                    js["country"][iso3]["deaths"] += ts1["deaths"]
+                    js["country"][iso3]["recovered"] += ts1.get("recovered", 0)
 
             for province_data in country_data.get("provinces", {}).values():
                 state_name = province_data["province_state"]
@@ -652,10 +656,26 @@ class JHU_TO_S3(base.BaseETL):
                                 "county": county_data["county"],
                             }
 
+            # (countries) if the original count is greater than the
+            # aggregated count we calculated, use the original count
+            for key in ["confirmed", "deaths", "recovered"]:
+                original_count = ts1.get(key, 0)
+                aggregated_count = js["country"][iso3][key]
+                if original_count > aggregated_count:
+                    print(
+                        "  Country {}: Using global {} count ({}) rather than smaller aggregated count ({})".format(
+                            country_data["country_region"],
+                            key,
+                            original_count,
+                            aggregated_count,
+                        )
+                    )
+                    js["country"][iso3][key] = original_count
+
         # remove values smaller than the threshold
         for data_level, locations in js.items():
             for location_id, data in locations.items():
-                js[data_level][location_id] = replace_small_counts(data)
+                js[data_level][location_id] = replace_small_counts(data, data_level)
 
         with open(
             os.path.join(CURRENT_DIR, MAP_DATA_FOLDER, JSON_BY_LEVEL_FILENAME), "w"
@@ -732,33 +752,51 @@ class JHU_TO_S3(base.BaseETL):
                                 "recovered": ts.get("recovered", 0),
                             }
 
-        # save as JSON files
+            # (countries) if the original count is greater than the
+            # aggregated count we calculated, use the original count
+            for date in tmp["country"][iso3]:
+                for key in ["confirmed", "deaths", "recovered"]:
+                    original_count = country_data["time_series"][date].get(key, 0)
+                    aggregated_count = tmp["country"][iso3][date][key]
+                    if original_count > aggregated_count:
+                        tmp["country"][iso3][date][key] = original_count
+
+        # save as JSON files, and upload to S3
+        print("Uploading time series files to S3...")
+        start = time.time()
+
         for data_level in ["country", "state", "county"]:
+            print("  Uploading {} files".format(data_level.capitalize()))
             for location_id, data_by_date in tmp[data_level].items():
                 # remove values smaller than the threshold
                 for date, data in data_by_date.items():
-                    data_by_date[date] = replace_small_counts(data)
+                    data_by_date[date] = replace_small_counts(data, data_level)
 
                 file_name = "{}.json".format(location_id)
-                with open(
-                    os.path.join(
-                        CURRENT_DIR, TIME_SERIES_DATA_FOLDER, data_level, file_name
-                    ),
-                    "w",
-                ) as f:
+                abs_path = os.path.join(
+                    CURRENT_DIR, TIME_SERIES_DATA_FOLDER, data_level, file_name
+                )
+
+                # write to local file, upload to S3, delete local file
+                with open(abs_path, "w") as f:
                     json.dump(data_by_date, f)
+                s3_path = os.path.relpath(abs_path, CURRENT_DIR)
+                self.s3_client.upload_file(abs_path, self.s3_bucket, s3_path)
+                os.remove(abs_path)
+        print("  Done in {} secs".format(int(time.time() - start)))
 
     def submit_metadata(self):
-        print("Uploading to S3...")
+        print("Uploading other files to S3...")
         start = time.time()
 
-        s3_client = boto3.client("s3")
-        for folder in [MAP_DATA_FOLDER, TIME_SERIES_DATA_FOLDER]:
+        # files in TIME_SERIES_DATA_FOLDER have already been uploaded to S3
+        for folder in [MAP_DATA_FOLDER]:
             for abs_path, _, files in os.walk(os.path.join(CURRENT_DIR, folder)):
                 for file_name in files:
                     local_path = os.path.join(abs_path, file_name)
                     s3_path = os.path.relpath(local_path, CURRENT_DIR)
-                    s3_client.upload_file(local_path, self.s3_bucket, s3_path)
+                    self.s3_client.upload_file(local_path, self.s3_bucket, s3_path)
+                    os.remove(local_path)
 
-        print("Uploaded to S3 in {} secs".format(int(time.time() - start)))
+        print("  Done in {} secs".format(int(time.time() - start)))
         print("Done!")
