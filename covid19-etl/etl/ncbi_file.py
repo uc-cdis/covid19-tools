@@ -92,7 +92,6 @@ class NCBI_FILE(base.BaseETL):
                 f, accession_number = await self.process_line(
                     line, node_name, ext, headers, accession_number, n_rows, f
                 )
-
         except Exception as e:
             # close the opening file
             if f:
