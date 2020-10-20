@@ -13,15 +13,6 @@ from helper.format_helper import derived_submitter_id, format_submitter_id
 from helper.metadata_helper import MetadataHelper
 
 
-fields_mapping = {
-    # "patientid": ("subject", "submitter_id", None),
-    "offset": ("follow_up", "offset", int),
-    "age": ("demographic", "age", int),
-    "temperature": ("follow_up", "temperature", float),
-    "other_notes": ("imaging_file", "other_notes", None),
-}
-
-
 class NCBI(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
