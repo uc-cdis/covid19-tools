@@ -203,7 +203,7 @@ class MetadataHelper:
 
         self.records_to_submit = []
 
-    def query_metadata(self, query_string):
+    def query_node_data(self, query_string):
         @retry(Exception, tries=MAX_RETRIES, delay=2)
         def _post_request(headers, query_string):
             response = requests.post(
