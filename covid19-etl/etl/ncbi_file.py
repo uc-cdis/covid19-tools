@@ -67,7 +67,8 @@ class NCBI_FILE(base.BaseETL):
         return records
 
     async def file_to_submissions(self, filepath):
-        time.sleep(0.2)
+        # import pdb; pdb.set_trace()
+        # await asyncio.sleep(0.2)
         # filename = os.path.basename(filepath)
         # did, rev, md5, size = self.file_helper.find_by_name(filename)
         # if not did:
@@ -100,10 +101,8 @@ class NCBI_FILE(base.BaseETL):
         ):
             if f:
                 f.close()
-                asyncio.create_task(
-                    self.file_to_submissions(
-                        Path(f"{DATA_PATH}/{node_name}_{accession_number}.{ext}")
-                    )
+                await self.file_to_submissions(
+                    Path(f"{DATA_PATH}/{node_name}_{accession_number}.{ext}")
                 )
             accession_number = read_accession_number
             f = open(f"{DATA_PATH}/{node_name}_{accession_number}.{ext}", "w")
