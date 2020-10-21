@@ -1,6 +1,6 @@
 FROM python:3.8-slim-buster
 
-RUN apt update
+RUN apt update && apt install -y git jq curl bash
 
 # Installing gcloud package (includes gsutil)
 RUN curl https://dl.google.com/dl/cloudsdk/release/google-cloud-sdk.tar.gz > /tmp/google-cloud-sdk.tar.gz
