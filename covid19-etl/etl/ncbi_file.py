@@ -29,6 +29,7 @@ class NCBI_FILE(base.BaseETL):
         self.program_name = "open"
         self.project_code = "NCBI"
         self.queue = asyncio.Queue()
+        self.access_number_set = set()
 
         self.file_helper = FileHelper(
             base_url=self.base_url,
@@ -47,22 +48,13 @@ class NCBI_FILE(base.BaseETL):
         self.bucket = "sra-pub-sars-cov2-metadata-us-east-1"
         self.nodes = {
             "virus_sequence_contig": ["contigs/contigs.json"],
-            # "virus_sequence_peptide": ["peptides/peptides.json"],
-            # "virus_sequence_blastn": [
-            #     "blastn/blastn.tsv",
-            #     "acc\tqacc\tstaxid\tsacc\tslen\tlength\tbitscore\tscore\tpident\tsskingdom\tevalue\tssciname\n",
-            # ],
-            # "virus_sequence_notc": ["hmmsearch_notc/hmmsearch_notc.json"],
+            "virus_sequence_peptide": ["peptides/peptides.json"],
+            "virus_sequence_blastn": [
+                "blastn/blastn.tsv",
+                "acc\tqacc\tstaxid\tsacc\tslen\tlength\tbitscore\tscore\tpident\tsskingdom\tevalue\tssciname\n",
+            ],
+            "virus_sequence_notc": ["hmmsearch_notc/hmmsearch_notc.json"],
         }
-
-    def process(self, node_name, ext, key, excluded_set, headers=None):
-        loop = asyncio.get_event_loop()
-        try:
-            loop.run_until_complete(
-                self.index_ncbi_data_file(node_name, ext, key, excluded_set, headers)
-            )
-        finally:
-            loop.close()
 
     def get_existed_accession_numbers(self, node_name):
         query_string = "{ " + node_name + " (first:0) { submitter_id } }"
@@ -75,7 +67,7 @@ class NCBI_FILE(base.BaseETL):
         return records
 
     async def file_to_submissions(self, filepath):
-        time.sleep(1)
+        time.sleep(0.2)
         # filename = os.path.basename(filepath)
         # did, rev, md5, size = self.file_helper.find_by_name(filename)
         # if not did:
@@ -100,7 +92,8 @@ class NCBI_FILE(base.BaseETL):
 
         if read_accession_number in excluded_set:
             return f, accession_number
-        self.queue.put_nowait(read_accession_number)
+        # self.queue.put_nowait(read_accession_number)
+        self.access_number_set.add(f"{node_name}_{read_accession_number}")
 
         if not accession_number or int(read_accession_number[3:]) != int(
             accession_number[3:]
@@ -148,16 +141,7 @@ class NCBI_FILE(base.BaseETL):
             if f:
                 f.close()
             asyncio.sleep(10)
-
-    async def generate_submitting_accession_number(self):
-        L = []
-        while True:
-            e = await self.queue.get()
-            if e == None:
-                break
-            L.append(e)
-            self.queue.task_done()
-        return L
+        self.queue.put_nowait(None)
 
     def submit_metadata(self):
         start = time.strftime("%X")
@@ -177,10 +161,6 @@ class NCBI_FILE(base.BaseETL):
 
         try:
             loop.run_until_complete(asyncio.gather(*tasks))
-            loop.run_until_complete(self.queue.put(None))
-            print("Finish the first stage")
-            res = loop.run_until_complete(self.generate_submitting_accession_number())
-
         finally:
             loop.close()
         end = time.strftime("%X")
