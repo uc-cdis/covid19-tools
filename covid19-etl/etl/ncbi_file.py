@@ -7,6 +7,7 @@ import subprocess
 import shlex
 from contextlib import closing
 import asyncio
+import time
 
 from etl import base
 from helper.file_helper import FileHelper
@@ -46,12 +47,12 @@ class NCBI_FILE(base.BaseETL):
         self.bucket = "sra-pub-sars-cov2-metadata-us-east-1"
         self.nodes = {
             "virus_sequence_contig": ["contigs/contigs.json"],
-            "virus_sequence_peptide": ["peptides/peptides.json"],
-            "virus_sequence_blastn": [
-                "blastn/blastn.tsv",
-                "acc\tqacc\tstaxid\tsacc\tslen\tlength\tbitscore\tscore\tpident\tsskingdom\tevalue\tssciname\n",
-            ],
-            "virus_sequence_notc": ["hmmsearch_notc/hmmsearch_notc.json"],
+            # "virus_sequence_peptide": ["peptides/peptides.json"],
+            # "virus_sequence_blastn": [
+            #     "blastn/blastn.tsv",
+            #     "acc\tqacc\tstaxid\tsacc\tslen\tlength\tbitscore\tscore\tpident\tsskingdom\tevalue\tssciname\n",
+            # ],
+            # "virus_sequence_notc": ["hmmsearch_notc/hmmsearch_notc.json"],
         }
 
     def process(self, node_name, ext, key, excluded_set, headers=None):
@@ -74,7 +75,7 @@ class NCBI_FILE(base.BaseETL):
         return records
 
     async def file_to_submissions(self, filepath):
-        asyncio.sleep(0.5)
+        time.sleep(1)
         # filename = os.path.basename(filepath)
         # did, rev, md5, size = self.file_helper.find_by_name(filename)
         # if not did:
@@ -139,6 +140,9 @@ class NCBI_FILE(base.BaseETL):
                     f,
                     excluded_set,
                 )
+                n_rows += 1
+                if n_rows % 10000 == 0:
+                    print(f"Finish process {n_rows} of file {node_name}")
         except Exception as e:
             # close the file
             if f:
@@ -156,6 +160,7 @@ class NCBI_FILE(base.BaseETL):
         return L
 
     def submit_metadata(self):
+        start = time.strftime("%X")
         loop = asyncio.get_event_loop()
         tasks = []
         for node_name, value in self.nodes.items():
@@ -178,6 +183,8 @@ class NCBI_FILE(base.BaseETL):
 
         finally:
             loop.close()
+        end = time.strftime("%X")
+        print(f"Running time: From {start} to {end}")
 
 
 class SRA_TAXONOMY_FILE(NCBI_FILE):
