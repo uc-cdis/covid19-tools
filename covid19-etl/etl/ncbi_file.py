@@ -27,10 +27,7 @@ class NCBI_FILE(base.BaseETL):
 
         self.program_name = "open"
         self.project_code = "NCBI"
-
-        self.latest_srr_number = "SRR0"
-        self.latest_drr_number = "DRR0"
-        self.latest_err_number = "ERR0"
+        self.queue = asyncio.Queue()
 
         self.file_helper = FileHelper(
             base_url=self.base_url,
@@ -46,13 +43,22 @@ class NCBI_FILE(base.BaseETL):
             access_token=access_token,
         )
 
-    def process(self, node_name, ext, bucket, key, excluded_set, headers=None):
+        self.bucket = "sra-pub-sars-cov2-metadata-us-east-1"
+        self.nodes = {
+            "virus_sequence_contig": ["contigs/contigs.json"],
+            "virus_sequence_peptide": ["peptides/peptides.json"],
+            "virus_sequence_blastn": [
+                "blastn/blastn.tsv",
+                "acc\tqacc\tstaxid\tsacc\tslen\tlength\tbitscore\tscore\tpident\tsskingdom\tevalue\tssciname\n",
+            ],
+            "virus_sequence_notc": ["hmmsearch_notc/hmmsearch_notc.json"],
+        }
+
+    def process(self, node_name, ext, key, excluded_set, headers=None):
         loop = asyncio.get_event_loop()
         try:
             loop.run_until_complete(
-                self.stream_object_from_s3(
-                    node_name, ext, bucket, key, excluded_set, headers
-                )
+                self.index_ncbi_data_file(node_name, ext, key, excluded_set, headers)
             )
         finally:
             loop.close()
@@ -68,16 +74,17 @@ class NCBI_FILE(base.BaseETL):
         return records
 
     async def file_to_submissions(self, filepath):
-        filename = os.path.basename(filepath)
-        did, rev, md5, size = self.file_helper.find_by_name(filename)
-        if not did:
-            guid = self.file_helper.upload_file(filepath)
-            print(f"file {filepath.name} uploaded with guid: {guid}")
-        else:
-            print(f"file {filepath.name} exists in indexd... skipping...")
+        asyncio.sleep(0.5)
+        # filename = os.path.basename(filepath)
+        # did, rev, md5, size = self.file_helper.find_by_name(filename)
+        # if not did:
+        #     guid = self.file_helper.upload_file(filepath)
+        #     print(f"file {filepath.name} uploaded with guid: {guid}")
+        # else:
+        #     print(f"file {filepath.name} exists in indexd... skipping...")
         os.remove(filepath)
 
-    async def process_line(
+    async def process_row(
         self, line, node_name, ext, headers, accession_number, n_rows, f, excluded_set
     ):
         r1 = re.findall("[SDE]RR\d+", line)
@@ -92,6 +99,7 @@ class NCBI_FILE(base.BaseETL):
 
         if read_accession_number in excluded_set:
             return f, accession_number
+        self.queue.put_nowait(read_accession_number)
 
         if not accession_number or int(read_accession_number[3:]) != int(
             accession_number[3:]
@@ -100,7 +108,7 @@ class NCBI_FILE(base.BaseETL):
                 f.close()
                 asyncio.create_task(
                     self.file_to_submissions(
-                        f"{DATA_PATH}/{node_name}_{accession_number}.{ext}"
+                        Path(f"{DATA_PATH}/{node_name}_{accession_number}.{ext}")
                     )
                 )
             accession_number = read_accession_number
@@ -110,18 +118,18 @@ class NCBI_FILE(base.BaseETL):
         f.write(line)
         return f, accession_number
 
-    async def stream_object_from_s3(
-        self, node_name, ext, bucket, key, excluded_set, headers=None
+    async def index_ncbi_data_file(
+        self, node_name, ext, key, excluded_set, headers=None
     ):
         s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
-        s3_object = s3.Object(bucket, key)
+        s3_object = s3.Object(self.bucket, key)
         line_stream = codecs.getreader("utf-8")
         accession_number = None
         n_rows = 0
         f = None
         try:
             for line in line_stream(s3_object.get()["Body"]):
-                f, accession_number = await self.process_line(
+                f, accession_number = await self.process_row(
                     line,
                     node_name,
                     ext,
@@ -132,66 +140,44 @@ class NCBI_FILE(base.BaseETL):
                     excluded_set,
                 )
         except Exception as e:
-            # close the opening file
+            # close the file
             if f:
                 f.close()
+            asyncio.sleep(10)
 
+    async def generate_submitting_accession_number(self):
+        L = []
+        while True:
+            e = await self.queue.get()
+            if e == None:
+                break
+            L.append(e)
+            self.queue.task_done()
+        return L
 
-class BLASTN_FILE(NCBI_FILE):
-    def __init__(self, base_url, access_token, s3_bucket):
-        super().__init__(base_url, access_token, s3_bucket)
-        self.headers = "acc\tqacc\tstaxid\tsacc\tslen\tlength\tbitscore\tscore\tpident\tsskingdom\tevalue\tssciname\n"
-        self.bucket = "sra-pub-sars-cov2-metadata-us-east-1"
-        self.key = "blastn/blastn.tsv"
-        self.ext = "tsv"
-        self.node_name = "virus_sequence_blastn"
+    def submit_metadata(self):
+        loop = asyncio.get_event_loop()
+        tasks = []
+        for node_name, value in self.nodes.items():
+            key = value[0]
+            headers = value[1] if len(value) > 1 else None
 
-    def upload_and_index_the_file(self):
-        lists = super().get_existed_accession_numbers(self.node_name)
-        super().process_line(
-            self.node_name, "tsv", self.bucket, self.key, set(lists), self.headers
-        )
+            lists = []
+            ext = re.search("\.(.*)$", key).group(1)
+            tasks.append(
+                asyncio.ensure_future(
+                    self.index_ncbi_data_file(node_name, ext, key, set(lists), headers)
+                )
+            )
 
+        try:
+            loop.run_until_complete(asyncio.gather(*tasks))
+            loop.run_until_complete(self.queue.put(None))
+            print("Finish the first stage")
+            res = loop.run_until_complete(self.generate_submitting_accession_number())
 
-class PEPTIDE_FILE(NCBI_FILE):
-    def __init__(self, base_url, access_token, s3_bucket):
-        super().__init__(base_url, access_token, s3_bucket)
-        self.bucket = "sra-pub-sars-cov2-metadata-us-east-1"
-        self.key = "peptides/peptides.json"
-        self.ext = "json"
-        self.node_name = "virus_sequence_peptide"
-
-    def upload_and_index_the_file(self):
-        lists = super().get_existed_accession_numbers(self.node_name)
-        super().process(
-            self.node_name, "tsv", self.bucket, self.key, set(lists), self.headers
-        )
-
-
-class CONTIG_FILE(NCBI_FILE):
-    def __init__(self, base_url, access_token, s3_bucket):
-        super().__init__(base_url, access_token, s3_bucket)
-        self.bucket = "sra-pub-sars-cov2-metadata-us-east-1"
-        self.key = "contigs/contigs.json"
-        self.ext = "json"
-        self.node_name = "virus_sequence_contig"
-
-    def upload_and_index_the_file(self):
-        lists = super().get_existed_accession_numbers(self.node_name)
-        super().process(self.node_name, "tsv", self.bucket, self.key, set(lists))
-
-
-class HMMSEARCH_FILE(NCBI_FILE):
-    def __init__(self, base_url, access_token, s3_bucket):
-        super().__init__(base_url, access_token, s3_bucket)
-        self.bucket = "sra-pub-sars-cov2-metadata-us-east-1"
-        self.key = "hmmsearch_notc/hmmsearch_notc.json"
-        self.ext = "json"
-        self.node_name = "virus_sequence_hmmsearch"
-
-    def upload_and_index_the_file(self):
-        lists = super().get_existed_accession_numbers(self.node_name)
-        super().process(self.node_name, "tsv", self.bucket, self.key, set(lists))
+        finally:
+            loop.close()
 
 
 class SRA_TAXONOMY_FILE(NCBI_FILE):

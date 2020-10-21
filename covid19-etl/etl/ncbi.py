@@ -45,18 +45,22 @@ class NCBI(base.BaseETL):
 
     def files_to_submissions(self):
         cmc_submitter_id = format_submitter_id("cmc_ncbi", {})
+        run_taxonomy_submitter_id = format_submitter_id(
+            "virus_sequence_run_taxonomy", {}
+        )
         nodes = {
             "core_metadata_collection": {
                 "submitter_id": cmc_submitter_id,
                 "projects": [{"code": self.project_code}],
-            }
+            },
+            "virus_sequence_run_taxonomy": {
+                "submitter_id": run_taxonomy_submitter_id,
+                "core_metadata_collections": [{"submitter_id": cmc_submitter_id}],
+                "data_type": "Virus Sequence Blastn",
+                "data_format": "csv",
+                "data_category": "Kmer-based Taxonomy Analysis",
+            },
         }
-        latest_drr_number = 0
-        latest_err_number = 0
-        latest_srr_number = 0
-        current_drr_number = 0
-        current_err_number = 0
-        current_srr_number = 0
 
         s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
         s3_object = s3.Object(
@@ -68,38 +72,10 @@ class NCBI(base.BaseETL):
             if len(r1) != 1:
                 raise Exception("Unexpected format of contigs.json")
             accession_number = r1[0]
-            print(accession_number)
             counter = int(accession_number[3:])
-            if (
-                "DRR" in accession_number
-                and counter < latest_drr_number
-                or counter == current_drr_number
-            ):
-                continue
-            if (
-                "ERR" in accession_number
-                and counter < latest_err_number
-                or counter == current_err_number
-            ):
-                continue
-            if (
-                "SRR" in accession_number
-                and counter < latest_srr_number
-                or counter == current_srr_number
-            ):
-                continue
-            if "DRR" in accession_number:
-                current_drr_number = counter
-            elif "ERR" in accession_number:
-                current_err_number = counter
-            elif "SRR" in accession_number:
-                current_srr_number = counter
             self.parse_accession_number(accession_number, cmc_submitter_id)
 
     def parse_accession_number(self, accession_number, cmc_submitter_id):
-        run_taxonomy_submitter_id = format_submitter_id(
-            "virus_sequence_run_taxonomy", {"accession_number": {accession_number}}
-        )
         contig_submitter_id = format_submitter_id(
             "virus_sequence_contig", {"accession_number": accession_number}
         )
@@ -117,14 +93,6 @@ class NCBI(base.BaseETL):
         )
 
         nodes = {
-            "virus_sequence_run_taxonomy": {
-                "submitter_id": run_taxonomy_submitter_id,
-                "core_metadata_collections": [{"submitter_id": cmc_submitter_id}],
-                "accession_number": accession_number,
-                "data_type": "Virus Sequence Blastn",
-                "data_format": "csv",
-                "data_category": "Kmer-based Taxonomy Analysis",
-            },
             "virus_sequence_contig": {
                 "submitter_id": contig_submitter_id,
                 "core_metadata_collections": [{"submitter_id": cmc_submitter_id}],
