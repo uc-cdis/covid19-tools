@@ -21,16 +21,17 @@ class AsyncFileHelper:
                 r.raise_for_status()
                 data = await r.json()
                 if data["records"]:
-                    assert (
-                        len(data["records"]) == 1
-                    ), f"multiple records for filename, something wrong: {filename}"
-                    did = data["records"][0]["did"]
-                    rev = data["records"][0]["rev"]
-                    md5sum = data["records"][0]["hashes"]["md5"]
-                    size = data["records"][0]["size"]
-                    authz = data["records"][0]["authz"]
-                    return did, rev, md5sum, size, authz
-                return None, None, None, None, None
+                    for record in data["records"]:
+                        if record.get("hashes", {}).get("md5"):
+                            break
+                    did = record["did"]
+                    rev = record["rev"]
+                    md5sum = record.get("hashes", {}).get("md5", "")
+                    size = record["size"]
+                    authz = record["authz"]
+                    filename = record["file_name"]
+                    return did, rev, md5sum, size, filename, authz
+                return None, None, None, None, "", None
 
     async def async_update_authz(self, did, rev):
         """Asynchronous update authz field for did"""

@@ -30,7 +30,7 @@ class NCBI_FILE(base.BaseETL):
         super().__init__(base_url, access_token, s3_bucket)
 
         self.program_name = "open"
-        self.project_code = "NCBI_COVID-19"
+        self.project_code = "ncbi-covid-19"
         self.access_number_set = set()
 
         self.file_helper = AsyncFileHelper(
@@ -55,7 +55,7 @@ class NCBI_FILE(base.BaseETL):
                 "blastn/blastn.tsv",
                 "acc\tqacc\tstaxid\tsacc\tslen\tlength\tbitscore\tscore\tpident\tsskingdom\tevalue\tssciname\n",
             ],
-            "virus_sequence_notc": ["hmmsearch_notc/hmmsearch_notc.json"],
+            "virus_sequence_hmm_search": ["hmmsearch_notc/hmmsearch_notc.json"],
             "virus_sequence_run_taxonomy": [
                 "sra_taxonomy/coronaviridae_07_31_2020_000000000000.gz"
             ],
@@ -73,11 +73,10 @@ class NCBI_FILE(base.BaseETL):
             key = value[0]
             headers = value[1] if len(value) > 1 else None
 
-            lists = []
             ext = re.search("\.(.*)$", key).group(1)
             tasks.append(
                 asyncio.ensure_future(
-                    self.index_ncbi_data_file(node_name, ext, key, set(lists), headers)
+                    self.index_ncbi_data_file(node_name, ext, key, headers)
                 )
             )
 
@@ -138,11 +137,9 @@ class NCBI_FILE(base.BaseETL):
                 for row in rows:
                     await out.write(row)
                     await out.flush()
-            await self.file_to_indexd(file_path)
+            await self.file_to_indexd(Path(file_path))
 
-    async def index_ncbi_data_file(
-        self, node_name, ext, key, excluded_set, headers=None
-    ):
+    async def index_ncbi_data_file(self, node_name, ext, key, headers=None):
         """
         Asynchornous function to index NCBI data file into multiple smaller files
         by accession number and index them to indexd
@@ -151,10 +148,9 @@ class NCBI_FILE(base.BaseETL):
             node_name(str): node name
             ext(str): the file extension (json|tsv|csv)
             key(str): the s3 object key where the file lives
-            excluded_set(set): a set of accession number need to be ignored
             headers(str): headers of the input file
         """
-
+        excluded_set = await self.get_existed_accession_numbers(node_name)
         s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
         s3_object = s3.Object(self.bucket, key)
         line_stream = codecs.getreader("utf-8")
@@ -190,6 +186,21 @@ class NCBI_FILE(base.BaseETL):
         )
 
         return accession_numbers
+
+    async def get_existed_accession_numbers(self, node_name):
+        """
+        Get a list of existed accession numbers from the graph
+
+        Args:
+            node_name(str): node name
+        Returns:
+            list(str): list of accession numbers
+        """
+
+        query_string = "{ " + node_name + " (first:0) { submitter_id } }"
+        response = await self.metadata_helper.query_node_data(query_string)
+        records = response["data"][node_name]
+        return set([record["submitter_id"] for record in records])
 
     async def parse_row(
         self, line, node_name, ext, headers, accession_number, n_rows, f, excluded_set
@@ -243,7 +254,7 @@ class NCBI_FILE(base.BaseETL):
     async def file_to_indexd(self, filepath):
         """Asynchornous call to index the data file"""
         filename = os.path.basename(filepath)
-        did, rev, md5, size, authz = await self.file_helper.async_find_by_name(filename)
+        did, _, _, _, _, _ = await self.file_helper.async_find_by_name(filename)
         if not did:
             try:
                 guid = await self.file_helper.async_upload_file(filepath)
