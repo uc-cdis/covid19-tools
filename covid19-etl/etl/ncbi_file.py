@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import aiofiles as aiof
 import json
 import re
 import gzip
@@ -29,7 +30,7 @@ class NCBI_FILE(base.BaseETL):
         super().__init__(base_url, access_token, s3_bucket)
 
         self.program_name = "open"
-        self.project_code = "NCBI"
+        self.project_code = "NCBI_COVID-19"
         self.access_number_set = set()
 
         self.file_helper = AsyncFileHelper(
@@ -55,6 +56,9 @@ class NCBI_FILE(base.BaseETL):
                 "acc\tqacc\tstaxid\tsacc\tslen\tlength\tbitscore\tscore\tpident\tsskingdom\tevalue\tssciname\n",
             ],
             "virus_sequence_notc": ["hmmsearch_notc/hmmsearch_notc.json"],
+            "virus_sequence_run_taxonomy": [
+                "sra_taxonomy/coronaviridae_07_31_2020_000000000000.gz"
+            ],
         }
 
     def submit_metadata(self):
@@ -64,6 +68,8 @@ class NCBI_FILE(base.BaseETL):
         loop = asyncio.get_event_loop()
         tasks = []
         for node_name, value in self.nodes.items():
+            if node_name == "virus_sequence_run_taxonomy":
+                continue
             key = value[0]
             headers = value[1] if len(value) > 1 else None
 
@@ -76,36 +82,70 @@ class NCBI_FILE(base.BaseETL):
             )
 
         try:
-            loop.run_until_complete(asyncio.gather(*tasks))
+            results = loop.run_until_complete(asyncio.gather(*tasks))
+
+            loop.run_until_complete(
+                asyncio.gather(
+                    self.index_virus_sequence_run_taxonomy_file(set(results[0]))
+                )
+            )
+
         finally:
             loop.close()
         end = time.strftime("%X")
         print(f"Running time: From {start} to {end}")
 
-    def get_existed_accession_numbers(self, node_name):
+    async def index_virus_sequence_run_taxonomy_file(self, accession_numbers):
         """
-        Get a list of existed accession numbers
+        Chop the index virus sequence run taxonomy file into multiple smaller files
+        by accession number and index them.
 
         Args:
-            node_name(str): node name
-        Returns:
-            list(str): list of accession numbers
+            accession_numbers(set): a set of the interested accession numbers
         """
 
-        query_string = "{ " + node_name + " (first:0) { submitter_id } }"
-        response = self.metadata_helper.query_node_data(query_string)
-        if response.status_code != 200:
-            raise Exception(
-                f"ERROR: can not get a list of accession numbers of the node {node_name}"
+        s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
+        s3_object = s3.Object(self.bucket, self.nodes["virus_sequence_run_taxonomy"][0])
+        file_path = f"{DATA_PATH}/virus_sequence_run_taxonomy.gz"
+        s3_object.download_file(file_path)
+
+        results = {}
+        with gzip.open(file_path, "rb") as f:
+            line = f.readline()
+            if line:
+                header = line.decode("UTF-8")
+            while line:
+                row = line.decode("UTF-8")
+                words = row.split(",")
+                if (
+                    words
+                    and words[0] in accession_numbers
+                    or accession_numbers == {"*"}
+                ):
+                    if words[0] in results:
+                        results[words[0]].append(row)
+                    else:
+                        results[words[0]] = [row]
+
+                line = f.readline()
+
+        for accession_number, rows in results.items():
+            file_path = (
+                f"{DATA_PATH}/virus_sequence_run_taxonomy_{accession_number}.csv"
             )
-        records = response.json()["data"][node_name]
-        return records
+            async with aiof.open(file_path, "w") as out:
+                await out.write(header)
+                for row in rows:
+                    await out.write(row)
+                    await out.flush()
+            await self.file_to_indexd(file_path)
 
     async def index_ncbi_data_file(
         self, node_name, ext, key, excluded_set, headers=None
     ):
         """
-        Asynchornous function to index NCBI data file
+        Asynchornous function to index NCBI data file into multiple smaller files
+        by accession number and index them to indexd
 
         Args:
             node_name(str): node name
@@ -118,6 +158,7 @@ class NCBI_FILE(base.BaseETL):
         s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
         s3_object = s3.Object(self.bucket, key)
         line_stream = codecs.getreader("utf-8")
+        accession_numbers = []
         accession_number = None
         n_rows = 0
         f = None
@@ -133,6 +174,7 @@ class NCBI_FILE(base.BaseETL):
                     f,
                     excluded_set,
                 )
+                accession_numbers.append(accession_number)
                 n_rows += 1
                 if n_rows % 10000 == 0:
                     print(f"Finish process {n_rows} of file {node_name}")
@@ -142,7 +184,12 @@ class NCBI_FILE(base.BaseETL):
                 if f:
                     f.close()
                 await asyncio.sleep(10)
-        self.queue.put_nowait(None)
+        # Index the last file
+        await self.file_to_indexd(
+            Path(f"{DATA_PATH}/{node_name}_{accession_number}.{ext}")
+        )
+
+        return accession_numbers
 
     async def parse_row(
         self, line, node_name, ext, headers, accession_number, n_rows, f, excluded_set
@@ -182,7 +229,7 @@ class NCBI_FILE(base.BaseETL):
         if not accession_number or read_accession_number != accession_number:
             if f:
                 f.close()
-                await self.file_to_submissions(
+                await self.file_to_indexd(
                     Path(f"{DATA_PATH}/{node_name}_{accession_number}.{ext}")
                 )
 
@@ -193,9 +240,8 @@ class NCBI_FILE(base.BaseETL):
         f.write(line)
         return f, accession_number
 
-    async def file_to_submissions(self, filepath):
-        """Asynchornous call to submit the data file"""
-
+    async def file_to_indexd(self, filepath):
+        """Asynchornous call to index the data file"""
         filename = os.path.basename(filepath)
         did, rev, md5, size, authz = await self.file_helper.async_find_by_name(filename)
         if not did:
@@ -204,25 +250,6 @@ class NCBI_FILE(base.BaseETL):
                 print(f"file {filepath.name} uploaded with guid: {guid}")
             except Exception as e:
                 print(f"ERROR: Fail to upload file {filepath}. Detail {e}")
-        elif not authz:
-            try:
-                await self.file_helper.async_update_authz(did, rev)
-                print(f"file {filepath.name} exists in indexd... skipping...")
-            except Exception as e:
-                print(f"ERROR: Fail to update authz for file {did}. Detail {e}")
+        else:
+            print(f"file {filepath.name} exists in indexd... skipping...")
         os.remove(filepath)
-
-
-class SRA_TAXONOMY_FILE(NCBI_FILE):
-    def __init__(self, base_url, access_token, s3_bucket):
-        super().__init__(base_url, access_token, s3_bucket)
-        self.bucket = "sra-pub-sars-cov2-metadata-us-east-1"
-        self.key = "sra_taxonomy/coronaviridae_07_31_2020_000000000000.gz"
-        self.node_name = "virus_sequence_run_taxonomy"
-
-    def submit_metadata(self):
-        s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
-        s3_object = s3.Object(self.bucket, self.key)
-        file_path = f"{DATA_PATH}/{self.node_name}_11.gz"
-        s3_object.download_file(file_path)
-        asyncio.run(super().file_to_submissions(Path(file_path)))

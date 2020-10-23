@@ -1,3 +1,5 @@
+import asyncio
+from aiohttp import ClientSession
 import datetime
 import json
 from math import ceil
@@ -203,18 +205,17 @@ class MetadataHelper:
 
         self.records_to_submit = []
 
-    def query_node_data(self, query_string):
-        @retry(Exception, tries=MAX_RETRIES, delay=2)
-        def _post_request(headers, query_string):
-            response = requests.post(
-                "{}/api/v0/submission/graphql".format(self.base_url),
-                json={"query": query_string, "variables": None},
-                headers=headers,
-            )
-            if response.status_code != 200:
-                raise Exception(
-                    f"ERROR: Can not query {query_string}. Detail {response.status_code}"
-                )
-            return response
+    async def query_node_data(self, query_string):
+        async def _post_request(headers, query_string):
+            url = f"{self.base_url}/api/v0/submission/graphql"
+            async with ClientSession() as session:
+                async with session.post(
+                    url,
+                    json={"query": query_string, "variables": None},
+                    headers=headers,
+                ) as response:
+                    response.raise_for_status()
+                    response = await response.json()
+                    return response
 
-        return _post_request(self.headers, query_string)
+        return await _post_request(self.headers, query_string)
