@@ -1,6 +1,9 @@
+import os
 import asyncio
 import csv
 import json
+import gzip
+import time
 from pathlib import Path
 import re
 
@@ -16,6 +19,8 @@ from helper.async_file_helper import AsyncFileHelper
 from helper.format_helper import derived_submitter_id, format_submitter_id
 from helper.metadata_helper import MetadataHelper
 from etl.ncbi_file import NCBI_FILE
+
+DATA_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 def format_location_submitter_id(country):
@@ -65,6 +70,47 @@ class NCBI(base.BaseETL):
             "virus_sequence_hmmsearch": [],
         }
 
+        self.submitting_data["core_metadata_collection"].append(
+            {
+                "submitter_id": format_submitter_id("cmc_ncbi_covid19", {}),
+                "projects": [{"code": self.project_code}],
+            }
+        )
+
+    def submit_metadata(self):
+
+        start = time.strftime("%X")
+        loop = asyncio.get_event_loop()
+        tasks = []
+
+        for node_name, _ in self.data_file.nodes.items():
+            if node_name == "virus_sequence_run_taxonomy":
+                tasks.append(
+                    asyncio.ensure_future(
+                        self.files_to_virus_sequence_run_taxonomy_submission()
+                    )
+                )
+            else:
+                tasks.append(
+                    asyncio.ensure_future(self.files_to_node_submissions(node_name))
+                )
+
+        try:
+            loop.run_until_complete(asyncio.gather(*tasks))
+        finally:
+            loop.close()
+        end = time.strftime("%X")
+
+        for k, v in self.submitting_data.items():
+            print(f"Submitting {k} data...")
+            for node in v:
+                node_record = {"type": k}
+                node_record.update(node)
+                self.metadata_helper.add_record_to_submit(node_record)
+            self.metadata_helper.batch_submit_records()
+
+        print(f"Running time: From {start} to {end}")
+
     async def get_existed_accession_numbers(self, node_name):
         """
         Get a list of existed accession numbers from the graph
@@ -80,15 +126,54 @@ class NCBI(base.BaseETL):
         records = response["data"][node_name]
         return set([record["submitter_id"] for record in records])
 
+    async def get_submitting_accession_number_list_for_run_taxonomy(self):
+        """get submitting number list for run_taxonomy file"""
+
+        node_name = "virus_sequence_run_taxonomy"
+        submitting_accession_numbers = set()
+        existed_accession_numbers = await self.get_existed_accession_numbers(node_name)
+
+        s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
+        s3_object = s3.Object(self.data_file.bucket, self.data_file.nodes[node_name][0])
+        file_path = f"{DATA_PATH}/virus_sequence_run_taxonomy.gz"
+        s3_object.download_file(file_path)
+
+        results = {}
+        n_lines = 0
+        with gzip.open(file_path, "rb") as f:
+            while True:
+                bline = f.readline()
+                if not bline:
+                    break
+                n_lines += 1
+                if n_lines % 10000 == 0:
+                    print(f"Finish process {n_lines} of file {node_name}")
+                line = bline.decode("UTF-8")
+                r1 = re.findall("[SDE]RR\d+", line)
+                if len(r1) == 0:
+                    continue
+                read_accession_number = r1[0]
+                if (
+                    f"{node_name}_{read_accession_number}"
+                    not in existed_accession_numbers
+                ):
+                    submitting_accession_numbers.add(read_accession_number)
+        return list(submitting_accession_numbers)
+
     async def get_submitting_accession_number_list(self, node_name):
+        """get submitting acession number list"""
+
         submitting_accession_numbers = set()
         existed_accession_numbers = await self.get_existed_accession_numbers(node_name)
         s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
         s3_object = s3.Object(self.data_file.bucket, self.data_file.nodes[node_name][0])
         line_stream = codecs.getreader("utf-8")
-
+        n_lines = 0
         for line in line_stream(s3_object.get()["Body"]):
             r1 = re.findall("[SDE]RR\d+", line)
+            n_lines += 1
+            if n_lines % 10000 == 0:
+                print(f"Finish process {n_lines} of file {node_name}")
             if len(r1) == 0:
                 continue
             read_accession_number = r1[0]
@@ -98,22 +183,30 @@ class NCBI(base.BaseETL):
         return list(submitting_accession_numbers)
 
     async def files_to_virus_sequence_run_taxonomy_submission(self):
+        """get submitting data for virus_sequence_run_taxonomy node"""
 
-        virus_sequence_run_taxonomy_submitter_id = format_submitter_id(
-            "virus_sequences_run_taxonomy_submitter_id", {}
+        submitting_accession_numbers = (
+            await self.get_submitting_accession_number_list_for_run_taxonomy()
         )
-        cmc_submitter_id = format_submitter_id("cmc_ncbi", {})
 
-        submitted_json = {
-            "submitter_id": virus_sequence_run_taxonomy_submitter_id,
-            "core_metadata_collections": [{"submitter_id": cmc_submitter_id}],
-            "virus_sequence_contigs": [{"submitter_id": contig_submitter_id}],
-            "accession_number": accession_number,
-            "data_type": "Contig Taxonomy",
-            "data_format": "json",
-            "data_category": "Kmer-based Taxonomy Analysis of Contigs",
-        }
-        self.submitting_data["virus_sequence_run_taxonomy"].append(submitted_json)
+        cmc_submitter_id = format_submitter_id("cmc_ncbi_covid19", {})
+        for accession_number in submitting_accession_numbers:
+            contig_submitter_id = format_submitter_id(
+                "virus_sequence_contig", {"accession_number": accession_number}
+            )
+            virus_sequence_run_taxonomy_submitter_id = format_submitter_id(
+                "virus_sequences_run_taxonomy_submitter_id", {}
+            )
+            submitted_json = {
+                "submitter_id": virus_sequence_run_taxonomy_submitter_id,
+                "core_metadata_collections": [{"submitter_id": cmc_submitter_id}],
+                "virus_sequence_contigs": [{"submitter_id": contig_submitter_id}],
+                "accession_number": accession_number,
+                "data_type": "Contig Taxonomy",
+                "data_format": "json",
+                "data_category": "Kmer-based Taxonomy Analysis of Contigs",
+            }
+            self.submitting_data["virus_sequence_run_taxonomy"].append(submitted_json)
 
     async def files_to_node_submissions(self, node_name):
         """Get submitting data for the node"""
@@ -127,7 +220,7 @@ class NCBI(base.BaseETL):
                 node_name, {"accession_number": accession_number}
             )
 
-            cmc_submitter_id = format_submitter_id("cmc_ncbi", {})
+            cmc_submitter_id = format_submitter_id("cmc_ncbi_covid19", {})
 
             contig_submitter_id = format_submitter_id(
                 "virus_sequence_contig", {"accession_number": accession_number}
@@ -190,22 +283,22 @@ class NCBI(base.BaseETL):
             else:
                 raise Exception(f"ERROR: {node_name} does not exist")
 
-            (
-                did,
-                rev,
-                md5sum,
-                filesize,
-            ) = await self.async_file_helper.async_find_by_name(filename=filename)
-            did, rev, md5sum, filesize = did, rev, md5sum, filesize
+            # (
+            #     did,
+            #     rev,
+            #     md5sum,
+            #     filesize,
+            # ) = await self.file_helper.async_find_by_name(filename=filename)
+            # did, rev, md5sum, filesize = did, rev, md5sum, filesize
 
-            assert (
-                did
-            ), f"file {node_name} does not exist in the index, rerun NCBI_FILE ETL"
-            self.file_helper.async_update_authz(did=did, rev=rev)
+            # assert (
+            #     did
+            # ), f"file {node_name} does not exist in the index, rerun NCBI_FILE ETL"
+            # self.file_helper.async_update_authz(did=did, rev=rev)
 
-            submitted_json["file_size"] = filesize
-            submitted_json["md5sum"] = md5sum
-            submitted_json["object_id"] = did
+            # submitted_json["file_size"] = filesize
+            # submitted_json["md5sum"] = md5sum
+            # submitted_json["object_id"] = did
 
             self.submitting_data[node_name].append(submitted_json)
 
@@ -214,7 +307,7 @@ class NCBI(base.BaseETL):
 
         stm = 'SELECT * FROM `nih-sra-datastore`.sra.metadata where consent = "public"'
 
-        assert (accession_numbers, []), "accession_numbers need to be not empty"
+        assert accession_numbers == [], "accession_numbers need to be not empty"
         stm = stm + f' and (acc = "{accession_numbers[0]}"'
         for accession_number in accession_numbers[1:]:
             stm = stm + f' or acc like "accession_number"'
@@ -298,35 +391,3 @@ class NCBI(base.BaseETL):
         self.submitting_data["virus_sequence"].append(virus_sequence)
         self.submitting_data["summary_location"].append(summary_location)
         self.submitting_data["sample"].append(sample)
-
-    def submit_metadata(self):
-
-        for node_name in []:
-            self.files_to_submissions(node_name)
-        return
-
-        # for node_name, value in self.nodes.items():
-        #     key = value[0]
-        #     headers = value[1] if len(value) > 1 else None
-
-        #     lists = []
-        #     ext = re.search("\.(.*)$", key).group(1)
-        #     tasks.append(
-        #         asyncio.ensure_future(
-        #             self.index_ncbi_data_file(node_name, ext, key, set(lists), headers)
-        #         )
-        #     )
-
-        # print("Submitting data...")
-
-        # for k, v in self.nodes.items():
-        #     submitter_id_exist = []
-        #     print(f"Submitting {k} data...")
-        #     for node in v:
-        #         node_record = {"type": k}
-        #         node_record.update(node)
-        #         submitter_id = node_record["submitter_id"]
-        #         if submitter_id not in submitter_id_exist:
-        #             submitter_id_exist.append(submitter_id)
-        #             self.metadata_helper.add_record_to_submit(node_record)
-        #     self.metadata_helper.batch_submit_records()
