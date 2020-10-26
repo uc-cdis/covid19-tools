@@ -148,16 +148,29 @@ class NCBI_FILE(base.BaseETL):
             key(str): the s3 object key where the file lives
             headers(str): headers of the input file
         """
+        # Build excluded_set which contains all existed accession numbers
+        # Don't need to re-submit the data already exist in the database
         excluded_set = await self.get_existed_accession_numbers(node_name)
+
+        # Setup s3 connection for data streaming
         s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
         s3_object = s3.Object(self.bucket, key)
         line_stream = codecs.getreader("utf-8")
+
+        #
         accession_numbers = set()
+
+        # Keep track current accession number
         accession_number = None
+        # Keep track number of read rows
         n_rows = 0
+        # Keep track the current opening file
         f = None
+
+        # Stream the data from s3 bucket by reading line by line
         for line in line_stream(s3_object.get()["Body"]):
             try:
+                # Handle the line.
                 f, accession_number = await self.parse_row(
                     line,
                     node_name,
@@ -221,6 +234,7 @@ class NCBI_FILE(base.BaseETL):
             accession_number(string): the current accession number
         """
 
+        # Parse for the accession number
         r1 = re.findall("[SDE]RR\d+", line)
         if len(r1) == 0 and n_rows == 0:
             return f, accession_number
@@ -231,10 +245,15 @@ class NCBI_FILE(base.BaseETL):
         )
         read_accession_number = r1[0]
 
+        # Ignore the accession number existing in the excluded set
         if read_accession_number in excluded_set:
             return f, accession_number
+
+        # keep track the set of accession numbers
         self.access_number_set.add(f"{node_name}_{read_accession_number}")
 
+        # If the line contains new accession_number, close the opening file, index it
+        # and open new file for the new accession_number
         if not accession_number or read_accession_number != accession_number:
             if f:
                 f.close()
