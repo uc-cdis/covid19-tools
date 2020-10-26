@@ -271,13 +271,28 @@ class NCBI_FILE(base.BaseETL):
     async def file_to_indexd(self, filepath):
         """Asynchornous call to index the data file"""
         filename = os.path.basename(filepath)
-        did, _, _, _, _, _ = await self.file_helper.async_find_by_name(filename)
-        if not did:
+        retrying = True
+        while retrying:
             try:
-                guid = await self.file_helper.async_upload_file(filepath)
-                print(f"file {filepath.name} uploaded with guid: {guid}")
+                did, _, _, _, _, _ = await self.file_helper.async_find_by_name(filename)
+                retrying = False
             except Exception as e:
-                print(f"ERROR: Fail to upload file {filepath}. Detail {e}")
+                print(
+                    f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying ..."
+                )
+                asyncio.sleep(5)
+
+        if not did:
+            retrying = True
+            while retrying:
+                try:
+                    guid = await self.file_helper.async_upload_file(filepath)
+                    print(f"file {filepath.name} uploaded with guid: {guid}")
+                    retrying = False
+                except Exception as e:
+                    print(
+                        f"ERROR: Fail to upload file {filepath}. Detail {e}. Retrying ..."
+                    )
+                    asyncio.sleep(5)
         else:
             print(f"file {filepath.name} exists in indexd... skipping...")
-        os.remove(filepath)
