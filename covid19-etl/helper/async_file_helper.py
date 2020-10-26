@@ -46,6 +46,7 @@ class AsyncFileHelper:
                     ],
                     "uploader": None,
                 },
+                headers=self.headers,
             ) as r:
                 r.raise_for_status()
 
