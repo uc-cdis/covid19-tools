@@ -143,7 +143,7 @@ class NCBI(base.BaseETL):
             ) = await self.file_helper.async_find_by_name(filename=filename)
 
             assert did, f"file {did} does not exist in the index, rerun NCBI_FILE ETL"
-            # await self.file_helper.async_update_authz(did=did, rev=rev)
+            await self.file_helper.async_update_authz(did=did, rev=rev)
 
             submitted_json["file_size"] = filesize
             submitted_json["md5sum"] = md5sum
@@ -244,7 +244,7 @@ class NCBI(base.BaseETL):
             assert (
                 did
             ), f"file {filename} does not exist in the index, rerun NCBI_FILE ETL"
-            # await self.file_helper.async_update_authz(did=did, rev=rev)
+            await self.file_helper.async_update_authz(did=did, rev=rev)
 
             submitted_json["file_size"] = filesize
             submitted_json["md5sum"] = md5sum

@@ -84,9 +84,7 @@ class NCBI_FILE(base.BaseETL):
             results = loop.run_until_complete(asyncio.gather(*tasks))
 
             loop.run_until_complete(
-                asyncio.gather(
-                    self.index_virus_sequence_run_taxonomy_file(set(results[0]))
-                )
+                asyncio.gather(self.index_virus_sequence_run_taxonomy_file(results[0]))
             )
 
         finally:
@@ -154,7 +152,7 @@ class NCBI_FILE(base.BaseETL):
         s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
         s3_object = s3.Object(self.bucket, key)
         line_stream = codecs.getreader("utf-8")
-        accession_numbers = []
+        accession_numbers = set()
         accession_number = None
         n_rows = 0
         f = None
@@ -170,7 +168,7 @@ class NCBI_FILE(base.BaseETL):
                     f,
                     excluded_set,
                 )
-                accession_numbers.append(accession_number)
+                accession_numbers.add(accession_number)
                 n_rows += 1
                 if n_rows % 10000 == 0:
                     print(f"Finish process {n_rows} of file {node_name}")
