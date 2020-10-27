@@ -36,16 +36,12 @@ class FileHelper:
 
     def update_authz(self, did, rev):
         url = f"{self.base_url}/index/index/{did}?rev={rev}"
+        body_json = {
+            "authz": [f"/programs/{self.program_name}/projects/{self.project_code}"],
+            "uploader": None,
+        }
         try:
-            r = requests.put(
-                url,
-                json={
-                    "authz": [
-                        f"/programs/{self.program_name}/projects/{self.project_code}"
-                    ],
-                    "uploader": None,
-                },
-            )
+            r = requests.put(url, json=body_json, headers=self.headers)
             r.raise_for_status()
         except requests.exceptions.HTTPError as err:
             print(err)
