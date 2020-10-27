@@ -407,7 +407,46 @@ class NCBI(base.BaseETL):
         return list(submitting_accession_numbers)
 
     def _get_response_from_big_query(self, accession_numbers):
-        """Get data from big query"""
+        """
+        Get data from big query. The format of the response json is
+        described as below:
+        [{
+            "acc": "DRR220591",
+            "assay_type": "RNA-Seq",
+            "center_name": "KUMAMOTO",
+            "consent": "public",
+            "experiment": "DRX210904",
+            "sample_name": "SAMD00217265",
+            "instrument": "Illumina NovaSeq 6000",
+            "librarylayout": "PAIRED",
+            "libraryselection": "RANDOM",
+            "librarysource": "TRANSCRIPTOMIC",
+            "platform": "ILLUMINA",
+            "sample_acc": "DRS139760",
+            "biosample": "SAMD00217265",
+            "organism": "Mus musculus",
+            "sra_study": "DRP006149",
+            #'releasedate': datetime.datetime(2020, 6, 4, 0, 0, tzinfo=<UTC>),
+            "bioproject": "PRJDB9618",
+            "mbytes": 2160,
+            "loaddate": None,
+            "avgspotlen": 300,
+            "mbases": 6395,
+            "insertsize": None,
+            "library_name": None,
+            "biosamplemodel_sam": [],
+            "collection_date_sam": [],
+            "geo_loc_name_country_calc": None,
+            "geo_loc_name_country_continent_calc": None,
+            "geo_loc_name_sam": [],
+            "ena_first_public_run": [],
+            "ena_last_update_run": [],
+            "sample_name_sam": ["WT3_plus"],
+            "datastore_filetype": ["sra"],
+            "datastore_provider": ["gs", "ncbi", "s3"],
+            "datastore_region": ["gs.US", "ncbi.public", "s3.us-east-1"],
+        }]
+        """
 
         assert accession_numbers != [], "accession_numbers is not empty"
 
