@@ -331,7 +331,7 @@ class NCBI(base.BaseETL):
                     print(
                         f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying ..."
                     )
-                    asyncio.sleep(5)
+                    await asyncio.sleep(5)
 
             assert (
                 did

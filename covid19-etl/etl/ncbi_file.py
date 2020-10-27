@@ -286,7 +286,7 @@ class NCBI_FILE(base.BaseETL):
                 print(
                     f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying ..."
                 )
-                asyncio.sleep(5)
+                await asyncio.sleep(5)
 
         if not did:
             retrying = True
@@ -299,6 +299,6 @@ class NCBI_FILE(base.BaseETL):
                     print(
                         f"ERROR: Fail to upload file {filepath}. Detail {e}. Retrying ..."
                     )
-                    asyncio.sleep(5)
+                    await asyncio.sleep(5)
         else:
             print(f"file {filepath.name} exists in indexd... skipping...")
