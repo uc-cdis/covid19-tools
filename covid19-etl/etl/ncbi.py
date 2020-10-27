@@ -6,6 +6,8 @@ import gzip
 import time
 from pathlib import Path
 import re
+from datetime import datetime
+from functools import partial
 
 from botocore import UNSIGNED
 from botocore.config import Config
@@ -23,12 +25,81 @@ from etl.ncbi_file import NCBI_FILE
 DATA_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
-def format_location_submitter_id(country):
-    """summary_location_<country>"""
-    submitter_id = "summary_location_{}".format(country)
-    submitter_id = submitter_id.lower().replace(", ", "_")
-    submitter_id = re.sub("[^a-z0-9-_]+", "-", submitter_id)
-    return submitter_id.strip("-")
+def convert_to_int(s):
+    try:
+        return int(s)
+    except Exception:
+        return None
+
+
+def convert_to_list(s):
+    if type(s) == list:
+        return s
+    return [s]
+
+
+def get_enum_value(l, default, s):
+    if s in l:
+        return s
+    return default
+
+
+def convert_datetime_to_str(dt):
+    if type(dt) != datetime:
+        return None
+    return dt.strftime("%Y-%m-%d")
+
+
+def identity_function(s):
+    return s
+
+
+# The files need to be handled so that they are compatible
+# to gen3 fields
+SPECIAL_MAP_FIELDS = {
+    "avgspotlen": ("avgspotlen", int, convert_to_int),
+    "file_size": ("bytes", int, convert_to_int),
+    "datastore_provider": ("datastore_provider", list, convert_to_list),
+    "datastore_region": ("datastore_region", list, convert_to_list),
+    "ena_first_public_run": ("ena_first_public_run", list, convert_to_list),
+    "ena_last_update_run": ("ena_last_update_run", list, convert_to_list),
+    "mbases": ("mbases", int, convert_to_int),
+    "mbytes": ("mbytes", int, convert_to_int),
+    "data_format": (
+        "datastore_filetype",
+        str,
+        partial(
+            get_enum_value,
+            [
+                "fasta",
+                "fastq",
+                "sff",
+                "slx",
+                "slxfq",
+                "qual",
+                "pbi",
+                "srf",
+                "txt",
+                "fna",
+            ],
+            "other",
+        ),
+    ),
+    "librarylayout": (
+        "librarylayout",
+        str,
+        partial(get_enum_value, ["Paired", "Single", None], None),
+    ),
+    "release_date": ("releasedate", datetime, convert_datetime_to_str),
+    "collection_date": ("collection_date_sam", datetime, convert_datetime_to_str),
+    "ncbi_bioproject": ("bioproject", str, identity_function),
+    "ncbi_biosample": ("biosample", str, identity_function),
+    "sample_accession": ("sample_acc", str, identity_function),
+    "country_region": ("geo_loc_name_country_calc", str, identity_function),
+    "continent": ("geo_loc_name_country_continent_calc", str, identity_function),
+    "latitude": ("geographic_location__latitude__sam", str, identity_function),
+    "longitude": ("geographic_location__longitude__sam", str, identity_function),
+}
 
 
 class NCBI(base.BaseETL):
@@ -59,8 +130,8 @@ class NCBI(base.BaseETL):
 
         self.submitting_data = {
             "summary_location": [],
-            "virus_sequence": [],
             "sample": [],
+            "virus_sequence": [],
             "core_metadata_collection": [],
             "virus_sequence_run_taxonomy": [],
             "virus_sequence_contig": [],
@@ -118,6 +189,12 @@ class NCBI(base.BaseETL):
             await self.get_submitting_accession_number_list_for_run_taxonomy()
         )
 
+        records = self._get_response_from_big_query(submitting_accession_numbers)
+        accession_number_set = set()
+        for record in records:
+            accession_number_set.add(record["acc"])
+            await self._parse_big_query_response(record)
+
         cmc_submitter_id = format_submitter_id("cmc_ncbi_covid19", {})
         for accession_number in submitting_accession_numbers:
             virus_sequence_run_taxonomy_submitter_id = format_submitter_id(
@@ -131,6 +208,11 @@ class NCBI(base.BaseETL):
                 "data_format": "json",
                 "data_category": "Kmer-based Taxonomy Analysis",
             }
+
+            if accession_number in accession_number_set:
+                submitted_json["virus_sequences"] = [
+                    {"submitter_id": f"virus_sequence_{accession_number}"}
+                ]
 
             filename = f"virus_sequence_run_taxonomy_{accession_number}.csv"
             (
@@ -232,14 +314,24 @@ class NCBI(base.BaseETL):
 
             ext = re.search("\.(.*)$", self.data_file.nodes[node_name][0]).group(1)
             filename = f"{node_name}_{accession_number}.{ext}"
-            (
-                did,
-                rev,
-                md5sum,
-                filesize,
-                file_name,
-                _,
-            ) = await self.file_helper.async_find_by_name(filename=filename)
+
+            retrying = True
+            while retrying:
+                try:
+                    (
+                        did,
+                        rev,
+                        md5sum,
+                        filesize,
+                        file_name,
+                        _,
+                    ) = await self.file_helper.async_find_by_name(filename=filename)
+                    retrying = False
+                except Exception as e:
+                    print(
+                        f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying ..."
+                    )
+                    asyncio.sleep(5)
 
             assert (
                 did
@@ -317,22 +409,29 @@ class NCBI(base.BaseETL):
     def _get_response_from_big_query(self, accession_numbers):
         """Get data from big query"""
 
-        stm = 'SELECT * FROM `nih-sra-datastore`.sra.metadata where consent = "public"'
+        assert accession_numbers != [], "accession_numbers is not empty"
 
-        assert accession_numbers == [], "accession_numbers need to be not empty"
-        stm = stm + f' and (acc = "{accession_numbers[0]}"'
-        for accession_number in accession_numbers[1:]:
-            stm = stm + f' or acc like "accession_number"'
-        stm = stm + ")"
+        start = 0
+        offset = 100
+        while start < len(accession_numbers):
+            end = min(start + offset, len(accession_numbers))
+            stm = 'SELECT * FROM `nih-sra-datastore`.sra.metadata where consent = "public"'
 
-        client = bigquery.Client()
-        query_job = client.query(stm)
+            stm = stm + f' and (acc = "{accession_numbers[start]}"'
+            for accession_number in accession_numbers[start + 1 : end]:
+                stm = stm + f' or acc = "{accession_number}"'
+            stm = stm + ")"
 
-        results = query_job.result()  # Waits for job to complete.
-        records = [dict(row) for row in results]
-        return records
+            client = bigquery.Client()
+            query_job = client.query(stm)
 
-    def _parse_big_query_response(self, response):
+            results = query_job.result()  # Waits for job to complete.
+
+            for row in results:
+                yield dict(row)
+            start = end
+
+    async def _parse_big_query_response(self, response):
         """Parse the big query response"""
 
         accession_number = response["acc"]
@@ -341,28 +440,34 @@ class NCBI(base.BaseETL):
         virus_sequence = {}
         summary_location = {}
 
-        sample["submitter_id"] = response["sample_name"]
-        sample["projects"] = ([{"code": self.project_code}],)
-        sample["collection_date"] = response["collection_date_sam"]
-        sample["ncbi_bioproject"] = response["bioproject"]
-        sample["ncbi_biosample"] = response["biosample"]
-        sample["sample_accession"] = response["sample_acc"]
+        sample["submitter_id"] = f"sample_{accession_number}"
+        sample["projects"] = [{"code": self.project_code}]
+
         for field in [
-            "biosamplemodel_sam",
+            "ncbi_bioproject",
+            "ncbi_biosample",
+            "sample_accession",
             "host_associated_environmental_package_sam",
             "organism",
+            "collection_date",
         ]:
-            sample[field] = response[field]
+            if field in SPECIAL_MAP_FIELDS:
+                old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
+                sample[field] = (
+                    handler(response.get(old_name))
+                    if dtype != type(response.get(old_name))
+                    else response.get(old_name)
+                )
+            elif field in response:
+                sample[field] = str(response.get(field))
 
         virus_sequence["submitter_id"] = f"virus_sequence_{accession_number}"
         for field in [
-            "acc",
             "assay_type",
             "avgspotlen",
             "bytes",
             "center_name",
             "consent",
-            "datastore_filetype",
             "datastore_provider",
             "datastore_region",
             "description_sam",
@@ -377,28 +482,69 @@ class NCBI(base.BaseETL):
             "insdc_status_sam",
             "instrument",
             "library_name",
-            "librarylayout",
             "libraryselection",
             "librarysource",
             "mbases",
             "mbytes",
             "platform",
-            "releasedate",
             "sra_accession_sam",
             "sra_study",
             "title_sam",
+            "release_date",
+            "data_format",
+            "librarylayout",
         ]:
-            virus_sequence[field] = response[field]
-        virus_sequence["samples"] = [{"samples": sample["submitter_id"]}]
+            if field in SPECIAL_MAP_FIELDS:
+                old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
+                virus_sequence[field] = (
+                    handler(response.get(old_name))
+                    if dtype != type(response.get(old_name))
+                    else response.get(old_name)
+                )
+            elif field in response:
+                virus_sequence[field] = str(response.get(field))
 
-        summary_location["submitter_id"] = format_location_submitter_id(
-            response["geo_loc_name_country_calc"]
+        virus_sequence["samples"] = [{"submitter_id": sample["submitter_id"]}]
+        virus_sequence["data_category"] = "Protein"
+        virus_sequence["data_type"] = "Sequence"
+
+        filename = f"virus_sequence_dummy_data_{accession_number}.txt"
+        virus_sequence[
+            "file_name"
+        ] = f"virus_sequence_dummy_data_{accession_number}.txt"
+        (
+            did,
+            rev,
+            md5sum,
+            filesize,
+            file_name,
+            _,
+        ) = await self.file_helper.async_find_by_name(
+            filename=virus_sequence["file_name"]
+        )
+
+        assert did, f"file {filename} does not exist in the index, rerun NCBI_FILE ETL"
+        await self.file_helper.async_update_authz(did=did, rev=rev)
+
+        virus_sequence["file_size"] = filesize
+        virus_sequence["md5sum"] = md5sum
+        virus_sequence["object_id"] = did
+
+        summary_location["submitter_id"] = format_submitter_id(
+            "virus", {"accession_number": accession_number}
         )
         summary_location["projects"] = [{"code": self.project_code}]
-        summary_location["country_region"] = response["geo_loc_name_country_calc"]
-        summary_location["continent"] = response["geo_loc_name_country_continent_calc"]
-        summary_location["latitude"] = response["geographic_location__latitude__sam"]
-        summary_location["longitude"] = response["geographic_location__longitude__sam"]
+
+        for field in ["country_region", "continent", "latitude", "longitude"]:
+            if field in SPECIAL_MAP_FIELDS:
+                old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
+                summary_location[field] = (
+                    handler(response.get(old_name))
+                    if dtype != type(response.get(old_name))
+                    else response.get(old_name)
+                )
+            elif field in response:
+                summary_location[field] = str(response.get(field))
 
         self.submitting_data["virus_sequence"].append(virus_sequence)
         self.submitting_data["summary_location"].append(summary_location)
