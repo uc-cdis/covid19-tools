@@ -69,6 +69,7 @@ class CHESTXRAY8(base.BaseETL):
                     "file_size": size,
                     "md5sum": md5,
                     "object_id": did,
+                    "clinical_notes": image_type,
                 }
 
                 self.imaging_file.append(uploaded_imaging_file)
