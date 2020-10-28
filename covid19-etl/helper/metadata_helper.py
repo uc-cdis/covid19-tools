@@ -1,3 +1,4 @@
+from aiohttp import ClientSession
 import datetime
 import json
 from math import ceil
@@ -201,3 +202,18 @@ class MetadataHelper:
                 )
 
         self.records_to_submit = []
+
+    async def query_node_data(self, query_string):
+        async def _post_request(headers, query_string):
+            url = f"{self.base_url}/api/v0/submission/graphql"
+            async with ClientSession() as session:
+                async with session.post(
+                    url,
+                    json={"query": query_string, "variables": None},
+                    headers=headers,
+                ) as response:
+                    response.raise_for_status()
+                    response = await response.json()
+                    return response
+
+        return await _post_request(self.headers, query_string)
