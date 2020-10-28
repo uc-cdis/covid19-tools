@@ -1,12 +1,8 @@
 import os
 from pathlib import Path
 import aiofiles as aiof
-import json
 import re
 import gzip
-import subprocess
-import shlex
-from contextlib import closing
 import asyncio
 import time
 
@@ -31,7 +27,6 @@ class NCBI_FILE(base.BaseETL):
 
         self.program_name = "open"
         self.project_code = "ncbi-covid-19"
-        self.access_number_set = set()
 
         self.file_helper = AsyncFileHelper(
             base_url=self.base_url,
@@ -254,9 +249,6 @@ class NCBI_FILE(base.BaseETL):
         # Ignore the accession number existing in the excluded set
         if read_accession_number in excluded_set:
             return f, accession_number
-
-        # keep track the set of accession numbers
-        self.access_number_set.add(f"{node_name}_{read_accession_number}")
 
         # If the line contains new accession_number, close the opening file, index it
         # and open new file for the new accession_number

@@ -1,10 +1,8 @@
-import asyncio
 from aiohttp import ClientSession
 import datetime
 import json
 from math import ceil
 from time import sleep
-from retry import retry
 
 import requests
 

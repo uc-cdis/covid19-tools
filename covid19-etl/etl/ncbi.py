@@ -1,10 +1,7 @@
 import os
 import asyncio
-import csv
-import json
 import gzip
 import time
-from pathlib import Path
 import re
 from datetime import datetime
 from functools import partial
@@ -16,9 +13,8 @@ import codecs
 from google.cloud import bigquery
 
 from etl import base
-from helper.file_helper import FileHelper
 from helper.async_file_helper import AsyncFileHelper
-from helper.format_helper import derived_submitter_id, format_submitter_id
+from helper.format_helper import format_submitter_id
 from helper.metadata_helper import MetadataHelper
 from etl.ncbi_file import NCBI_FILE
 
@@ -251,17 +247,8 @@ class NCBI(base.BaseETL):
             contig_submitter_id = format_submitter_id(
                 "virus_sequence_contig", {"accession_number": accession_number}
             )
-            blastn_submitter_id = format_submitter_id(
-                "virus_sequence_blastn", {"accession_number": accession_number}
-            )
-            contig_taxonomy_submitter_id = format_submitter_id(
-                "virus_sequence_contig_taxonomy", {"accession_number": accession_number}
-            )
             peptide_submitter_id = format_submitter_id(
                 "virus_sequence_peptide", {"accession_number": accession_number}
-            )
-            hmmsearch_submitter_id = format_submitter_id(
-                "virus_sequence_hmm_search", {"accession_number": accession_number}
             )
             run_taxonomy_submitter_id = format_submitter_id(
                 "virus_sequence_run_taxonomy", {"accession_number": accession_number}
@@ -359,7 +346,6 @@ class NCBI(base.BaseETL):
         file_path = f"{DATA_PATH}/virus_sequence_run_taxonomy.gz"
         s3_object.download_file(file_path)
 
-        results = {}
         n_lines = 0
         with gzip.open(file_path, "rb") as f:
             while True:
@@ -510,7 +496,8 @@ class NCBI(base.BaseETL):
             "datastore_provider",
             "datastore_region",
             "description_sam",
-            "ena_checklist_sam" "ena_first_public_run",
+            "ena_checklist_sam",
+            "ena_first_public_run",
             "ena_last_update_run",
             "experiment",
             "insdc_center_name_sam",
