@@ -70,7 +70,7 @@ class AsyncFileHelper:
                 async with ClientSession() as session:
                     async with session.put(url, data=data) as r:
                         return r.status
-            return None
+                return None
 
         basename = path.name
         presigned_url, guid = await self.async_get_presigned_url(basename)
