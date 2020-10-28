@@ -1,3 +1,16 @@
+"""
+Note that this ETL cannot be run in the VM because it needs too much memory.
+Specifically, county_outcomes.csv should not be read in memory. To run it in
+the VM, we should (generate JSON submissions instead of TSV, and) read
+county_outcomes.csv as below, which means removing uses of pandas. Since this
+is a one-time ETL, keeping as is for now.
+    with zipfile.ZipFile(<zip file>) as zf:
+        with io.TextIOWrapper(<csv file>, encoding="utf-8") as f:
+            reader = csv.reader(f, delimiter=",")
+            <parse rows one by one>
+"""
+
+from gen3.submission import Gen3Submission
 import os
 import pandas as pd
 import pathlib
@@ -12,6 +25,15 @@ from helper.metadata_helper import MetadataHelper
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 TEMP_DIR = os.path.join(CURRENT_DIR, "atlas_temp_files")
+
+
+class TokenAuth(requests.auth.AuthBase):
+    def __init__(self, access_token):
+        self.access_token = access_token
+
+    def __call__(self, request):
+        request.headers["Authorization"] = "Bearer " + self.access_token
+        return request
 
 
 class ATLAS(base.BaseETL):
@@ -144,14 +166,13 @@ class ATLAS(base.BaseETL):
         atlas_data = pd.merge(outcome_data, neighbor_data)
         atlas_data["FIPS"] = ""
 
-        # create FIPS column
         for x in range(len(atlas_data)):
+            # create FIPS column
             atlas_data["state"][x] = atlas_data["state"][x].zfill(2)
             atlas_data["county"][x] = atlas_data["county"][x].zfill(3)
             atlas_data["FIPS"][x] = atlas_data["state"][x] + atlas_data["county"][x]
 
-        # for loop changing numbers to human readable
-        for x in range(len(atlas_data)):
+            # change numbers to human readable
             state = atlas_data.loc[(x), "state"]
             county = atlas_data.loc[(x), "county"]
             df_sub = fips_data[fips_data["State Code (FIPS)"] == state]
@@ -173,17 +194,15 @@ class ATLAS(base.BaseETL):
         summary_loc_sub["projects.code"] = "ATLAS"
         summary_loc_sub["type"] = "summary_location"
         summary_loc_sub["county"] = summary_loc_sub["county"].str.replace(" County", "")
-        summary_loc_sub["submitter_id"] = (
+        summary_location_submitter_id = (
             "summary_location_"
             + summary_loc_sub["country_region"]
             + "_"
             + summary_loc_sub["state"]
             + "_"
             + summary_loc_sub["county"]
-        )
-        summary_loc_sub["submitter_id"] = summary_loc_sub["submitter_id"].str.replace(
-            " ", "_"
-        )
+        ).str.replace(" ", "_")
+        summary_loc_sub["submitter_id"] = summary_location_submitter_id
         summary_loc_sub["province_state"] = summary_loc_sub["state"]
         summary_loc_sub = summary_loc_sub.drop("state", axis=1)
 
@@ -193,51 +212,63 @@ class ATLAS(base.BaseETL):
         summary_sociodem_sub["county"] = summary_sociodem_sub["county"].str.replace(
             " County", ""
         )
-        summary_sociodem_sub["summary_locations.submitter_id"] = (
+        summary_location_submitter_id = (
             "summary_location_"
             + summary_sociodem_sub["country_region"]
             + "_"
             + summary_sociodem_sub["state"]
             + "_"
             + summary_sociodem_sub["county"]
-        )
-        summary_sociodem_sub["summary_locations.submitter_id"] = summary_sociodem_sub[
+        ).str.replace(" ", "_")
+        summary_sociodem_sub[
             "summary_locations.submitter_id"
-        ].str.replace(" ", "_")
-        summary_sociodem_sub["submitter_id"] = (
+        ] = summary_location_submitter_id
+
+        summary_sociodem_submitter_id = (
             "summary_sociodem_"
             + summary_sociodem_sub["country_region"]
             + "_"
             + summary_sociodem_sub["state"]
             + "_"
             + summary_sociodem_sub["county"]
-        )
-        summary_sociodem_sub["submitter_id"] = summary_sociodem_sub[
-            "submitter_id"
-        ].str.replace(" ", "_")
+        ).str.replace(" ", "_")
+        summary_sociodem_sub["submitter_id"] = summary_sociodem_submitter_id
+
         summary_sociodem_sub["type"] = "summary_socio_demographic"
         summary_sociodem_sub = summary_sociodem_sub.drop(
             ["country_region", "FIPS", "state", "county"], axis=1
         )
 
-        self.nodes = {
-            "summary_location": summary_loc_sub.to_dict(orient="records"),
-            "summary_socio_demographic": summary_sociodem_sub.to_dict(orient="records"),
-        }
+        # create submission files
+        summary_loc_sub.to_csv(
+            os.path.join(TEMP_DIR, "summary_location_submission.tsv"),
+            sep="\t",
+            index=False,
+        )
+        summary_sociodem_sub.to_csv(
+            os.path.join(TEMP_DIR, "summary_socio_demographic_submission.tsv"),
+            sep="\t",
+            index=False,
+        )
 
         print("Done in {} secs".format(int(time.time() - start)))
 
     def submit_metadata(self):
         print("Submitting data...")
-        print("  Submitting summary_location data")
-        self.metadata_helper.add_records_to_submit(self.nodes["summary_location"])
-        self.metadata_helper.batch_submit_records()
 
-        print("  Submitting summary_socio_demographic data")
-        self.metadata_helper.add_records_to_submit(
-            self.nodes["summary_socio_demographic"]
+        # Gen3 submission via python SDK
+        sub = Gen3Submission(self.base_url, TokenAuth(self.access_token))
+        project_id = self.program_name + "-" + self.project_code
+        sub.submit_file(
+            project_id,
+            os.path.join(TEMP_DIR, "summary_location_submission.tsv"),
+            chunk_size=100,
         )
-        self.metadata_helper.batch_submit_records()
+        sub.submit_file(
+            project_id,
+            os.path.join(TEMP_DIR, "summary_socio_demographic_submission.tsv"),
+            chunk_size=100,
+        )
 
         # clean up
         shutil.rmtree(TEMP_DIR)
