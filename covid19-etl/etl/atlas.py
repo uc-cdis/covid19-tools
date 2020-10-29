@@ -144,7 +144,7 @@ class ATLAS(base.BaseETL):
             "mean_commutetime2000": "mean_commutetime",
             "med_hhinc2016": "med_hhinc",
             "poor_share2010": "poor_share",
-            "popdensity2010": "popdensity",
+            "popdensity2010": "population_density",
             "rent_twobed2015": "rent_twobed",
             "share_asian2010": "share_asian",
             "share_black2010": "share_black",
