@@ -21,6 +21,7 @@
 | [COV-434][cov-434] | STOPLIGHT | [here][stoplight] | scheduled |
 | [COV-450][cov-422] | VAC-TRACKER | [here][vac-tracker] | scheduled |
 | [COV-453][cov-453] | CHESTX-RAY8 | [here][chestxray8] | One-time |
+| [COV-521][cov-521] | ATLAS | [here][atlas] | One-time |
 | [COV-485][cov-465] | NCBI-METADATA | [here][ncbi-metadata] | scheduled|
 
 
@@ -138,6 +139,7 @@ covid19-tools
   [ncov2019]: https://www.kaggle.com/sudalairajkumar/novel-corona-virus-2019-dataset?select=COVID19_line_list_data.csv
   [vac-tracker]:https://biorender.com/page-data/covid-vaccine-tracker/page-data.json
   [stoplight]: https://covidstoplight.org/api/v0/location/US
+  [atlas]: https://opportunityinsights.org/data/?geographic_level=0&topic=0&paper_id=1652#resource-listing
   [ncbi-metadata]: s3://sra-pub-sars-cov2-metadata-us-east-1
   [cov-12]: https://occ-data.atlassian.net/browse/COV-12
   [cov-18]: https://occ-data.atlassian.net/browse/COV-18
@@ -158,4 +160,5 @@ covid19-tools
   [cov-434]: https://occ-data.atlassian.net/browse/COV-434
   [cov-450]: https://occ-data.atlassian.net/browse/COV-450
   [cov-453]: https://occ-data.atlassian.net/browse/COV-453
+  [cov-521]: https://occ-data.atlassian.net/browse/COV-521
   [cov-465]: https://occ-data.atlassian.net/browse/COV-465
