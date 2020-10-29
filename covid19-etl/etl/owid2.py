@@ -157,17 +157,6 @@ class OWID2(base.BaseETL):
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
 
-        summary_socio_demographic_submitter_id = (
-            format_summary_summary_socio_demographic(
-                summary_location_submitter_id, date
-            )
-        )
-        summary_socio_demographic = {
-            "date": date,
-            "submitter_id": summary_socio_demographic_submitter_id,
-            "summary_locations": [{"submitter_id": summary_location_submitter_id}],
-        }
-
         map_csv_fields = {
             # "iso_code": "iso_code",
             # "continent": "continent",
