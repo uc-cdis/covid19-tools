@@ -1,0 +1,4 @@
+# requirements for ATLAS ETL (not in main requirements
+# file because not ran in the VM)
+gen3>=2.7.0,<3.0.0
+pandas>=1.0.5,<2.0.0
