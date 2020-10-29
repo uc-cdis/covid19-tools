@@ -22,11 +22,21 @@ def format_summary_clinical_submitter_id(location_submitter_id, date):
     )
 
 
+def format_summary_summary_socio_demographic(location_submitter_id, date):
+    return "{}_{}".format(
+        location_submitter_id.replace(
+            "summary_location_", "summary_socio_demographic_"
+        ),
+        date,
+    )
+
+
 class OWID2(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
         self.summary_locations = []
         self.summary_clinicals = []
+        self.summary_socio_demographics = []
 
         self.program_name = "open"
         self.project_code = "OWID"
@@ -122,7 +132,11 @@ class OWID2(base.BaseETL):
             summary_location_list = []
 
             for row in reader:
-                summary_location, summary_clinical = self.parse_row(row)
+                (
+                    summary_location,
+                    summary_clinical,
+                    summary_socio_demographic,
+                ) = self.parse_row(row)
 
                 summary_location_submitter_id = summary_location["submitter_id"]
                 if summary_location_submitter_id not in summary_location_list:
@@ -130,6 +144,7 @@ class OWID2(base.BaseETL):
                     summary_location_list.append(summary_location_submitter_id)
 
                 self.summary_clinicals.append(summary_clinical)
+                self.summary_socio_demographics.append(summary_socio_demographic)
 
     def parse_row(self, row):
         """
@@ -165,6 +180,17 @@ class OWID2(base.BaseETL):
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
 
+        summary_socio_demographic_submitter_id = (
+            format_summary_summary_socio_demographic(
+                summary_location_submitter_id, date
+            )
+        )
+        summary_socio_demographic = {
+            "date": date,
+            "submitter_id": summary_socio_demographic_submitter_id,
+            "summary_locations": [{"submitter_id": summary_location_submitter_id}],
+        }
+
         map_csv_fields = {
             # "iso_code": "iso_code",
             # "continent": "continent",
@@ -197,6 +223,13 @@ class OWID2(base.BaseETL):
             "tests_per_case": ("tests_per_case", float),
             "positive_rate": ("positive_rate", float),
             "tests_units": ("tests_units", str),
+            "cardiovasc_death_rate": ("cardiovasc_death_rate", float),
+            "diabetes_prevalence": ("diabetes_prevalence", float),
+            "hospital_beds_per_thousand": ("hospital_beds_per_thousand", float)
+            # "human_development_index": ("human_development_index", float),
+        }
+
+        map_csv_socio_fields = {
             "stringency_index": ("stringency_index", float),
             "population": ("population", int),
             "population_density": ("population_density", float),
@@ -205,14 +238,10 @@ class OWID2(base.BaseETL):
             "aged_70_older": ("aged_70_older", float),
             "gdp_per_capita": ("gdp_per_capita", float),
             "extreme_poverty": ("extreme_poverty", float),
-            "cardiovasc_death_rate": ("cardiovasc_death_rate", float),
-            "diabetes_prevalence": ("diabetes_prevalence", float),
             "female_smokers": ("female_smokers", float),
             "male_smokers": ("male_smokers", float),
             "handwashing_facilities": ("handwashing_facilities", float),
-            "hospital_beds_per_thousand": ("hospital_beds_per_thousand", float),
-            "life_expectancy": ("life_expectancy", float)
-            # "human_development_index": ("human_development_index", float),
+            "life_expectancy": ("life_expectancy", float),
         }
 
         for k, (v, dtype) in map_csv_fields.items():
@@ -226,7 +255,20 @@ class OWID2(base.BaseETL):
                 except Exception:
                     pass
 
-        return summary_location, summary_clinical
+        for k, (v, dtype) in map_csv_socio_fields.items():
+            value = row[self.header_to_column[v]]
+            if value and value.lower() != "nan":
+                try:
+                    if dtype == int:
+                        summary_socio_demographic[k] = int(
+                            float(value.replace(",", ""))
+                        )
+                    elif dtype == float:
+                        summary_socio_demographic[k] = float(value.replace(",", ""))
+                except Exception:
+                    pass
+
+        return summary_location, summary_clinical, summary_socio_demographic
 
     def submit_metadata(self):
         """
