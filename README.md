@@ -22,7 +22,7 @@
 | [COV-450][cov-422] | VAC-TRACKER | [here][vac-tracker] | scheduled |
 | [COV-453][cov-453] | CHESTX-RAY8 | [here][chestxray8] | One-time |
 | [COV-521][cov-521] | ATLAS | [here][atlas] | One-time |
-| [COV-485][cov-465] | NCBI-METADATA | [here][ncbi-metadata] | scheduled|
+| [COV-485][cov-465] | NCBI-METADATA | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi-metadata) | scheduled|
 
 
 ## Deployment
@@ -101,7 +101,7 @@ covid19-tools
 ### NCBI-METADATA
 *This is local-only ETL.*
 It requires data available locally.
-Before running the ETL, the data, which is available [here][ncbi-metadata].
+Before running the ETL, get the data, which is available in public bucket sra-pub-sars-cov2-metadata-us-east-1.
 The data should be streamed and uploaded to s3 via data upload flow. The data
 structure as follow
 
@@ -140,7 +140,6 @@ covid19-tools
 [vac-tracker]:https://biorender.com/page-data/covid-vaccine-tracker/page-data.json
 [stoplight]: https://covidstoplight.org/api/v0/location/US
 [atlas]: https://opportunityinsights.org/data/?geographic_level=0&topic=0&paper_id=1652#resource-listing
-[ncbi-metadata]: s3://sra-pub-sars-cov2-metadata-us-east-1
 [cov-12]: https://occ-data.atlassian.net/browse/COV-12
 [cov-18]: https://occ-data.atlassian.net/browse/COV-18
 [cov-24]: https://occ-data.atlassian.net/browse/COV-24
