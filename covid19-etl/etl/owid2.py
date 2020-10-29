@@ -126,7 +126,7 @@ class OWID2(base.BaseETL):
             assert (
                 set(expected_h).issubset(headers) == True
             ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
-                expected_h, obtained_h
+                expected_h, headers
             )
 
             summary_location_list = []
@@ -146,48 +146,14 @@ class OWID2(base.BaseETL):
                 self.summary_clinicals.append(summary_clinical)
                 self.summary_socio_demographics.append(summary_socio_demographic)
 
-    def parse_row(self, row):
-        """
-        Converts a row of a CSV file to data we can submit via Sheepdog
-
-        Args:
-            row (list(str)): row of data
-
-        Returns:
-            (dict, dict) tuple:
-                - location data, in a format ready to be submitted to Sheepdog
-                - { "date1": <value>, "date2": <value> } from the row data
-        """
-
-        date = row[self.header_to_column["date"]]
-
-        country = row[self.header_to_column["location"]]
-
-        summary_location_submitter_id = format_location_submitter_id(country)
-
-        summary_location = {
-            "country_region": country,
-            "submitter_id": summary_location_submitter_id,
-            "projects": [{"code": self.project_code}],
-        }
-
+    def create_clinical(self, row, date, summary_location_submitter_id):
         summary_clinical_submitter_id = format_summary_clinical_submitter_id(
             summary_location_submitter_id, date
         )
+
         summary_clinical = {
             "date": date,
             "submitter_id": summary_clinical_submitter_id,
-            "summary_locations": [{"submitter_id": summary_location_submitter_id}],
-        }
-
-        summary_socio_demographic_submitter_id = (
-            format_summary_summary_socio_demographic(
-                summary_location_submitter_id, date
-            )
-        )
-        summary_socio_demographic = {
-            "date": date,
-            "submitter_id": summary_socio_demographic_submitter_id,
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
 
@@ -255,6 +221,42 @@ class OWID2(base.BaseETL):
                 except Exception:
                     pass
 
+        for k in map_csv_socio_fields.keys():
+            summary_clinical[
+                k
+            ] = None  # TODO: remove when the properties are removed from dictionary
+
+        return summary_clinical
+
+    def create_summary_socio_demographic(
+        self, row, date, summary_location_submitter_id
+    ):
+        summary_socio_demographic_submitter_id = (
+            format_summary_summary_socio_demographic(
+                summary_location_submitter_id, date
+            )
+        )
+
+        summary_socio_demographic = {
+            "submitter_id": summary_socio_demographic_submitter_id,
+            "summary_locations": [{"submitter_id": summary_location_submitter_id}],
+        }
+
+        map_csv_socio_fields = {
+            "stringency_index": ("stringency_index", float),
+            "population": ("population", int),
+            "population_density": ("population_density", float),
+            "median_age": ("median_age", float),
+            "aged_65_older": ("aged_65_older", float),
+            "aged_70_older": ("aged_70_older", float),
+            "gdp_per_capita": ("gdp_per_capita", float),
+            "extreme_poverty": ("extreme_poverty", float),
+            "female_smokers": ("female_smokers", float),
+            "male_smokers": ("male_smokers", float),
+            "handwashing_facilities": ("handwashing_facilities", float),
+            "life_expectancy": ("life_expectancy", float),
+        }
+
         for k, (v, dtype) in map_csv_socio_fields.items():
             value = row[self.header_to_column[v]]
             if value and value.lower() != "nan":
@@ -268,7 +270,40 @@ class OWID2(base.BaseETL):
                 except Exception:
                     pass
 
-        return summary_location, summary_clinical, summary_socio_demographic
+        return summary_socio_demographic
+
+    def parse_row(self, row):
+        """
+        Converts a row of a CSV file to data we can submit via Sheepdog
+
+        Args:
+            row (list(str)): row of data
+
+        Returns:
+            (dict, dict) tuple:
+                - location data, in a format ready to be submitted to Sheepdog
+                - { "date1": <value>, "date2": <value> } from the row data
+        """
+
+        date = row[self.header_to_column["date"]]
+
+        country = row[self.header_to_column["location"]]
+
+        summary_location_submitter_id = format_location_submitter_id(country)
+
+        summary_location = {
+            "country_region": country,
+            "submitter_id": summary_location_submitter_id,
+            "projects": [{"code": self.project_code}],
+        }
+
+        return (
+            summary_location,
+            self.create_clinical(row, date, summary_location_submitter_id),
+            self.create_summary_socio_demographic(
+                row, date, summary_location_submitter_id
+            ),
+        )
 
     def submit_metadata(self):
         """
@@ -288,6 +323,12 @@ class OWID2(base.BaseETL):
         print("Submitting summary_clinical data")
         for sc in self.summary_clinicals:
             sc_record = {"type": "summary_clinical"}
+            sc_record.update(sc)
+            self.metadata_helper.add_record_to_submit(sc_record)
+        self.metadata_helper.batch_submit_records()
+        print("Submitting summary_socio_demographic data")
+        for sc in self.summary_socio_demographics:
+            sc_record = {"type": "summary_socio_demographic"}
             sc_record.update(sc)
             self.metadata_helper.add_record_to_submit(sc_record)
         self.metadata_helper.batch_submit_records()
