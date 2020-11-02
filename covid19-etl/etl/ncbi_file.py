@@ -210,7 +210,7 @@ class NCBI_FILE(base.BaseETL):
         """
 
         query_string = "{ " + node_name + " (first:0) { submitter_id } }"
-        response = await self.metadata_helper.query_node_data(query_string)
+        response = await self.metadata_helper.query_peregrine_async(query_string)
         records = response["data"][node_name]
         return set([record["submitter_id"] for record in records])
 

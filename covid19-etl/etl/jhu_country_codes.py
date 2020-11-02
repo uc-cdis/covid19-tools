@@ -47,7 +47,6 @@ class JHU_COUNTRY_CODES(base.BaseETL):
 
     def get_existing_locations(self):
         print("Getting summary_location data from Peregrine")
-        headers = {"Authorization": "bearer " + self.access_token}
         query_string = (
             '{ summary_location (first: 0, project_id: "'
             + self.program_name
@@ -55,19 +54,5 @@ class JHU_COUNTRY_CODES(base.BaseETL):
             + self.project_code
             + '") { submitter_id, country_region, iso2, iso3 } }'
         )
-        response = requests.post(
-            "{}/api/v0/submission/graphql".format(self.base_url),
-            json={"query": query_string, "variables": None},
-            headers=headers,
-        )
-        assert (
-            response.status_code == 200
-        ), "Unable to query Peregrine for existing 'summary_location' data: {}\n{}".format(
-            response.status_code, response.text
-        )
-        try:
-            query_res = json.loads(response.text)
-        except:
-            print("Peregrine did not return JSON")
-            raise
+        query_res = self.metadata_helper.query_peregrine(query_string)
         return [location for location in query_res["data"]["summary_location"]]

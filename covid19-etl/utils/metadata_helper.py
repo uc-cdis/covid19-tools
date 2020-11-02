@@ -35,21 +35,7 @@ class MetadataHelper:
             + self.project_id
             + '") { submitter_id } }'
         )
-        response = requests.post(
-            "{}/api/v0/submission/graphql".format(self.base_url),
-            json={"query": query_string, "variables": None},
-            headers=self.headers,
-        )
-        assert (
-            response.status_code == 200
-        ), "Unable to query Peregrine for existing 'summary_location' data: {}\n{}".format(
-            response.status_code, response.text
-        )
-        try:
-            query_res = json.loads(response.text)
-        except:
-            print(f"Peregrine did not return JSON: {response.text}")
-            raise
+        query_res = self.query_peregrine(query_string)
         json_res = {
             location["submitter_id"]: []
             for location in query_res["data"]["summary_location"]
@@ -77,24 +63,12 @@ class MetadataHelper:
                     + self.project_id
                     + '") { submitter_id } }'
                 )
-                response = requests.post(
-                    "{}/api/v0/submission/graphql".format(self.base_url),
-                    json={"query": query_string, "variables": None},
-                    headers=self.headers,
-                )
 
                 query_res = None
-                if response.status_code == 200:
-                    try:
-                        query_res = json.loads(response.text)
-                    except:
-                        print(f"Peregrine did not return JSON: {response.text}")
-                else:
-                    print(
-                        "    Unable to query Peregrine for existing 'summary_clinical' data: {}\n{}".format(
-                            response.status_code, response.text
-                        )
-                    )
+                try:
+                    query_res = self.query_peregrine(query_string)
+                except:
+                    print(f"Peregrine did not return JSON: {response.text}")
 
                 if query_res:
                     data = query_res["data"]["summary_clinical"]
@@ -119,39 +93,24 @@ class MetadataHelper:
 
     def get_latest_submitted_date_idph(self):
         """
-        Queries Peregrine for the existing `summary_clinical` data.
-
-        { summary_clinical (first: 1, project_id: <...>) { date } }
-
+        Queries Guppy for the existing `location` data.
         Returns the latest submitted date as Python "datetime.date"
         """
-        print("Getting latest date from Peregrine...")
-        query_string = (
-            '{ summary_clinical (first: 1, order_by_desc: "date", project_id: "'
-            + self.project_id
-            + '") { submitter_id date } }'
-        )
-        response = requests.post(
-            "{}/api/v0/submission/graphql".format(self.base_url),
-            json={"query": query_string, "variables": None},
-            headers=self.headers,
-        )
-        assert (
-            response.status_code == 200
-        ), "Unable to query Peregrine for existing data: {}\n{}".format(
-            response.status_code, response.text
-        )
-        try:
-            query_res = json.loads(response.text)
-        except:
-            print(f"Peregrine did not return JSON: {response.text}")
-            raise
-
-        if len(query_res["data"]["summary_clinical"]) < 1:
-            return None
-
-        sc = query_res["data"]["summary_clinical"][0]
-        latest_submitted_date = datetime.datetime.strptime(sc["date"], "%Y-%m-%d")
+        print("Getting latest date from Guppy...")
+        query_string = """query ($filter: JSON) {
+            location (
+                filter: $filter,
+                sort: [{date: "desc"}],
+                first: 1,
+                accessibility: accessible
+            ) {
+                date
+            }
+        }"""
+        variables = {"filter": {"=": {"project_id": self.project_id}}}
+        query_res = self.query_guppy(query_string, variables)
+        loc = query_res["data"]["location"][0]
+        latest_submitted_date = datetime.datetime.strptime(loc["date"], "%Y-%m-%d")
         return latest_submitted_date.date()
 
     def add_record_to_submit(self, record):
@@ -203,7 +162,27 @@ class MetadataHelper:
 
         self.records_to_submit = []
 
-    async def query_node_data(self, query_string):
+    def query_peregrine(self, query_string):
+        url = f"{self.base_url}/api/v0/submission/graphql"
+        response = requests.post(
+            url,
+            json={"query": query_string, "variables": None},
+            headers=self.headers,
+        )
+        try:
+            response.raise_for_status()
+        except Exception:
+            print(
+                f"Unable to query Peregrine.\nQuery: {query_string}\nVariables: {variables}"
+            )
+            raise
+        try:
+            return response.json()
+        except:
+            print(f"Peregrine did not return JSON: {response.text}")
+            raise
+
+    async def query_peregrine_async(self, query_string):
         async def _post_request(headers, query_string):
             url = f"{self.base_url}/api/v0/submission/graphql"
             async with ClientSession() as session:
@@ -212,8 +191,36 @@ class MetadataHelper:
                     json={"query": query_string, "variables": None},
                     headers=headers,
                 ) as response:
-                    response.raise_for_status()
-                    response = await response.json()
+                    try:
+                        response.raise_for_status()
+                    except Exception:
+                        print(f"Unable to query Peregrine.\nQuery: {query_string}")
+                        raise
+                    try:
+                        response = await response.json()
+                    except:
+                        print(f"Peregrine did not return JSON: {response.text}")
+                        raise
                     return response
 
         return await _post_request(self.headers, query_string)
+
+    def query_guppy(self, query_string, variables=None):
+        url = f"{self.base_url}/guppy/graphql"
+        response = requests.post(
+            url,
+            json={"query": query_string, "variables": variables},
+            headers=self.headers,
+        )
+        try:
+            response.raise_for_status()
+        except Exception:
+            print(
+                f"Unable to query Guppy.\nQuery: {query_string}\nVariables: {variables}"
+            )
+            raise
+        try:
+            return response.json()
+        except:
+            print(f"Guppy did not return JSON: {response.text}")
+            raise
