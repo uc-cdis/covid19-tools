@@ -20,7 +20,7 @@ import time
 import zipfile
 
 from etl import base
-from helper.metadata_helper import MetadataHelper
+from utils.metadata_helper import MetadataHelper
 
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))

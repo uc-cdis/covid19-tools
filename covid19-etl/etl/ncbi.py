@@ -13,9 +13,9 @@ import codecs
 from google.cloud import bigquery
 
 from etl import base
-from helper.async_file_helper import AsyncFileHelper
-from helper.format_helper import format_submitter_id
-from helper.metadata_helper import MetadataHelper
+from utils.async_file_helper import AsyncFileHelper
+from utils.format_helper import format_submitter_id
+from utils.metadata_helper import MetadataHelper
 from etl.ncbi_file import NCBI_FILE
 
 DATA_PATH = os.path.dirname(os.path.abspath(__file__))

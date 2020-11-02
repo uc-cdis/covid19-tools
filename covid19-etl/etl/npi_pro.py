@@ -5,8 +5,8 @@ import geopandas as gpd
 import requests
 
 from etl import base
-from helper.format_helper import derived_submitter_id, format_submitter_id
-from helper.metadata_helper import MetadataHelper
+from utils.format_helper import derived_submitter_id, format_submitter_id
+from utils.metadata_helper import MetadataHelper
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 

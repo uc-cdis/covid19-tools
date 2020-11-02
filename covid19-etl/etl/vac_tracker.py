@@ -5,7 +5,7 @@ from contextlib import closing
 import requests
 
 from etl import base
-from helper.metadata_helper import MetadataHelper
+from utils.metadata_helper import MetadataHelper
 
 
 # map from gen3 fields

@@ -7,8 +7,8 @@ import asyncio
 import time
 
 from etl import base
-from helper.async_file_helper import AsyncFileHelper
-from helper.metadata_helper import MetadataHelper
+from utils.async_file_helper import AsyncFileHelper
+from utils.metadata_helper import MetadataHelper
 
 from botocore import UNSIGNED
 from botocore.config import Config

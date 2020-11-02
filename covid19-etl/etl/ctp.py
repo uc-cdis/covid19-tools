@@ -6,7 +6,7 @@ from datetime import datetime
 import requests
 
 from etl import base
-from helper.metadata_helper import MetadataHelper
+from utils.metadata_helper import MetadataHelper
 
 
 def format_location_submitter_id(country, province, county=None):
