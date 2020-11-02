@@ -12,7 +12,7 @@ from sys import path
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 path.insert(0, os.path.join(CURRENT_DIR, ".."))
-from helper.metadata_helper import MetadataHelper
+from utils.metadata_helper import MetadataHelper
 
 
 ##########

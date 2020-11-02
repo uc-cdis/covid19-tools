@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from etl import base
-from helper.file_helper import FileHelper
+from utils.file_helper import FileHelper
 
 COXRAY_DATA_PATH = "../data"
 

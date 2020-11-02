@@ -1,9 +1,9 @@
 from pathlib import Path
 
 from etl import base
-from helper.file_helper import FileHelper
-from helper.format_helper import format_submitter_id
-from helper.metadata_helper import MetadataHelper
+from utils.file_helper import FileHelper
+from utils.format_helper import format_submitter_id
+from utils.metadata_helper import MetadataHelper
 
 CHESTXRAY8_DATA_PATH = "../data"
 

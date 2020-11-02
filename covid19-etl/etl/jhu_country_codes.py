@@ -5,7 +5,7 @@ import json
 import requests
 
 from etl import base
-from helper.metadata_helper import MetadataHelper
+from utils.metadata_helper import MetadataHelper
 from utils.country_codes_utils import get_codes_dictionary, get_codes_for_country_name
 
 

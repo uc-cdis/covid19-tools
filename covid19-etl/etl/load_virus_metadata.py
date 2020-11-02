@@ -4,7 +4,7 @@ from os import path
 import yaml
 
 from etl import base
-from helper.metadata_helper import MetadataHelper
+from utils.metadata_helper import MetadataHelper
 
 """
 This script assumes you have a collection of Genbank-format "genome" files (*.gb),
