@@ -1,6 +1,5 @@
 from contextlib import closing
 import datetime
-import re
 import requests
 
 from etl import base

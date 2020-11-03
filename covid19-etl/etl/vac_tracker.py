@@ -1,5 +1,3 @@
-import csv
-import re
 from contextlib import closing
 
 import requests
