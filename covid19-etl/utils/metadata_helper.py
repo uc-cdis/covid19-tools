@@ -96,7 +96,7 @@ class MetadataHelper:
         Queries Guppy for the existing `location` data.
         Returns the latest submitted date as Python "datetime.date"
         """
-        print("Getting latest date from Guppy...")
+        print("Getting the latest date from Guppy...")
         query_string = """query ($filter: JSON) {
             location (
                 filter: $filter,
@@ -182,7 +182,7 @@ class MetadataHelper:
             print(f"Peregrine did not return JSON: {response.text}")
             raise
 
-    async def query_peregrine_async(self, query_string):
+    async def async_query_peregrine(self, query_string):
         async def _post_request(headers, query_string):
             url = f"{self.base_url}/api/v0/submission/graphql"
             async with ClientSession() as session:
