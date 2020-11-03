@@ -16,7 +16,8 @@ def format_submitter_id(node, args):
     """
     submitter_id = node
     for v in args.values():
-        submitter_id += "_{}".format(v)
+        if v:
+            submitter_id += "_{}".format(v)
 
     submitter_id = submitter_id.lower()
     submitter_id = re.sub("[^a-z0-9-_]+", "-", submitter_id)
