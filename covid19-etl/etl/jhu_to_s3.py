@@ -7,7 +7,6 @@ from datetime import datetime
 import json
 import os
 import pathlib
-import re
 import requests
 import time
 

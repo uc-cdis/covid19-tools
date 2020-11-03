@@ -11,7 +11,7 @@ CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 def harmonize_gender(gender):
-    {"male": "Male", "female": "Female", "": "Not reported"}[gender]
+    return {"male": "Male", "female": "Female", "": "Not reported"}[gender]
 
 
 def format_date(date):

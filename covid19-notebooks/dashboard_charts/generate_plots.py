@@ -1,11 +1,6 @@
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import gen3
 from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
-import itertools
 from itertools import islice
 from collections import deque
 import plotly.graph_objects as go
@@ -17,7 +12,6 @@ raw_data_confirmed = pd.read_csv(confirmed_cases_data_url)
 data_day = (
     raw_data_confirmed.groupby(["Country/Region"]).sum().drop(["Lat", "Long"], axis=1)
 )
-df = data_day.transpose()
 data = data_day.reset_index().melt(id_vars="Country/Region", var_name="date")
 
 # Pivot data to wide & index by date

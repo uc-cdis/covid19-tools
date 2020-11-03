@@ -42,7 +42,7 @@ def format_summary_clinical_submitter_id(location_submitter_id, date):
     return "{}_{}".format(sub_id, date)
 
 
-def format_time_series_date(date):
+def time_series_date_to_string(date):
     return datetime.strptime(date, "%Y-%m-%d").isoformat("T")
 
 
@@ -128,7 +128,10 @@ class JHU(base.BaseETL):
                 },
             },
         }
-        self.existing_data = self.metadata_helper.get_existing_data_jhu()
+        (
+            self.existing_summary_locations,
+            self.last_date,
+        ) = self.metadata_helper.get_existing_data_jhu()
 
     def files_to_submissions(self):
         """
@@ -198,17 +201,16 @@ class JHU(base.BaseETL):
                 if (
                     location_submitter_id not in self.location_data
                     # do not re-submit location data that already exist
-                    and location_submitter_id not in self.existing_data
+                    and location_submitter_id not in self.existing_summary_locations
                 ):
                     self.location_data[location_submitter_id] = location
 
                 for date, value in date_to_value.items():
-                    date_submitter_id = format_summary_clinical_submitter_id(
-                        location_submitter_id, date
-                    )
-                    # do not re-submit time_series data that already exist
-                    if date_submitter_id not in self.existing_data.get(
-                        location_submitter_id, []
+                    # do not re-submit summary_clinical data that
+                    # already exist. Assume anything older than the last
+                    # submitted date has already been submitted
+                    if time_series_date_to_string(date) > time_series_date_to_string(
+                        self.last_date
                     ):
                         self.time_series_data[location_submitter_id][date][
                             data_type
@@ -304,7 +306,6 @@ class JHU(base.BaseETL):
         `self.location_data already contains Sheepdog records. Batch submits
         all records in `self.location_data` and `self.time_series_data`
         """
-
         print("Submitting summary_location data")
         for location in self.location_data.values():
             record = {"type": "summary_location"}
@@ -322,7 +323,7 @@ class JHU(base.BaseETL):
                     "type": "summary_clinical",
                     "submitter_id": submitter_id,
                     "summary_locations": [{"submitter_id": location_submitter_id}],
-                    "date": format_time_series_date(date),
+                    "date": time_series_date_to_string(date),
                 }
                 for data_type, value in data.items():
                     record[data_type] = value
