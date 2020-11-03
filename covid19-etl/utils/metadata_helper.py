@@ -26,77 +26,54 @@ class MetadataHelper:
 
     def get_existing_data_jhu(self):
         """
-        Queries Peregrine for the existing `location` and `time_series` data. Returns a dict in format { "location1": [ "date1", "date2" ] }
-        """
-        print("Getting existing data from Peregrine...")
-        print("  summary_location data...")
-        query_string = (
-            '{ summary_location (first: 0, project_id: "'
-            + self.project_id
-            + '") { submitter_id } }'
+        Queries Guppy for the existing `summary_location` and
+        `summary_clinical` data. Returns the list of all the existing
+        summary_location submitter_ids, and the latest submitted date
+        as a string:
+        (
+            [
+                "summary_location_submitter_id1",
+                "summary_location_submitter_id2",
+                ...
+            ],
+            "2020-11-02"
         )
-        query_res = self.query_peregrine(query_string)
-        json_res = {
-            location["submitter_id"]: []
-            for location in query_res["data"]["summary_location"]
-        }
+        """
+        _filter = {"=": {"project_id": self.project_id}}
 
-        print("  summary_clinical data...")
+        print("Getting existing summary_location submitter_ids from Guppy...")
+        res = self.download_from_guppy("location", ["submitter_id"], _filter)
+        summary_locations = [r["submitter_id"] for r in res]
 
-        summary_clinicals = []
-        data = None
-        offset = 0
-        first = 50000
-        max_retries = 3
-        while data != []:  # don't change, it explicitly checks for empty list
-            tries = 0
-            while tries < max_retries:
-                print(
-                    "    Getting first {} records with offset: {}".format(first, offset)
-                )
-                query_string = (
-                    "{ summary_clinical (first: "
-                    + str(first)
-                    + ", offset: "
-                    + str(offset)
-                    + ', project_id: "'
-                    + self.project_id
-                    + '") { submitter_id } }'
-                )
+        print("Getting the latest summary_clinical date from Guppy...")
+        query_string = """query ($filter: JSON) {
+            location (
+                filter: $filter,
+                sort: [{date: "desc"}],
+                first: 1,
+                accessibility: accessible
+            ) {
+                date
+            }
+        }"""
+        variables = {"filter": _filter}
+        query_res = self.query_guppy(query_string, variables)
+        if not query_res["data"]["location"]:
+            raise Exception(
+                "Did not receive any data from Guppy. Is the token expired?"
+            )
+        loc = query_res["data"]["location"][0]
+        # from format: %Y-%m-%dT00:00:00
+        latest_submitted_date = loc["date"].split("T")[0]
 
-                query_res = None
-                try:
-                    query_res = self.query_peregrine(query_string)
-                except:
-                    print(f"Peregrine did not return JSON: {response.text}")
-
-                if query_res:
-                    data = query_res["data"]["summary_clinical"]
-                    summary_clinicals.extend(data)
-                    offset += first
-                    break
-                else:
-                    tries += 1
-                    print("    Trying again (#{})".format(tries))
-                    sleep(2)  # wait 2 seconds - can change to exponential backoff later
-            assert (
-                tries < max_retries
-            ), "    Unable to query Peregrine for existing 'summary_clinical' data"
-
-        for sc in summary_clinicals:
-            sc_id = sc["submitter_id"]
-            location_id = sc_id.replace("summary_clinical", "summary_location")
-            location_id = "_".join(location_id.split("_")[:-1])  # remove the date
-            json_res[location_id].append(sc_id)
-
-        return json_res
+        return summary_locations, latest_submitted_date
 
     def get_latest_submitted_date_idph(self):
         """
         Queries Guppy for the existing `location` data.
         Returns the latest submitted date as Python "datetime.date"
         """
-        print("Getting the latest date from Guppy...")
+        print("Getting the latest summary_clinical date from Guppy...")
         query_string = """query ($filter: JSON) {
             location (
                 filter: $filter,
@@ -218,6 +195,30 @@ class MetadataHelper:
             print(
                 f"Unable to query Guppy.\nQuery: {query_string}\nVariables: {variables}"
             )
+            raise
+        try:
+            return response.json()
+        except:
+            print(f"Guppy did not return JSON: {response.text}")
+            raise
+
+    def download_from_guppy(self, _type, fields=None, filter=None):
+        body = {"type": _type, "accessibility": "accessible"}
+        if fields:
+            body["fields"] = fields
+        if filter:
+            body["filter"] = filter
+
+        url = f"{self.base_url}/guppy/download"
+        response = requests.post(
+            url,
+            json=body,
+            headers=self.headers,
+        )
+        try:
+            response.raise_for_status()
+        except Exception:
+            print(f"Unable to download from Guppy.\nBody: {body}")
             raise
         try:
             return response.json()
