@@ -233,6 +233,9 @@ class JHU(base.BaseETL):
                 - location data, in a format ready to be submitted to Sheepdog
                 - { "date1": <value>, "date2": <value> } from the row data
         """
+        if not row:  # ignore empty rows
+            return
+
         header_to_column = self.header_to_column[file_type]
         if "country" not in header_to_column:
             header_to_column = header_to_column[data_type]
