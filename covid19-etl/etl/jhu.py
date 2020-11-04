@@ -190,6 +190,8 @@ class JHU(base.BaseETL):
             )
 
             for row in reader:
+                if not row:  # ignore empty rows
+                    continue
                 location, date_to_value = self.parse_row(
                     file_type, data_type, headers, row
                 )
@@ -233,9 +235,6 @@ class JHU(base.BaseETL):
                 - location data, in a format ready to be submitted to Sheepdog
                 - { "date1": <value>, "date2": <value> } from the row data
         """
-        if not row:  # ignore empty rows
-            return
-
         header_to_column = self.header_to_column[file_type]
         if "country" not in header_to_column:
             header_to_column = header_to_column[data_type]
