@@ -1,4 +1,4 @@
-FROM python:3.8-slim-buster
+FROM quay.io/cdis/python:3.8-slim-buster
 
 RUN apt update && apt install -y vim
 
