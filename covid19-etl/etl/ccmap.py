@@ -34,6 +34,15 @@ def format_summary_clinical_submitter_id(location_submitter_id, date):
     )
 
 
+def format_summary_socio_demographic_id(location_submitter_id, date):
+    return "{}_{}".format(
+        location_submitter_id.replace(
+            "summary_location_", "summary_socio_demographic_"
+        ),
+        date,
+    )
+
+
 def state_to_long(state):
     short_to_long = {
         "AK": "Alaska",
@@ -98,6 +107,7 @@ class CCMAP(base.BaseETL):
         super().__init__(base_url, access_token, s3_bucket)
         self.summary_locations = []
         self.summary_clinicals = []
+        self.summary_socio_demographics = []
 
         self.program_name = "open"
         self.project_code = "CCMap"
@@ -181,8 +191,14 @@ class CCMAP(base.BaseETL):
                 ("summary_clinical", "icu_bed_occupancy_rate", float),
             ),
             ("Population", ("summary_clinical", "population", int)),
-            ("Population (20+)", ("summary_clinical", "population_gtr_20", int)),
-            ("Population (65+)", ("summary_clinical", "population_gtr_65", int)),
+            (
+                "Population (20+)",
+                ("summary_socio_demographic", "population_gtr_20", int),
+            ),
+            (
+                "Population (65+)",
+                ("summary_socio_demographic", "population_gtr_65", int),
+            ),
             (
                 "Staffed All Beds [Per 1000 People]",
                 ("summary_clinical", "staffed_all_beds_per_1000", float),
@@ -246,12 +262,8 @@ class CCMAP(base.BaseETL):
         ]
 
         self.headers_mapping = {
-            "county": {
-                field: (k, mapping) for k, (field, mapping) in enumerate(county_fields)
-            },
-            "state": {
-                field: (k, mapping) for k, (field, mapping) in enumerate(state_fields)
-            },
+            "county": {field: mapping for field, mapping in county_fields},
+            "state": {field: mapping for field, mapping in state_fields},
         }
 
     def files_to_submissions(self):
@@ -305,36 +317,63 @@ class CCMAP(base.BaseETL):
             ), "  Unable to get file contents, received {}.".format(headers)
 
             expected_h = list(self.headers_mapping[csv_type].keys())
-            obtained_h = headers[: len(expected_h)]
             assert (
-                obtained_h == expected_h
+                set(expected_h).issubset(set(headers)) == True
             ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
-                expected_h, obtained_h
+                expected_h, headers
             )
 
+            for i, f in enumerate(headers):
+                if f in self.headers_mapping[csv_type]:
+                    old_value = self.headers_mapping[csv_type][f]
+                    self.headers_mapping[csv_type][f] = (i, old_value)
+
             for row in reader:
-                summary_location, summary_clinical = self.parse_row(
+                (
+                    summary_location,
+                    summary_clinical,
+                    summary_socio_demographic,
+                ) = self.parse_row(
                     row, self.headers_mapping[csv_type], last_update_date
                 )
 
                 self.summary_locations.append(summary_location)
                 self.summary_clinicals.append(summary_clinical)
+                self.summary_socio_demographics.append(summary_socio_demographic)
 
     def parse_row(self, row, mapping, last_update_date):
         summary_location = {"country_region": "US"}
         summary_clinical = {}
+        summary_socio_demographic = {}
 
         for k, (i, (node_type, node_field, type_conv)) in mapping.items():
-            if node_field:
-                value = row[i]
-                if value:
-                    if node_type == "summary_location":
-                        summary_location[node_field] = type_conv(value)
-                    if node_type == "summary_clinical":
-                        if type_conv == int:
-                            summary_clinical[node_field] = type_conv(float(value))
-                        else:
-                            summary_clinical[node_field] = type_conv(value)
+            try:
+                if node_field:
+                    value = row[i]
+                    if value:
+                        if node_type == "summary_location":
+                            summary_location[node_field] = type_conv(value)
+                        if node_type == "summary_clinical":
+                            if type_conv == int:
+                                summary_clinical[node_field] = type_conv(float(value))
+                            else:
+                                summary_clinical[node_field] = type_conv(value)
+                        if node_type == "summary_socio_demographic":
+                            if type_conv == int:
+                                summary_socio_demographic[node_field] = type_conv(
+                                    float(value)
+                                )
+                            else:
+                                summary_socio_demographic[node_field] = type_conv(value)
+                            summary_clinical[
+                                node_field
+                            ] = None  # TODO: remove when the properties are removed from dictionary
+            except Exception as ex:
+                print(
+                    "Error with field: {}, problematic value: {}".format(
+                        node_field, row[i]
+                    )
+                )
 
         summary_location_submitter_id = format_location_submitter_id(summary_location)
 
@@ -352,7 +391,14 @@ class CCMAP(base.BaseETL):
             {"submitter_id": summary_location_submitter_id}
         ]
 
-        return summary_location, summary_clinical
+        summary_socio_demographic["submitter_id"] = format_summary_socio_demographic_id(
+            summary_location_submitter_id, date=last_update_date.strftime("%Y-%m-%d")
+        )
+        summary_socio_demographic["summary_locations"] = [
+            {"submitter_id": summary_location_submitter_id}
+        ]
+
+        return summary_location, summary_clinical, summary_socio_demographic
 
     def submit_metadata(self):
         print("Submitting summary_location data")
@@ -365,6 +411,13 @@ class CCMAP(base.BaseETL):
         print("Submitting summary_clinical data")
         for sc in self.summary_clinicals:
             sc_record = {"type": "summary_clinical"}
+            sc_record.update(sc)
+            self.metadata_helper.add_record_to_submit(sc_record)
+        self.metadata_helper.batch_submit_records()
+
+        print("Submitting summary_socio_demographic data")
+        for sc in self.summary_socio_demographics:
+            sc_record = {"type": "summary_socio_demographic"}
             sc_record.update(sc)
             self.metadata_helper.add_record_to_submit(sc_record)
         self.metadata_helper.batch_submit_records()
