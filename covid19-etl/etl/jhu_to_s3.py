@@ -598,8 +598,8 @@ class JHU_TO_S3(base.BaseETL):
                 if LATEST_DATE_ONLY and date != self.latest_date:
                     continue
                 if country_data["country_region"] not in ["US", "Canada"]:
-                    js["country"][iso3]["confirmed"] += ts1["confirmed"]
-                    js["country"][iso3]["deaths"] += ts1["deaths"]
+                    js["country"][iso3]["confirmed"] += ts1.get("confirmed", 0)
+                    js["country"][iso3]["deaths"] += ts1.get("deaths", 0)
                     js["country"][iso3]["recovered"] += ts1.get("recovered", 0)
 
             for province_data in country_data.get("provinces", {}).values():
@@ -621,12 +621,12 @@ class JHU_TO_S3(base.BaseETL):
                 for date, ts in province_data["time_series"].items():
                     if LATEST_DATE_ONLY and date != self.latest_date:
                         continue
-                    js["country"][iso3]["confirmed"] += ts["confirmed"]
-                    js["country"][iso3]["deaths"] += ts["deaths"]
+                    js["country"][iso3]["confirmed"] += ts.get("confirmed", 0)
+                    js["country"][iso3]["deaths"] += ts.get("deaths", 0)
                     js["country"][iso3]["recovered"] += ts.get("recovered", 0)
                     if country_data["country_region"] == "US":
-                        js["state"][state_name]["confirmed"] += ts["confirmed"]
-                        js["state"][state_name]["deaths"] += ts["deaths"]
+                        js["state"][state_name]["confirmed"] += ts.get("confirmed", 0)
+                        js["state"][state_name]["deaths"] += ts.get("deaths", 0)
                         js["state"][state_name]["recovered"] += ts.get("recovered", 0)
 
                 for county_data in province_data.get("counties", {}).values():
@@ -635,20 +635,22 @@ class JHU_TO_S3(base.BaseETL):
                     for date, ts in county_data["time_series"].items():
                         if LATEST_DATE_ONLY and date != self.latest_date:
                             continue
-                        js["country"][iso3]["confirmed"] += ts["confirmed"]
-                        js["country"][iso3]["deaths"] += ts["deaths"]
+                        js["country"][iso3]["confirmed"] += ts.get("confirmed", 0)
+                        js["country"][iso3]["deaths"] += ts.get("deaths", 0)
                         js["country"][iso3]["recovered"] += ts.get("recovered", 0)
                         if country_data["country_region"] == "US":
-                            js["state"][state_name]["confirmed"] += ts["confirmed"]
-                            js["state"][state_name]["deaths"] += ts["deaths"]
+                            js["state"][state_name]["confirmed"] += ts.get(
+                                "confirmed", 0
+                            )
+                            js["state"][state_name]["deaths"] += ts.get("deaths", 0)
                             js["state"][state_name]["recovered"] += ts.get(
                                 "recovered", 0
                             )
 
                             # add this US county. it shouldn't already be there
                             js["county"][county_fips] = {
-                                "confirmed": ts["confirmed"],
-                                "deaths": ts["deaths"],
+                                "confirmed": ts.get("confirmed", 0),
+                                "deaths": ts.get("deaths", 0),
                                 "recovered": ts.get("recovered", 0),
                                 "country_region": country_data["country_region"],
                                 "province_state": state_name,
@@ -695,8 +697,8 @@ class JHU_TO_S3(base.BaseETL):
             # country-level time_series data
             for date, ts in country_data["time_series"].items():
                 if country_data["country_region"] not in ["US", "Canada"]:
-                    tmp["country"][iso3][date]["confirmed"] += ts["confirmed"]
-                    tmp["country"][iso3][date]["deaths"] += ts["deaths"]
+                    tmp["country"][iso3][date]["confirmed"] += ts.get("confirmed", 0)
+                    tmp["country"][iso3][date]["deaths"] += ts.get("deaths", 0)
                     tmp["country"][iso3][date]["recovered"] += ts.get("recovered", 0)
 
             for province_data in country_data.get("provinces", {}).values():
@@ -712,12 +714,14 @@ class JHU_TO_S3(base.BaseETL):
 
                 # add province-level time_series data for all countries + US states
                 for date, ts in province_data["time_series"].items():
-                    tmp["country"][iso3][date]["confirmed"] += ts["confirmed"]
-                    tmp["country"][iso3][date]["deaths"] += ts["deaths"]
+                    tmp["country"][iso3][date]["confirmed"] += ts.get("confirmed", 0)
+                    tmp["country"][iso3][date]["deaths"] += ts.get("deaths", 0)
                     tmp["country"][iso3][date]["recovered"] += ts.get("recovered", 0)
                     if country_data["country_region"] == "US":
-                        tmp["state"][state_name][date]["confirmed"] += ts["confirmed"]
-                        tmp["state"][state_name][date]["deaths"] += ts["deaths"]
+                        tmp["state"][state_name][date]["confirmed"] += ts.get(
+                            "confirmed", 0
+                        )
+                        tmp["state"][state_name][date]["deaths"] += ts.get("deaths", 0)
                         tmp["state"][state_name][date]["recovered"] += ts.get(
                             "recovered", 0
                         )
@@ -731,23 +735,27 @@ class JHU_TO_S3(base.BaseETL):
 
                     # add county-level time_series data for all countries + US states + US counties
                     for date, ts in county_data["time_series"].items():
-                        tmp["country"][iso3][date]["confirmed"] += ts["confirmed"]
-                        tmp["country"][iso3][date]["deaths"] += ts["deaths"]
+                        tmp["country"][iso3][date]["confirmed"] += ts.get(
+                            "confirmed", 0
+                        )
+                        tmp["country"][iso3][date]["deaths"] += ts.get("deaths", 0)
                         tmp["country"][iso3][date]["recovered"] += ts.get(
                             "recovered", 0
                         )
                         if country_data["country_region"] == "US":
-                            tmp["state"][state_name][date]["confirmed"] += ts[
-                                "confirmed"
-                            ]
-                            tmp["state"][state_name][date]["deaths"] += ts["deaths"]
+                            tmp["state"][state_name][date]["confirmed"] += ts.get(
+                                "confirmed", 0
+                            )
+                            tmp["state"][state_name][date]["deaths"] += ts.get(
+                                "deaths", 0
+                            )
                             tmp["state"][state_name][date]["recovered"] += ts.get(
                                 "recovered", 0
                             )
 
                             tmp["county"][county_fips][date] = {
-                                "confirmed": ts["confirmed"],
-                                "deaths": ts["deaths"],
+                                "confirmed": ts.get("confirmed", 0),
+                                "deaths": ts.get("deaths", 0),
                                 "recovered": ts.get("recovered", 0),
                             }
 
