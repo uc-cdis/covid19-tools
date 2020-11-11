@@ -29,11 +29,12 @@ def format_value(key, value, _type, date_mode=None):
             value = value.split(" ")[0]
 
     if _type == int and int(value) < MINIMUM_COUNT:
-        raise Exception(
-            f"Found value < {MINIMUM_COUNT} ({key}: {value}). This value cannot be submitted."
+        print(
+            f"  Warning: Found value < {MINIMUM_COUNT} ({key}: {value}). This value cannot be submitted, replacing it with null."
         )
+        return None
 
-    return value
+    return _type(value)
 
 
 class SSR(base.BaseETL):
@@ -129,8 +130,8 @@ class SSR(base.BaseETL):
 
         for orig_prop_name, (node_type, prop_name, _type) in mapping:
             if row_data[orig_prop_name]:
-                row_records[node_type][prop_name] = _type(
-                    format_value(prop_name, row_data[orig_prop_name], _type, date_mode)
+                row_records[node_type][prop_name] = format_value(
+                    prop_name, row_data[orig_prop_name], _type, date_mode
                 )
 
         # add missing summary_location props
