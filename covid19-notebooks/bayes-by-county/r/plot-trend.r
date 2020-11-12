@@ -375,7 +375,7 @@ make_plots <- function(data_country, covariates_country_long,
                     aes(x = time, ymin = cases_min, ymax = cases_max, fill = key)) +
         xlab("Time") +
         ylab("Cases") +
-        scale_x_date(date_breaks = "weeks", labels = date_format("%e %b")) +
+        scale_x_date(date_breaks = "2 weeks", labels = date_format("%e %b")) +
         scale_fill_manual(name = "", labels = c("50%", "95%"),
                         values = c(alpha("deepskyblue4", 0.55),
                                     alpha("deepskyblue4", 0.45))) +
@@ -409,7 +409,7 @@ make_plots <- function(data_country, covariates_country_long,
         aes(ymin = death_min, ymax = death_max, fill = key)) +
         xlab("Time") +
         ylab("Deaths") +
-        scale_x_date(date_breaks = "weeks", labels = date_format("%e %b")) +
+        scale_x_date(date_breaks = "2 weeks", labels = date_format("%e %b")) +
         scale_fill_manual(name = "", labels = c("50%", "95%"),
                         values = c(alpha("deepskyblue4", 0.55),
                                     alpha("deepskyblue4", 0.45))) +
@@ -461,7 +461,7 @@ make_plots <- function(data_country, covariates_country_long,
         scale_shape_manual(name = "Interventions", labels = plot_labels,
                         values = c(21, 22, 23, 24, 25, 12)) +
         scale_colour_discrete(name = "Interventions", labels = plot_labels) +
-        scale_x_date(date_breaks = "weeks", labels = date_format("%e %b")) +
+        scale_x_date(date_breaks = "2 weeks", labels = date_format("%e %b")) +
         theme_pubr() +
         theme(axis.text.x = element_text(angle = 45, hjust = 1),
                     plot.title = element_text(hjust = 0.5),
