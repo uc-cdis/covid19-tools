@@ -20,9 +20,11 @@ class MARINER_WORKFLOW(base.BaseETL):
             r.status_code == 200
         ), f"Could not get run status from Mariner ({r.status_code}):\n{r.text}"
         resp_data = r.json()
-        assert (
-            resp_data and "status" in resp_data
-        ), f"Mariner did not return a status:\n{resp_data}"
+        if not resp_data or "status" not in resp_data:
+            # Mariner did not return a status - that happens right after the
+            # job is created. It might take a few seconds to start the run.
+            # For now, assume the status is "not-started"
+            return "not-started"
         return resp_data["status"]
 
     def files_to_submissions(self):
@@ -51,7 +53,6 @@ class MARINER_WORKFLOW(base.BaseETL):
         run_id = resp_data["runID"]
 
         print(f"Monitoring workflow run (run ID: {run_id})")
-        time.sleep(10)  # Mariner might take a few seconds to start the run
         status = "running"
         while status in ["not-started", "running", "unknown"]:
             status = self.get_status(run_id)
