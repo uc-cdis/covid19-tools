@@ -3,12 +3,14 @@ import requests
 import time
 
 from etl import base
+from utils.fence_helper import get_api_key, get_access_token
 
 
 class MARINER_WORKFLOW(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
         self.headers = {"Authorization": f"Bearer {access_token}"}
+        self.api_key = get_api_key(base_url, headers=self.headers)
 
         self.model_version = "v3.2"
         self.status_ping_minutes = 10
@@ -16,6 +18,15 @@ class MARINER_WORKFLOW(base.BaseETL):
     def get_status(self, run_id):
         url = f"{self.base_url}/ga4gh/wes/v1/runs/{run_id}/status"
         r = requests.get(url, headers=self.headers)
+
+        if r.status_code == 403:
+            print(
+                "Got a 403, token might have expired. Getting a new token and retrying"
+            )
+            new_access_token = get_access_token(self.base_url, self.api_key)
+            self.headers = {"Authorization": f"Bearer {new_access_token}"}
+            r = requests.get(url, headers=self.headers)
+
         assert (
             r.status_code == 200
         ), f"Could not get run status from Mariner ({r.status_code}):\n{r.text}"
