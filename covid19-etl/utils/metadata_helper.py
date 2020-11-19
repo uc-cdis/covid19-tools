@@ -149,9 +149,7 @@ class MetadataHelper:
         try:
             response.raise_for_status()
         except Exception:
-            print(
-                f"Unable to query Peregrine.\nQuery: {query_string}\nVariables: {variables}"
-            )
+            print(f"Unable to query Peregrine.\nQuery: {query_string}")
             raise
         try:
             return response.json()
