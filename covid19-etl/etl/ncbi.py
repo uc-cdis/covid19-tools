@@ -98,12 +98,27 @@ SPECIAL_MAP_FIELDS = {
 }
 
 
+def read_ncbi_manifest(bucket, key, accession_number_filename_map):
+    """read the manifest"""
+    s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
+    s3_object = s3.Object(bucket, key)
+    line_stream = codecs.getreader("utf-8")
+    for line in line_stream(s3_object.get()["Body"]):
+        words = line.split("\t")
+        accession_number_filename_map[words[1]] = words[5].split("/")[-1]
+
+
 class NCBI(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
 
         self.program_name = "open"
         self.project_code = "ncbi-covid-19"
+        self.manifest_bucket = "sra-pub-sars-cov2"
+        self.sra_src_manifest = "sra-src/Manifest"
+        self.sra_run_manifest = "run/Manifest"
+        self.accession_number_filename_map = {}
+
         self.metadata_helper = MetadataHelper(
             base_url=self.base_url,
             program_name=self.program_name,
@@ -142,6 +157,17 @@ class NCBI(base.BaseETL):
                 "submitter_id": format_submitter_id("cmc_ncbi_covid19", {}),
                 "projects": [{"code": self.project_code}],
             }
+        )
+
+        read_ncbi_manifest(
+            self.manifest_bucket,
+            self.sra_run_manifest,
+            self.accession_number_filename_map,
+        )
+        read_ncbi_manifest(
+            self.manifest_bucket,
+            self.sra_src_manifest,
+            self.accession_number_filename_map,
         )
 
     def submit_metadata(self):
@@ -188,8 +214,9 @@ class NCBI(base.BaseETL):
         records = self._get_response_from_big_query(submitting_accession_numbers)
         accession_number_set = set()
         for record in records:
-            accession_number_set.add(record["acc"])
-            await self._parse_big_query_response(record)
+            if record["acc"] in self.accession_number_filename_map:
+                accession_number_set.add(record["acc"])
+                await self._parse_big_query_response(record)
 
         cmc_submitter_id = format_submitter_id("cmc_ncbi_covid19", {})
         for accession_number in submitting_accession_numbers:
@@ -531,13 +558,15 @@ class NCBI(base.BaseETL):
                 virus_sequence[field] = str(response.get(field))
 
         virus_sequence["samples"] = [{"submitter_id": sample["submitter_id"]}]
-        virus_sequence["data_category"] = "Protein"
+        virus_sequence["data_category"] = "Nucleotide"
         virus_sequence["data_type"] = "Sequence"
+        virus_sequence["file_name"] = self.accession_number_filename_map[
+            accession_number
+        ]
 
-        filename = f"virus_sequence_dummy_data_{accession_number}.txt"
-        virus_sequence[
-            "file_name"
-        ] = f"virus_sequence_dummy_data_{accession_number}.txt"
+        _, file_extension = os.path.splitext(virus_sequence["file_name"])
+        virus_sequence["data_format"] = file_extension.replace(".", "")
+
         (
             did,
             rev,
@@ -549,7 +578,9 @@ class NCBI(base.BaseETL):
             filename=virus_sequence["file_name"]
         )
 
-        assert did, f"file {filename} does not exist in the index, rerun NCBI_FILE ETL"
+        assert (
+            did
+        ), f"file {filename} does not exist in the index, rerun NCBI_MANIFEST ETL"
         await self.file_helper.async_update_authz(did=did, rev=rev)
 
         virus_sequence["file_size"] = filesize

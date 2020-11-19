@@ -77,3 +77,23 @@ class AsyncFileHelper:
         if upload_status == requests.codes.ok:
             return guid
         return None
+
+    async def async_index_record(self, did, size, filename, url, authz, md5):
+        """Asynchronous update authz field for did"""
+
+        url = f"{self.base_url}/index/index"
+        async with ClientSession() as session:
+            async with session.post(
+                url,
+                json={
+                    "did": did,
+                    "form": "object",
+                    "size": size,
+                    "file_name": filename,
+                    "urls": [url],
+                    "authz": [authz],
+                    "hashes": {"md5": md5},
+                },
+                headers=self.headers,
+            ) as r:
+                r.raise_for_status()
