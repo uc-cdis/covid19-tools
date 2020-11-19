@@ -40,3 +40,7 @@ In this R markdown, we track COVID-19 local (US) and global cases with active, c
 ### "COVID-19 Testing Over Time in the US" notebook:
 
 COVID-19 testing is very crucial to understand the spread of the pandemic. In this python notebook, we have focused our efforts on visualizing the COVID-19 testing data across the U.S. States and Territories from the COVID Tracking Project. The animations will allow you to see how testing data has changed over time.
+
+### "Visualize Statistical Summary Reports from Partnering Healthcare Providers" notebook:
+
+This notebook provides an example on how to visualize the status of COVID-19 and general patient information at multiple regional healthcare providers using the demo Statistical Summary Report data from 03/10/2020 to 11/10/2020.
