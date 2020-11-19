@@ -181,11 +181,6 @@ class NCBI_FILE(base.BaseETL):
                 if n_rows % 10000 == 0:
                     print(f"Finish process {n_rows} of file {node_name}")
 
-                # Slow down a little bit so that the code will not overwhelm
-                # the data upload flow. Make the service more stable
-                # TODO: Remove it after the first run
-                if n_rows % 10000000 == 0:
-                    await asyncio.sleep(300)
             except Exception as e:
                 print(f"ERROR: {e}")
                 # close the file
