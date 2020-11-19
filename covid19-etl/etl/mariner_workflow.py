@@ -34,7 +34,7 @@ class MARINER_WORKFLOW(base.BaseETL):
         assert r.status_code == 200, f"Could not get request body from {url}"
         request_body = r.json()
 
-        request_body["input"]["s3_bucket"] = f"{s3://self.s3_bucket}"
+        request_body["input"]["s3_bucket"] = f"s3://{self.s3_bucket}"
 
         # for testing - TODO remove
         request_body["input"]["deathsCutoff"] = "7300"
