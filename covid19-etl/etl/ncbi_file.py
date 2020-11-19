@@ -162,31 +162,35 @@ class NCBI_FILE(base.BaseETL):
         # Keep track the current opening file
         f = None
 
-        # Stream the data from s3 bucket by reading line by line
-        for line in line_stream(s3_object.get()["Body"]):
-            try:
-                # Handle the line.
-                f, accession_number = await self.parse_row(
-                    line,
-                    node_name,
-                    ext,
-                    headers,
-                    accession_number,
-                    n_rows,
-                    f,
-                    excluded_set,
-                )
-                accession_numbers.add(accession_number)
-                n_rows += 1
-                if n_rows % 10000 == 0:
-                    print(f"Finish process {n_rows} of file {node_name}")
+        try:
+            # Stream the data from s3 bucket by reading line by line
+            for line in line_stream(s3_object.get()["Body"]):
+                try:
+                    # Handle the line.
+                    f, accession_number = await self.parse_row(
+                        line,
+                        node_name,
+                        ext,
+                        headers,
+                        accession_number,
+                        n_rows,
+                        f,
+                        excluded_set,
+                    )
+                    accession_numbers.add(accession_number)
+                    n_rows += 1
+                    if n_rows % 10000 == 0:
+                        print(f"Finish process {n_rows} of file {node_name}")
 
-            except Exception as e:
-                print(f"ERROR: {e}")
-                # close the file
-                if f:
-                    f.close()
-                await asyncio.sleep(10)
+                except Exception as e:
+                    print(f"ERROR: {e}")
+                    # close the file
+                    if f:
+                        f.close()
+                    await asyncio.sleep(10)
+        except Exception as e:
+            print(f"ERROR: Can not download {key}. Detail {e}")
+            raise
         # Index the last file
         await self.file_to_indexd(
             Path(f"{DATA_PATH}/{node_name}_{accession_number}.{ext}")
