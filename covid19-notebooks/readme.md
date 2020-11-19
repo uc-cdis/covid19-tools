@@ -51,4 +51,4 @@ In this notebook, we obtain the clinical data for multiple projects from Chicago
 
 ### "Visualize Statistical Summary Reports from Partnering Healthcare Providers" notebook:
 
-This notebook provides an example on how to visualize the status of COVID-19 and general patients information at multiple regional healthcare providers using the demo Statistical Summary Report data from 03/10/2020 to 11/10/2020.
+This notebook provides an example on how to visualize the status of COVID-19 and general patient information at multiple regional healthcare providers using the demo Statistical Summary Report data from 03/10/2020 to 11/10/2020.
