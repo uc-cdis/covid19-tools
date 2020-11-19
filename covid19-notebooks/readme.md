@@ -39,4 +39,16 @@ In this R markdown, we track COVID-19 local (US) and global cases with active, c
 
 ### "COVID-19 Testing Over Time in the US" notebook:
 
-COVID-19 testing is very crucial to understand the spread of the pandemic. In this python notebook, we have focused our efforts on visualizing the COVID-19 testing data across the U.S. States and Territories from the COVID Tracking Project. The animations will allow you to see how testing data has changed over time.
+COVID-19 testing is very crucial to understand the spread of the pandemic. In this python notebook, we have focused our efforts on visualizing the COVID-19 testing data across the United States and U.S. Territories from the COVID Tracking Project. The animations will allow you to see how testing data has changed over time.
+
+### "Cross Dataset Analysis on COVID-19 Symptoms and Fatality Rate" notebook:
+
+In this notebook, we are performing visual analysis on the individual case reports that provide aggregated data on clinical states (eg., deceased, recovered, alive, etc) and symptoms. We are looking at whether the fatality rates and symptoms are similar across different datasets.
+
+### "Demo: Exploring clinical data from multiple commons" notebook:
+
+In this notebook, we obtain the clinical data for multiple projects from the Chicagoland Pandemic Response Commons and NCI Genomic Data Commons (GDC) and visualize some of the clinical attributes. This notebook is for demonstration purposes only and not biologically meaningful.
+
+### "Visualize Statistical Summary Reports from Partnering Healthcare Providers" notebook:
+
+This notebook provides an example of how to visualize the status of COVID-19 and general patient information from multiple regional healthcare providers using the demo Statistical Summary Report data from 03/10/2020 to 11/10/2020.
