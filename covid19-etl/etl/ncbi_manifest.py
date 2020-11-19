@@ -45,6 +45,7 @@ class NCBI_MANIFEST(base.BaseETL):
         self.sra_run_manifest = "run/Manifest"
         self.program_name = "open"
         self.project_code = "ncbi-covid-19"
+        self.last_submission_identifier = None
 
         self.file_helper = AsyncFileHelper(
             base_url=self.base_url,
@@ -96,22 +97,22 @@ class NCBI_MANIFEST(base.BaseETL):
         query_string = (
             '{ project (first: 0, dbgap_accession_number: "'
             + self.project_code
-            + '") { last_manifest_indexing_run } }'
+            + '") { last_submission_identifier } }'
         )
         try:
             response = self.metadata_helper.query_peregrine(query_string)
-            last_run_manifest_indexing = parse(
-                response["data"]["project"][0]["last_manifest_indexing_run"]
+            self.last_submission_identifier = parse(
+                response["data"]["project"][0]["last_submission_identifier"]
             )
         except Exception as ex:
-            last_run_manifest_indexing = None
+            self.last_submission_identifier = None
 
         for (guid, size, md5, authz, url, release_date) in self.read_ncbi_manifest(
             manifest
         ):
             if (
-                not last_run_manifest_indexing
-                or release_date > last_run_manifest_indexing
+                not self.last_submission_identifier
+                or release_date > self.last_submission_identifier
             ):
                 filename = url.split("/")[-1]
                 retrying = True

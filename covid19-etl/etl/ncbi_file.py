@@ -293,3 +293,4 @@ class NCBI_FILE(base.BaseETL):
                     await asyncio.sleep(5)
         else:
             print(f"file {filepath.name} exists in indexd... skipping...")
+        os.remove(filepath)
