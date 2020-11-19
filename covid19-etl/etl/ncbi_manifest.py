@@ -75,7 +75,7 @@ class NCBI_MANIFEST(base.BaseETL):
             release_date = parse(re.sub(r":[0-9]{3}", "", words[6].strip()))
             yield guid, size, md5, authz, url, release_date
 
-    def files_to_submissions(self):
+    def submit_metadata(self):
         start = time.strftime("%X")
 
         loop = asyncio.get_event_loop()
