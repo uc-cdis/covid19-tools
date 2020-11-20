@@ -133,8 +133,10 @@ class NCBI_MANIFEST(base.BaseETL):
                         await asyncio.sleep(5)
 
                 if did:
+                    print(f"{filename} was already indexed")
                     continue
 
+                print(f"start to index {filename}")
                 retries = 0
                 while retries < MAX_RETRIES:
                     try:
