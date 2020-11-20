@@ -15,6 +15,9 @@ from utils.async_file_helper import AsyncFileHelper
 from utils.metadata_helper import MetadataHelper
 
 
+MAX_RETRIES = 5
+
+
 def conform_data_format(data, field_name):
     """function to check if the data is in right format"""
     if field_name == "guid":
@@ -132,14 +135,15 @@ class NCBI_MANIFEST(base.BaseETL):
                 if did:
                     continue
 
-                retrying = True
-                while retrying:
+                retries = 0
+                while retries < MAX_RETRIES:
                     try:
                         await self.file_helper.async_index_record(
                             guid, size, filename, url, authz, md5
                         )
-                        retrying = False
+                        break
                     except Exception as e:
+                        retries += 1
                         print(
                             f"ERROR: Fail to create new indexd record for {guid}. Detail {e}. Retrying ..."
                         )
