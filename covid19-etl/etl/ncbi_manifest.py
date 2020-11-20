@@ -66,18 +66,26 @@ class NCBI_MANIFEST(base.BaseETL):
 
     def read_ncbi_manifest(self, key):
         """read the manifest"""
-        s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
-        s3_object = s3.Object(self.manifest_bucket, key)
-        line_stream = codecs.getreader("utf-8")
-        for line in line_stream(s3_object.get()["Body"]):
-            words = line.split("\t")
-            guid = conform_data_format(words[0].strip(), "guid")
-            size = int(conform_data_format(words[2].strip(), "size"))
-            md5 = conform_data_format(words[3].strip(), "md5")
-            authz = conform_data_format(words[4].strip(), "authz")
-            url = conform_data_format(words[5].strip(), "url")
-            release_date = parse(re.sub(r":[0-9]{3}", "", words[6].strip()))
-            yield guid, size, md5, authz, url, release_date
+        tries = 0
+        while tries < MAX_RETRIES:
+            try:
+                s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
+                s3_object = s3.Object(self.manifest_bucket, key)
+                line_stream = codecs.getreader("utf-8")
+                for line in line_stream(s3_object.get()["Body"]):
+                    words = line.split("\t")
+                    guid = conform_data_format(words[0].strip(), "guid")
+                    size = int(conform_data_format(words[2].strip(), "size"))
+                    md5 = conform_data_format(words[3].strip(), "md5")
+                    authz = conform_data_format(words[4].strip(), "authz")
+                    url = conform_data_format(words[5].strip(), "url")
+                    release_date = parse(re.sub(r":[0-9]{3}", "", words[6].strip()))
+                    yield guid, size, md5, authz, url, release_date
+                break
+            except Exception as e:
+                print(f"Can not stream {key}. Retrying...")
+                time.sleep(30)
+                tries += 1
 
     def submit_metadata(self):
         start = time.strftime("%X")

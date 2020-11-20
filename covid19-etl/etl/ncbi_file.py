@@ -17,6 +17,7 @@ import codecs
 
 
 DATA_PATH = os.path.dirname(os.path.abspath(__file__))
+MAX_RETRIES = 5
 
 
 class NCBI_FILE(base.BaseETL):
@@ -147,55 +148,61 @@ class NCBI_FILE(base.BaseETL):
         # Don't need to re-submit the data already exist in the database
         excluded_set = await self.get_existed_accession_numbers(node_name)
 
-        # Setup s3 connection for data streaming
-        s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
-        s3_object = s3.Object(self.bucket, key)
-        line_stream = codecs.getreader("utf-8")
+        tries = 0
+        while tries < MAX_RETRIES:
+            try:
+                # Setup s3 connection for data streaming
+                s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
+                s3_object = s3.Object(self.bucket, key)
+                line_stream = codecs.getreader("utf-8")
 
-        #
-        accession_numbers = set()
+                #
+                accession_numbers = set()
 
-        # Keep track current accession number
-        accession_number = None
-        # Keep track number of read rows
-        n_rows = 0
-        # Keep track the current opening file
-        f = None
+                # Keep track current accession number
+                accession_number = None
+                # Keep track number of read rows
+                n_rows = 0
+                # Keep track the current opening file
+                f = None
 
-        try:
-            # Stream the data from s3 bucket by reading line by line
-            for line in line_stream(s3_object.get()["Body"]):
                 try:
-                    # Handle the line.
-                    f, accession_number = await self.parse_row(
-                        line,
-                        node_name,
-                        ext,
-                        headers,
-                        accession_number,
-                        n_rows,
-                        f,
-                        excluded_set,
-                    )
-                    accession_numbers.add(accession_number)
-                    n_rows += 1
-                    if n_rows % 10000 == 0:
-                        print(f"Finish process {n_rows} of file {node_name}")
+                    # Stream the data from s3 bucket by reading line by line
+                    for line in line_stream(s3_object.get()["Body"]):
+                        try:
+                            # Handle the line.
+                            f, accession_number = await self.parse_row(
+                                line,
+                                node_name,
+                                ext,
+                                headers,
+                                accession_number,
+                                n_rows,
+                                f,
+                                excluded_set,
+                            )
+                            accession_numbers.add(accession_number)
+                            n_rows += 1
+                            if n_rows % 10000 == 0:
+                                print(f"Finish process {n_rows} of file {node_name}")
 
+                        except Exception as e:
+                            print(f"ERROR: {e}")
+                            # close the file
+                            if f:
+                                f.close()
+                            await asyncio.sleep(10)
                 except Exception as e:
-                    print(f"ERROR: {e}")
-                    # close the file
-                    if f:
-                        f.close()
-                    await asyncio.sleep(10)
-        except Exception as e:
-            print(f"ERROR: Can not download {key}. Detail {e}")
-            raise
-        # Index the last file
-        await self.file_to_indexd(
-            Path(f"{DATA_PATH}/{node_name}_{accession_number}.{ext}")
-        )
-
+                    print(f"ERROR: Can not download {key}. Detail {e}")
+                    raise
+                # Index the last file
+                await self.file_to_indexd(
+                    Path(f"{DATA_PATH}/{node_name}_{accession_number}.{ext}")
+                )
+                break
+            except Exception as e:
+                print(f"Can not stream {key} from s3. Retrying...")
+                tries += 1
         return accession_numbers
 
     async def get_existed_accession_numbers(self, node_name):
