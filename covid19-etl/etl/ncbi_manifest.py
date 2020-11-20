@@ -78,6 +78,8 @@ class NCBI_MANIFEST(base.BaseETL):
                     row_num = row_num + 1
                     if row_num < last_row_num:
                         continue
+                    if row_num % 1000 == 0:
+                        print(f"Proccessed {row_num} rows of {key}")
                     words = line.split("\t")
                     guid = conform_data_format(words[0].strip(), "guid")
                     size = int(conform_data_format(words[2].strip(), "size"))
