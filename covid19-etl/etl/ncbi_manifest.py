@@ -67,12 +67,17 @@ class NCBI_MANIFEST(base.BaseETL):
     def read_ncbi_manifest(self, key):
         """read the manifest"""
         tries = 0
+        last_row_num = 0
         while tries < MAX_RETRIES:
             try:
                 s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
                 s3_object = s3.Object(self.manifest_bucket, key)
                 line_stream = codecs.getreader("utf-8")
+                row_num = 0
                 for line in line_stream(s3_object.get()["Body"]):
+                    row_num = row_num + 1
+                    if row_num < last_row_num:
+                        continue
                     words = line.split("\t")
                     guid = conform_data_format(words[0].strip(), "guid")
                     size = int(conform_data_format(words[2].strip(), "size"))
@@ -86,6 +91,7 @@ class NCBI_MANIFEST(base.BaseETL):
                 print(f"Can not stream {key}. Retrying...")
                 time.sleep(30)
                 tries += 1
+                last_row_num = row_num
 
     def submit_metadata(self):
         start = time.strftime("%X")
