@@ -4,6 +4,7 @@ import re
 import requests
 import time
 from dateutil.parser import parse
+from contextlib import suppress
 
 from botocore import UNSIGNED
 from botocore.config import Config
@@ -146,7 +147,8 @@ class NCBI_MANIFEST(base.BaseETL):
                         print(
                             f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying ..."
                         )
-                        await asyncio.sleep(5)
+                        with suppress(asyncio.TimeoutError):
+                            await asyncio.sleep(5)
 
                 if did:
                     print(f"{filename} was already indexed")
@@ -165,4 +167,5 @@ class NCBI_MANIFEST(base.BaseETL):
                         print(
                             f"ERROR: Fail to create new indexd record for {guid}. Detail {e}. Retrying ..."
                         )
-                        await asyncio.sleep(5)
+                        with suppress(asyncio.TimeoutError):
+                            await asyncio.sleep(5)

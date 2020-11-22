@@ -5,6 +5,7 @@ import time
 import re
 from datetime import datetime
 from functools import partial
+from contextlib import suppress
 
 from botocore import UNSIGNED
 from botocore.config import Config
@@ -329,6 +330,7 @@ class NCBI(base.BaseETL):
             ext = re.search("\.(.*)$", self.data_file.nodes[node_name][0]).group(1)
             filename = f"{node_name}_{accession_number}.{ext}"
 
+            print(f"Get indexd record of {file_name}")
             retrying = True
             while retrying:
                 try:
@@ -345,12 +347,23 @@ class NCBI(base.BaseETL):
                     print(
                         f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying ..."
                     )
-                    await asyncio.sleep(5)
+                    with suppress(asyncio.TimeoutError):
+                        await asyncio.sleep(5)
 
             assert (
                 did
             ), f"file {filename} does not exist in the index, rerun NCBI_FILE ETL"
-            await self.file_helper.async_update_authz(did=did, rev=rev)
+            retrying = True
+            while retrying:
+                try:
+                    await self.file_helper.async_update_authz(did=did, rev=rev)
+                    retrying = False
+                except Exception as e:
+                    print(
+                        f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
+                    )
+                    with suppress(asyncio.TimeoutError):
+                        await asyncio.sleep(5)
 
             submitted_json["file_size"] = filesize
             submitted_json["md5sum"] = md5sum

@@ -5,6 +5,7 @@ import re
 import gzip
 import asyncio
 import time
+from contextlib import suppress
 
 from etl import base
 from utils.async_file_helper import AsyncFileHelper
@@ -191,7 +192,8 @@ class NCBI_FILE(base.BaseETL):
                             # close the file
                             if f:
                                 f.close()
-                            await asyncio.sleep(10)
+                            with suppress(asyncio.TimeoutError):
+                                await asyncio.sleep(10)
                 except Exception as e:
                     print(f"ERROR: Can not download {key}. Detail {e}")
                     raise
@@ -284,7 +286,8 @@ class NCBI_FILE(base.BaseETL):
                 print(
                     f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying ..."
                 )
-                await asyncio.sleep(5)
+                with suppress(asyncio.TimeoutError):
+                    await asyncio.sleep(5)
 
         if not did:
             retrying = True
@@ -297,7 +300,8 @@ class NCBI_FILE(base.BaseETL):
                     print(
                         f"ERROR: Fail to upload file {filepath}. Detail {e}. Retrying ..."
                     )
-                    await asyncio.sleep(5)
+                    with suppress(asyncio.TimeoutError):
+                        await asyncio.sleep(5)
         else:
             print(f"file {filepath.name} exists in indexd... skipping...")
         os.remove(filepath)
