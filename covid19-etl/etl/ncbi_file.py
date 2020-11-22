@@ -82,6 +82,7 @@ class NCBI_FILE(base.BaseETL):
             loop.run_until_complete(
                 asyncio.gather(self.index_virus_sequence_run_taxonomy_file(results[0]))
             )
+            loop.run_until_complete(asyncio.gather(AsyncFileHelper.close_session()))
 
         finally:
             loop.close()

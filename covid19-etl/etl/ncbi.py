@@ -178,18 +178,20 @@ class NCBI(base.BaseETL):
 
         for node_name, _ in self.data_file.nodes.items():
             if node_name == "virus_sequence_run_taxonomy":
-                tasks.append(
-                    asyncio.ensure_future(
-                        self.files_to_virus_sequence_run_taxonomy_submission()
-                    )
-                )
+                continue
             else:
                 tasks.append(
                     asyncio.ensure_future(self.files_to_node_submissions(node_name))
                 )
 
         try:
-            loop.run_until_complete(asyncio.gather(*tasks))
+            results = loop.run_until_complete(asyncio.gather(*tasks))
+            loop.run_until_complete(
+                asyncio.gather(
+                    self.files_to_virus_sequence_run_taxonomy_submission(results[0])
+                )
+            )
+            loop.run_until_complete(asyncio.gather(AsyncFileHelper.close_session()))
         finally:
             loop.close()
         end = time.strftime("%X")
@@ -204,18 +206,22 @@ class NCBI(base.BaseETL):
 
         print(f"Running time: From {start} to {end}")
 
-    async def files_to_virus_sequence_run_taxonomy_submission(self):
+    async def files_to_virus_sequence_run_taxonomy_submission(
+        self, submitting_accession_numbers
+    ):
         """get submitting data for virus_sequence_run_taxonomy node"""
 
-        submitting_accession_numbers = (
-            await self.get_submitting_accession_number_list_for_run_taxonomy()
-        )
+        # submitting_accession_numbers = (
+        #     await self.get_submitting_accession_number_list_for_run_taxonomy()
+        # )
 
         records = self._get_response_from_big_query(submitting_accession_numbers)
         accession_number_set = set()
         for record in records:
             if record["acc"] in self.accession_number_filename_map:
-                accession_number_set.add(record["acc"])
+                accession_number = record["acc"]
+                accession_number_set.add(accession_number)
+                print(f"Get from bigquery response {accession_number}")
                 await self._parse_big_query_response(record)
 
         cmc_submitter_id = format_submitter_id("cmc_ncbi_covid19", {})
@@ -238,17 +244,34 @@ class NCBI(base.BaseETL):
                 ]
 
             filename = f"virus_sequence_run_taxonomy_{accession_number}.csv"
-            (
-                did,
-                rev,
-                md5sum,
-                filesize,
-                file_name,
-                _,
-            ) = await self.file_helper.async_find_by_name(filename=filename)
+            print(f"Get indexd info of {filename}")
+            trying = True
+            while trying:
+                try:
+                    (
+                        did,
+                        rev,
+                        md5sum,
+                        filesize,
+                        file_name,
+                        _,
+                    ) = await self.file_helper.async_find_by_name(filename=filename)
+                    trying = False
+                except Exception as e:
+                    print(
+                        f"Can not get indexd record of {filename}. Detail {e}. Retrying..."
+                    )
 
-            assert did, f"file {did} does not exist in the index, rerun NCBI_FILE ETL"
-            await self.file_helper.async_update_authz(did=did, rev=rev)
+            assert (
+                did
+            ), f"file {filename} does not exist in the index, rerun NCBI_FILE ETL"
+            trying = True
+            while trying:
+                try:
+                    await self.file_helper.async_update_authz(did=did, rev=rev)
+                    trying = False
+                except Exception as e:
+                    print(f"Can not update indexd for {did}. Detail {e}. Retrying...")
 
             submitted_json["file_size"] = filesize
             submitted_json["md5sum"] = md5sum
@@ -260,9 +283,17 @@ class NCBI(base.BaseETL):
     async def files_to_node_submissions(self, node_name):
         """Get submitting data for the node"""
 
-        submitting_accession_numbers = await self.get_submitting_accession_number_list(
-            node_name
-        )
+        retrying = True
+        while retrying:
+            try:
+                submitting_accession_numbers = (
+                    await self.get_submitting_accession_number_list(node_name)
+                )
+                retrying = False
+            except Exception as e:
+                print(
+                    f"Can not query peregine with {node_name}. Detail {e}. Retrying ..."
+                )
 
         for accession_number in submitting_accession_numbers:
             submitter_id = format_submitter_id(
@@ -330,6 +361,7 @@ class NCBI(base.BaseETL):
             filename = f"{node_name}_{accession_number}.{ext}"
 
             print(f"Get indexd record of {filename}")
+
             retrying = True
             while retrying:
                 try:
@@ -368,6 +400,7 @@ class NCBI(base.BaseETL):
             submitted_json["file_name"] = file_name
 
             self.submitting_data[node_name].append(submitted_json)
+            return submitting_accession_numbers
 
     async def get_submitting_accession_number_list_for_run_taxonomy(self):
         """get submitting number list for run_taxonomy file"""
@@ -577,10 +610,9 @@ class NCBI(base.BaseETL):
         _, file_extension = os.path.splitext(virus_sequence["file_name"])
         virus_sequence["data_format"] = file_extension.replace(".", "")
 
-        trying = True
-
-        try:
-            while trying:
+        retrying = True
+        while retrying:
+            try:
                 (
                     did,
                     rev,
@@ -591,28 +623,27 @@ class NCBI(base.BaseETL):
                 ) = await self.file_helper.async_find_by_name(
                     filename=virus_sequence["file_name"]
                 )
-                trying = False
-        except Exception as e:
-            print(
-                f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying ..."
-            )
-            await asyncio.sleep(5)
+                retrying = False
+            except Exception as e:
+                print(
+                    f"ERROR: Fail to get indexd for {filename}. Detail {e}. Retrying ..."
+                )
+                await asyncio.sleep(5)
 
         assert (
             did
         ), f"file {filename} does not exist in the index, rerun NCBI_MANIFEST ETL"
 
-        trying = True
-
-        try:
-            while trying:
+        retrying = True
+        while retrying:
+            try:
                 await self.file_helper.async_update_authz(did=did, rev=rev)
-                trying = False
-        except Exception as e:
-            print(
-                f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
-            )
-            await asyncio.sleep(5)
+                retrying = False
+            except Exception as e:
+                print(
+                    f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
+                )
+                await asyncio.sleep(5)
 
         virus_sequence["file_size"] = filesize
         virus_sequence["md5sum"] = md5sum

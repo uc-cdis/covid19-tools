@@ -106,6 +106,7 @@ class NCBI_MANIFEST(base.BaseETL):
                     self.index_manifest(self.sra_src_manifest),
                 )
             )
+            loop.run_until_complete(asyncio.gather(AsyncFileHelper.close_session()))
 
         finally:
             loop.close()

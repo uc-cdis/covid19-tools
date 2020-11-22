@@ -5,19 +5,31 @@ import requests
 class AsyncFileHelper:
     """ Asynchronous file helper class"""
 
+    session = None
+
     def __init__(self, base_url, program_name, project_code, access_token):
         self.base_url = base_url
         self.program_name = program_name
         self.project_code = project_code
         self.headers = {"Authorization": f"Bearer {access_token}"}
-        self.session = ClientSession()
+
+    @classmethod
+    def get_session(cls):
+        if cls.session is None:
+            cls.session = ClientSession()
+        return cls.session
+
+    @classmethod
+    def close_session(cls):
+        if cls.session is not None:
+            return cls.session.close()
 
     async def async_find_by_name(self, filename):
         """Asynchronous call to fine the indexd record given a filename"""
 
         url = f"{self.base_url}/index/index?file_name={filename}"
-
-        async with self.session.get(url) as r:
+        session = AsyncFileHelper.get_session()
+        async with session.get(url) as r:
             r.raise_for_status()
             data = await r.json()
             if data["records"]:
@@ -37,7 +49,8 @@ class AsyncFileHelper:
         """Asynchronous update authz field for did"""
 
         url = f"{self.base_url}/index/index/{did}?rev={rev}"
-        async with self.session.put(
+        session = AsyncFileHelper.get_session()
+        async with session.put(
             url,
             json={
                 "authz": [
@@ -54,7 +67,8 @@ class AsyncFileHelper:
 
         upload_url = f"{self.base_url}/user/data/upload"
         body_json = {"file_name": filename}
-        async with self.session.post(
+        session = AsyncFileHelper.get_session()
+        async with session.post(
             upload_url, json=body_json, headers=self.headers
         ) as res:
             res.raise_for_status()
@@ -66,8 +80,9 @@ class AsyncFileHelper:
 
         async def _async_upload_file(path, url):
             with open(path, "rb") as data:
-                async with self.session.put(url, data=data) as r:
-                    return r.status
+                async with ClientSession() as session:
+                    async with session.put(url, data=data) as r:
+                        return r.status
 
         basename = path.name
         presigned_url, guid = await self.async_get_presigned_url(basename)
@@ -80,7 +95,8 @@ class AsyncFileHelper:
         """Asynchronous update authz field for did"""
 
         url = f"{self.base_url}/index/index"
-        async with self.session.post(
+        session = AsyncFileHelper.get_session()
+        async with session.post(
             url,
             json={
                 "did": did,
