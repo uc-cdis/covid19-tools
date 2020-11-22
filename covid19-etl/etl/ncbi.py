@@ -200,7 +200,7 @@ class NCBI(base.BaseETL):
                 node_record = {"type": k}
                 node_record.update(node)
                 self.metadata_helper.add_record_to_submit(node_record)
-            self.metadata_helper.batch_submit_records()
+            # self.metadata_helper.batch_submit_records()
 
         print(f"Running time: From {start} to {end}")
 
@@ -329,6 +329,8 @@ class NCBI(base.BaseETL):
             ext = re.search("\.(.*)$", self.data_file.nodes[node_name][0]).group(1)
             filename = f"{node_name}_{accession_number}.{ext}"
 
+            print(f"Get indexd record of {filename}")
+
             retrying = True
             while retrying:
                 try:
@@ -382,6 +384,8 @@ class NCBI(base.BaseETL):
                 n_lines += 1
                 if n_lines % 10000 == 0:
                     print(f"Finish process {n_lines} of file {node_name}")
+                if n_lines % 1000000 == 0:
+                    break
                 line = bline.decode("UTF-8")
                 r1 = re.findall("[SDE]RR\d+", line)
                 if len(r1) == 0:
@@ -411,6 +415,8 @@ class NCBI(base.BaseETL):
             n_lines += 1
             if n_lines % 10000 == 0:
                 print(f"Finish process {n_lines} of file {node_name}")
+            if n_lines % 1000000 == 0:
+                break
             if len(r1) == 0:
                 continue
             read_accession_number = r1[0]
