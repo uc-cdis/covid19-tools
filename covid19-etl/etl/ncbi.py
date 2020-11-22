@@ -5,7 +5,6 @@ import time
 import re
 from datetime import datetime
 from functools import partial
-from contextlib import suppress
 
 from botocore import UNSIGNED
 from botocore.config import Config
@@ -347,8 +346,7 @@ class NCBI(base.BaseETL):
                     print(
                         f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying ..."
                     )
-                    with suppress(asyncio.TimeoutError):
-                        await asyncio.sleep(5)
+                    await asyncio.sleep(5)
 
             assert (
                 did
@@ -362,8 +360,7 @@ class NCBI(base.BaseETL):
                     print(
                         f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
                     )
-                    with suppress(asyncio.TimeoutError):
-                        await asyncio.sleep(5)
+                    await asyncio.sleep(5)
 
             submitted_json["file_size"] = filesize
             submitted_json["md5sum"] = md5sum
@@ -599,8 +596,7 @@ class NCBI(base.BaseETL):
             print(
                 f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying ..."
             )
-            with suppress(asyncio.TimeoutError):
-                await asyncio.sleep(5)
+            await asyncio.sleep(5)
 
         assert (
             did
@@ -616,8 +612,7 @@ class NCBI(base.BaseETL):
             print(
                 f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
             )
-            with suppress(asyncio.TimeoutError):
-                await asyncio.sleep(5)
+            await asyncio.sleep(5)
 
         virus_sequence["file_size"] = filesize
         virus_sequence["md5sum"] = md5sum
