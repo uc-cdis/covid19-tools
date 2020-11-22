@@ -92,7 +92,23 @@ SPECIAL_MAP_FIELDS = {
     "ncbi_biosample": ("biosample", str, identity_function),
     "sample_accession": ("sample_acc", str, identity_function),
     "country_region": ("geo_loc_name_country_calc", str, identity_function),
-    "continent": ("geo_loc_name_country_continent_calc", str, identity_function),
+    "continent": (
+        "geo_loc_name_country_continent_calc",
+        str,
+        partial(
+            get_enum_value,
+            [
+                "Asia",
+                "Africa",
+                "Antarctica",
+                "Australia",
+                "Europe",
+                "North America",
+                "South America",
+            ],
+            None,
+        ),
+    ),
     "latitude": ("geographic_location__latitude__sam", str, identity_function),
     "longitude": ("geographic_location__longitude__sam", str, identity_function),
 }
