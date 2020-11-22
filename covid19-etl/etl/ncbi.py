@@ -580,21 +580,44 @@ class NCBI(base.BaseETL):
         _, file_extension = os.path.splitext(virus_sequence["file_name"])
         virus_sequence["data_format"] = file_extension.replace(".", "")
 
-        (
-            did,
-            rev,
-            md5sum,
-            filesize,
-            file_name,
-            _,
-        ) = await self.file_helper.async_find_by_name(
-            filename=virus_sequence["file_name"]
-        )
+        trying = True
+
+        try:
+            while trying:
+                (
+                    did,
+                    rev,
+                    md5sum,
+                    filesize,
+                    file_name,
+                    _,
+                ) = await self.file_helper.async_find_by_name(
+                    filename=virus_sequence["file_name"]
+                )
+                trying = False
+        except Exception as e:
+            print(
+                f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying ..."
+            )
+            with suppress(asyncio.TimeoutError):
+                await asyncio.sleep(5)
 
         assert (
             did
         ), f"file {filename} does not exist in the index, rerun NCBI_MANIFEST ETL"
-        await self.file_helper.async_update_authz(did=did, rev=rev)
+
+        trying = True
+
+        try:
+            while trying:
+                await self.file_helper.async_update_authz(did=did, rev=rev)
+                trying = False
+        except Exception as e:
+            print(
+                f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
+            )
+            with suppress(asyncio.TimeoutError):
+                await asyncio.sleep(5)
 
         virus_sequence["file_size"] = filesize
         virus_sequence["md5sum"] = md5sum
