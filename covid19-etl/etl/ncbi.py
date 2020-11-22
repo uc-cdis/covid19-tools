@@ -330,7 +330,7 @@ class NCBI(base.BaseETL):
             ext = re.search("\.(.*)$", self.data_file.nodes[node_name][0]).group(1)
             filename = f"{node_name}_{accession_number}.{ext}"
 
-            print(f"Get indexd record of {file_name}")
+            print(f"Get indexd record of {filename}")
             retrying = True
             while retrying:
                 try:
