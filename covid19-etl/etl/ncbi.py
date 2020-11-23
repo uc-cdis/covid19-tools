@@ -412,7 +412,7 @@ class NCBI(base.BaseETL):
             submitted_json["file_name"] = file_name
 
             self.submitting_data[node_name].append(submitted_json)
-            return submitting_accession_numbers
+        return submitting_accession_numbers
 
     async def get_submitting_accession_number_list_for_run_taxonomy(self):
         """get submitting number list for run_taxonomy file"""
