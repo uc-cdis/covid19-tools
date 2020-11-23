@@ -30,14 +30,14 @@ def _handle_access_token_response(resp, token_key):
     """
     err_msg = "Failed to get an access token from {}:\n{}"
     if resp.status_code != 200:
-        raise Gen3AuthError(err_msg.format(resp.url, resp.text))
+        raise Exception(err_msg.format(resp.url, resp.text))
     try:
         json_resp = resp.json()
         return json_resp[token_key]
     except ValueError:  # cannot parse JSON
-        raise Gen3AuthError(err_msg.format(resp.url, resp.text))
+        raise Exception(err_msg.format(resp.url, resp.text))
     except KeyError:  # no access_token in JSON response
-        raise Gen3AuthError(err_msg.format(resp.url, json_resp))
+        raise Exception(err_msg.format(resp.url, json_resp))
 
 
 def query_api(query_txt, variables=None):
