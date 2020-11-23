@@ -564,11 +564,7 @@ class NCBI(base.BaseETL):
         ]:
             if field in SPECIAL_MAP_FIELDS:
                 old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
-                sample[field] = (
-                    handler(response.get(old_name))
-                    if dtype != type(response.get(old_name))
-                    else response.get(old_name)
-                )
+                sample[field] = handler(response.get(old_name))
             elif field in response:
                 sample[field] = str(response.get(field))
 
@@ -608,11 +604,7 @@ class NCBI(base.BaseETL):
         ]:
             if field in SPECIAL_MAP_FIELDS:
                 old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
-                virus_sequence[field] = (
-                    handler(response.get(old_name))
-                    if dtype != type(response.get(old_name))
-                    else response.get(old_name)
-                )
+                virus_sequence[field] = handler(response.get(old_name))
             elif field in response:
                 virus_sequence[field] = str(response.get(field))
 
@@ -673,11 +665,8 @@ class NCBI(base.BaseETL):
         for field in ["country_region", "continent", "latitude", "longitude"]:
             if field in SPECIAL_MAP_FIELDS:
                 old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
-                summary_location[field] = (
-                    handler(response.get(old_name))
-                    if dtype != type(response.get(old_name))
-                    else response.get(old_name)
-                )
+                summary_location[field] = handler(response.get(old_name))
+
             elif field in response:
                 summary_location[field] = str(response.get(field))
 
