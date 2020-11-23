@@ -2,16 +2,42 @@ import json
 import requests
 import pandas as pd
 import shutil
+import os
 
 url = "https://chicagoland.pandemicresponsecommons.org/"
 
 
-def get_token():
-    with open("/home/jovyan/pd/credentials.json", "r") as f:
-        creds = json.load(f)
-    token_url = url + "user/credentials/api/access_token"
-    token = requests.post(token_url, json=creds).json()["access_token"]
-    return token
+def get_wts_endpoint(namespace=os.getenv("NAMESPACE", "default")):
+    return "http://workspace-token-service.{}.svc.cluster.local".format(namespace)
+
+
+def get_access_token_from_wts(namespace=os.getenv("NAMESPACE", "default"), idp=None):
+    """
+    Try to fetch an access token for the given idp from the wts
+    in the given namespace
+    """
+    # attempt to get a token from the workspace-token-service
+    auth_url = get_wts_endpoint(namespace) + "/token/"
+    if idp:
+        auth_url += "?idp={}".format(idp)
+    resp = requests.get(auth_url)
+    return _handle_access_token_response(resp, "token")
+
+
+def _handle_access_token_response(resp, token_key):
+    """
+    Shared helper for both get_access_token_with_key and get_access_token_from_wts
+    """
+    err_msg = "Failed to get an access token from {}:\n{}"
+    if resp.status_code != 200:
+        raise Gen3AuthError(err_msg.format(resp.url, resp.text))
+    try:
+        json_resp = resp.json()
+        return json_resp[token_key]
+    except ValueError:  # cannot parse JSON
+        raise Gen3AuthError(err_msg.format(resp.url, resp.text))
+    except KeyError:  # no access_token in JSON response
+        raise Gen3AuthError(err_msg.format(resp.url, json_resp))
 
 
 def query_api(query_txt, variables=None):
@@ -23,7 +49,9 @@ def query_api(query_txt, variables=None):
 
     request_url = url + "api/v0/submission/graphql"
     output = requests.post(
-        request_url, headers={"Authorization": "bearer " + get_token()}, json=query
+        request_url,
+        headers={"Authorization": "bearer " + get_access_token_from_wts()},
+        json=query,
     ).text
     data = json.loads(output)
 
