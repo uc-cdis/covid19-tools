@@ -22,8 +22,8 @@
 | [COV-450][cov-422] | VAC-TRACKER | [here][vac-tracker] | scheduled |
 | [COV-453][cov-453] | CHESTX-RAY8 | [here][chestxray8] | One-time |
 | [COV-521][cov-521] | ATLAS | [here][atlas] | One-time |
-| [COV-465][cov-465] | NCBI-METADATA | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi-metadata) | scheduled|
-| [COV-482][cov-482] | NCBI-MANIFEST | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi-metadata) | scheduled|
+| [COV-465][cov-465] | NCBI-METADATA | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
+| [COV-482][cov-482] | NCBI-MANIFEST | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
 
 
 ## Deployment
@@ -102,12 +102,17 @@ covid19-tools
 ...
 ```
 
-### NCBI-METADATA
-*This is local-only ETL.*
-It requires data available locally.
-Before running the ETL, get the data, which is available in public bucket sra-pub-sars-cov2-metadata-us-east-1.
-The data should be streamed and uploaded to s3 via data upload flow. The data
-structure as follow
+### NCBI
+
+There are 3 ETL processes regarding NCBI as describe followings:
+    - NCBI_MANIFEST: Index virus sequence object data to indexd
+    - NCBI_FILE: Split the big metadata into multiple files by accession numbers and index them
+    - NCBI: Submit NCBI clinical data to the graph.
+
+While either NCBI_MANIFEST or NCBI_FILE can run first, NCBI needs to run the last because it needs the indexd infomation from the two ETLs
+
+The input data for NCBI_MANIFEST is available in public bucket
+The input data for NCBI and NCBI_FILE are available in public bucket sra-pub-sars-cov2-metadata-us-east-1 with the structure as follow
 
 ```
 covid19-tools

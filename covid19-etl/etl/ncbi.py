@@ -228,6 +228,8 @@ class NCBI(base.BaseETL):
         """get submitting data for virus_sequence_run_taxonomy node"""
 
         records = self._get_response_from_big_query(submitting_accession_numbers)
+
+        # Keep track accession_numbers having link to virus_sequence nodes
         accession_number_set = set()
         for record in records:
             if record["acc"] in self.accession_number_filename_map:
@@ -250,6 +252,7 @@ class NCBI(base.BaseETL):
                 "data_category": "Kmer-based Taxonomy Analysis",
             }
 
+            # Add link to virus sequence node
             if accession_number in accession_number_set:
                 submitted_json["virus_sequences"] = [
                     {"submitter_id": f"virus_sequence_{accession_number}"}

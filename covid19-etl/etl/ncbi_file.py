@@ -149,15 +149,15 @@ class NCBI_FILE(base.BaseETL):
         # Don't need to re-submit the data already exist in the database
         excluded_set = await self.get_existed_accession_numbers(node_name)
 
+        line_stream = codecs.getreader("utf-8")
         tries = 0
         while tries < MAX_RETRIES:
             try:
                 # Setup s3 connection for data streaming
                 s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
                 s3_object = s3.Object(self.bucket, key)
-                line_stream = codecs.getreader("utf-8")
 
-                #
+                # Maintain access number list
                 accession_numbers = set()
 
                 # Keep track current accession number
