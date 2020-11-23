@@ -1,8 +1,10 @@
 import asyncio
 from pathlib import Path
 import re
+import json
 import requests
 import time
+import datetime
 from dateutil.parser import parse
 
 from botocore import UNSIGNED
@@ -48,6 +50,7 @@ class NCBI_MANIFEST(base.BaseETL):
         self.sra_run_manifest = "run/Manifest"
         self.program_name = "open"
         self.project_code = "ncbi-covid-19"
+        self.token = access_token
         self.last_submission_identifier = None
 
         self.file_helper = AsyncFileHelper(
@@ -127,6 +130,9 @@ class NCBI_MANIFEST(base.BaseETL):
         except Exception as ex:
             self.last_submission_identifier = None
 
+        now = datetime.datetime.now()
+        last_submission_date_time = now.strftime("%m/%d/%Y, %H:%M:%S")
+
         for (guid, size, md5, authz, url, release_date) in self.read_ncbi_manifest(
             manifest
         ):
@@ -167,3 +173,18 @@ class NCBI_MANIFEST(base.BaseETL):
                             f"ERROR: Fail to create new indexd record for {guid}. Detail {e}. Retrying ..."
                         )
                         await asyncio.sleep(5)
+
+        headers = {
+            "content-type": "application/json",
+            "Authorization": f"Bearer {self.access_token}",
+        }
+        record = {
+            "code": self.project_code,
+            "dbgap_accession_number": self.project_code,
+            "last_submission_identifier": last_submission_date_time,
+        }
+        res = requests.put(
+            "{}/api/v0/submission/{}".format(self.base_url, self.program_name),
+            headers=headers,
+            data=json.dumps(record),
+        )

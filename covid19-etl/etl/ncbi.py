@@ -227,10 +227,6 @@ class NCBI(base.BaseETL):
     ):
         """get submitting data for virus_sequence_run_taxonomy node"""
 
-        # submitting_accession_numbers = (
-        #     await self.get_submitting_accession_number_list_for_run_taxonomy()
-        # )
-
         records = self._get_response_from_big_query(submitting_accession_numbers)
         accession_number_set = set()
         for record in records:
