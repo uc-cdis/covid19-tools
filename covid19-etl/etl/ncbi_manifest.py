@@ -23,7 +23,9 @@ MAX_RETRIES = 5
 def conform_data_format(data, field_name):
     """function to check if the data is in right format"""
     if field_name == "guid":
-        pattern = "(.+/)?[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}$"
+        pattern = (
+            "dg.63D5/[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}$"
+        )
     elif field_name == "url":
         pattern = "s3://.*"
     elif field_name == "size":
