@@ -22,7 +22,8 @@
 | [COV-450][cov-422] | VAC-TRACKER | [here][vac-tracker] | scheduled |
 | [COV-453][cov-453] | CHESTX-RAY8 | [here][chestxray8] | One-time |
 | [COV-521][cov-521] | ATLAS | [here][atlas] | One-time |
-| [COV-485][cov-465] | NCBI-METADATA | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi-metadata) | scheduled|
+| [COV-465][cov-465] | NCBI-METADATA | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
+| [COV-482][cov-482] | NCBI-MANIFEST | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
 
 
 ## Deployment
@@ -47,7 +48,10 @@ S3_BUCKET=<name of bucket to upload data to>
 30  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph_hospital bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/logs/covid19-etl-$JOB_NAME-cronjob.log 2>&1
 40  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ctp bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
 50  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=owid2 bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
- 0  21   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=chi_nbhd bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+0  21   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=chi_nbhd bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+10  21   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ncbi_file bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+10  22   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ncbi_manifest bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+10  23   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ncbi bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
  0 */3   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/etl-cronjob.sh ]; then bash $HOME/cloud-automation/files/scripts/etl-cronjob.sh; else echo "no etl-cronjob.sh"; fi) > $HOME/etl-cronjob.log 2>&1
 ```
 
@@ -98,12 +102,18 @@ covid19-tools
 ...
 ```
 
-### NCBI-METADATA
-*This is local-only ETL.*
-It requires data available locally.
-Before running the ETL, get the data, which is available in public bucket sra-pub-sars-cov2-metadata-us-east-1.
-The data should be streamed and uploaded to s3 via data upload flow. The data
-structure as follow
+### NCBI
+
+There are 3 ETL processes regarding NCBI as describe followings:
+- NCBI_MANIFEST: Index virus sequence object data to indexd
+- NCBI_FILE: Split the big metadata into multiple files by accession numbers and index them
+- NCBI: Submit NCBI clinical data to the graph.
+
+While either NCBI_MANIFEST or NCBI_FILE can run first, NCBI needs to run the last because it needs the indexd information from the two ETLs
+
+The input data for NCBI_MANIFEST is available in public bucket sra-pub-sars-cov2.
+
+The input data for NCBI and NCBI_FILE are available in public bucket sra-pub-sars-cov2-metadata-us-east-1 with the structure as follow
 
 ```
 covid19-tools
@@ -116,6 +126,13 @@ covid19-tools
 │   │  
 ...
 ```
+*Deployment*: NCBI ETL needs a google cloud setup to access the biqquery public table. For Gen3, the credential needs to put in
+`Gen3Secrets/g3auto/covid19-etl/default.json`
+
+*Notes*:
+- NCBI_MANIFEST ETL uses `last_submission_identifier` field of the project node to keep track the last submission datetime. That prevents the etl from checking and re-indexing the files which were already indexed.
+- Virus sequence run taxonomy without a matching submitter id in virus sequence link to CMC only, otherwise link to both CMC and virus sequence
+
 
 [chi-nbhd]: https://covid19neighborhoods.southsideweekly.com/
 [chi-nbhd-json]: https://covid19neighborhoods.southsideweekly.com/page-data/index/page-data.json
@@ -161,3 +178,4 @@ covid19-tools
 [cov-453]: https://occ-data.atlassian.net/browse/COV-453
 [cov-521]: https://occ-data.atlassian.net/browse/COV-521
 [cov-465]: https://occ-data.atlassian.net/browse/COV-465
+[cov-482]: https://occ-data.atlassian.net/browse/COV-482]

@@ -92,10 +92,36 @@ SPECIAL_MAP_FIELDS = {
     "ncbi_biosample": ("biosample", str, identity_function),
     "sample_accession": ("sample_acc", str, identity_function),
     "country_region": ("geo_loc_name_country_calc", str, identity_function),
-    "continent": ("geo_loc_name_country_continent_calc", str, identity_function),
+    "continent": (
+        "geo_loc_name_country_continent_calc",
+        str,
+        partial(
+            get_enum_value,
+            [
+                "Asia",
+                "Africa",
+                "Antarctica",
+                "Australia",
+                "Europe",
+                "North America",
+                "South America",
+            ],
+            None,
+        ),
+    ),
     "latitude": ("geographic_location__latitude__sam", str, identity_function),
     "longitude": ("geographic_location__longitude__sam", str, identity_function),
 }
+
+
+def read_ncbi_manifest(bucket, key, accession_number_filename_map):
+    """read the manifest"""
+    s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
+    s3_object = s3.Object(bucket, key)
+    line_stream = codecs.getreader("utf-8")
+    for line in line_stream(s3_object.get()["Body"]):
+        words = line.split("\t")
+        accession_number_filename_map[words[1]] = words[5].split("/")[-1]
 
 
 class NCBI(base.BaseETL):
@@ -104,6 +130,11 @@ class NCBI(base.BaseETL):
 
         self.program_name = "open"
         self.project_code = "ncbi-covid-19"
+        self.manifest_bucket = "sra-pub-sars-cov2"
+        self.sra_src_manifest = "sra-src/Manifest"
+        self.sra_run_manifest = "run/Manifest"
+        self.accession_number_filename_map = {}
+
         self.metadata_helper = MetadataHelper(
             base_url=self.base_url,
             program_name=self.program_name,
@@ -144,6 +175,17 @@ class NCBI(base.BaseETL):
             }
         )
 
+        read_ncbi_manifest(
+            self.manifest_bucket,
+            self.sra_run_manifest,
+            self.accession_number_filename_map,
+        )
+        read_ncbi_manifest(
+            self.manifest_bucket,
+            self.sra_src_manifest,
+            self.accession_number_filename_map,
+        )
+
     def submit_metadata(self):
 
         start = time.strftime("%X")
@@ -152,18 +194,20 @@ class NCBI(base.BaseETL):
 
         for node_name, _ in self.data_file.nodes.items():
             if node_name == "virus_sequence_run_taxonomy":
-                tasks.append(
-                    asyncio.ensure_future(
-                        self.files_to_virus_sequence_run_taxonomy_submission()
-                    )
-                )
+                continue
             else:
                 tasks.append(
                     asyncio.ensure_future(self.files_to_node_submissions(node_name))
                 )
 
         try:
-            loop.run_until_complete(asyncio.gather(*tasks))
+            results = loop.run_until_complete(asyncio.gather(*tasks))
+            loop.run_until_complete(
+                asyncio.gather(
+                    self.files_to_virus_sequence_run_taxonomy_submission(results[0])
+                )
+            )
+            loop.run_until_complete(asyncio.gather(AsyncFileHelper.close_session()))
         finally:
             loop.close()
         end = time.strftime("%X")
@@ -178,18 +222,21 @@ class NCBI(base.BaseETL):
 
         print(f"Running time: From {start} to {end}")
 
-    async def files_to_virus_sequence_run_taxonomy_submission(self):
+    async def files_to_virus_sequence_run_taxonomy_submission(
+        self, submitting_accession_numbers
+    ):
         """get submitting data for virus_sequence_run_taxonomy node"""
 
-        submitting_accession_numbers = (
-            await self.get_submitting_accession_number_list_for_run_taxonomy()
-        )
-
         records = self._get_response_from_big_query(submitting_accession_numbers)
+
+        # Keep track accession_numbers having link to virus_sequence nodes
         accession_number_set = set()
         for record in records:
-            accession_number_set.add(record["acc"])
-            await self._parse_big_query_response(record)
+            if record["acc"] in self.accession_number_filename_map:
+                accession_number = record["acc"]
+                accession_number_set.add(accession_number)
+                print(f"Get from bigquery response {accession_number}")
+                await self._parse_big_query_response(record)
 
         cmc_submitter_id = format_submitter_id("cmc_ncbi_covid19", {})
         for accession_number in submitting_accession_numbers:
@@ -205,23 +252,41 @@ class NCBI(base.BaseETL):
                 "data_category": "Kmer-based Taxonomy Analysis",
             }
 
+            # Add link to virus sequence node
             if accession_number in accession_number_set:
                 submitted_json["virus_sequences"] = [
                     {"submitter_id": f"virus_sequence_{accession_number}"}
                 ]
 
             filename = f"virus_sequence_run_taxonomy_{accession_number}.csv"
-            (
-                did,
-                rev,
-                md5sum,
-                filesize,
-                file_name,
-                _,
-            ) = await self.file_helper.async_find_by_name(filename=filename)
+            print(f"Get indexd info of {filename}")
+            trying = True
+            while trying:
+                try:
+                    (
+                        did,
+                        rev,
+                        md5sum,
+                        filesize,
+                        file_name,
+                        _,
+                    ) = await self.file_helper.async_find_by_name(filename=filename)
+                    trying = False
+                except Exception as e:
+                    print(
+                        f"Can not get indexd record of {filename}. Detail {e}. Retrying..."
+                    )
 
-            assert did, f"file {did} does not exist in the index, rerun NCBI_FILE ETL"
-            await self.file_helper.async_update_authz(did=did, rev=rev)
+            assert (
+                did
+            ), f"file {filename} does not exist in the index, rerun NCBI_FILE ETL"
+            trying = True
+            while trying:
+                try:
+                    await self.file_helper.async_update_authz(did=did, rev=rev)
+                    trying = False
+                except Exception as e:
+                    print(f"Can not update indexd for {did}. Detail {e}. Retrying...")
 
             submitted_json["file_size"] = filesize
             submitted_json["md5sum"] = md5sum
@@ -233,9 +298,17 @@ class NCBI(base.BaseETL):
     async def files_to_node_submissions(self, node_name):
         """Get submitting data for the node"""
 
-        submitting_accession_numbers = await self.get_submitting_accession_number_list(
-            node_name
-        )
+        retrying = True
+        while retrying:
+            try:
+                submitting_accession_numbers = (
+                    await self.get_submitting_accession_number_list(node_name)
+                )
+                retrying = False
+            except Exception as e:
+                print(
+                    f"Can not query peregine with {node_name}. Detail {e}. Retrying ..."
+                )
 
         for accession_number in submitting_accession_numbers:
             submitter_id = format_submitter_id(
@@ -302,6 +375,8 @@ class NCBI(base.BaseETL):
             ext = re.search("\.(.*)$", self.data_file.nodes[node_name][0]).group(1)
             filename = f"{node_name}_{accession_number}.{ext}"
 
+            print(f"Get indexd record of {filename}")
+
             retrying = True
             while retrying:
                 try:
@@ -323,7 +398,16 @@ class NCBI(base.BaseETL):
             assert (
                 did
             ), f"file {filename} does not exist in the index, rerun NCBI_FILE ETL"
-            await self.file_helper.async_update_authz(did=did, rev=rev)
+            retrying = True
+            while retrying:
+                try:
+                    await self.file_helper.async_update_authz(did=did, rev=rev)
+                    retrying = False
+                except Exception as e:
+                    print(
+                        f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
+                    )
+                    await asyncio.sleep(5)
 
             submitted_json["file_size"] = filesize
             submitted_json["md5sum"] = md5sum
@@ -331,6 +415,7 @@ class NCBI(base.BaseETL):
             submitted_json["file_name"] = file_name
 
             self.submitting_data[node_name].append(submitted_json)
+        return submitting_accession_numbers
 
     async def get_submitting_accession_number_list_for_run_taxonomy(self):
         """get submitting number list for run_taxonomy file"""
@@ -478,11 +563,7 @@ class NCBI(base.BaseETL):
         ]:
             if field in SPECIAL_MAP_FIELDS:
                 old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
-                sample[field] = (
-                    handler(response.get(old_name))
-                    if dtype != type(response.get(old_name))
-                    else response.get(old_name)
-                )
+                sample[field] = handler(response.get(old_name))
             elif field in response:
                 sample[field] = str(response.get(field))
 
@@ -522,35 +603,54 @@ class NCBI(base.BaseETL):
         ]:
             if field in SPECIAL_MAP_FIELDS:
                 old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
-                virus_sequence[field] = (
-                    handler(response.get(old_name))
-                    if dtype != type(response.get(old_name))
-                    else response.get(old_name)
-                )
+                virus_sequence[field] = handler(response.get(old_name))
             elif field in response:
                 virus_sequence[field] = str(response.get(field))
 
         virus_sequence["samples"] = [{"submitter_id": sample["submitter_id"]}]
-        virus_sequence["data_category"] = "Protein"
+        virus_sequence["data_category"] = "Nucleotide"
         virus_sequence["data_type"] = "Sequence"
+        virus_sequence["file_name"] = self.accession_number_filename_map[
+            accession_number
+        ]
 
-        filename = f"virus_sequence_dummy_data_{accession_number}.txt"
-        virus_sequence[
-            "file_name"
-        ] = f"virus_sequence_dummy_data_{accession_number}.txt"
-        (
-            did,
-            rev,
-            md5sum,
-            filesize,
-            file_name,
-            _,
-        ) = await self.file_helper.async_find_by_name(
-            filename=virus_sequence["file_name"]
-        )
+        _, file_extension = os.path.splitext(virus_sequence["file_name"])
+        virus_sequence["data_format"] = file_extension.replace(".", "")
 
-        assert did, f"file {filename} does not exist in the index, rerun NCBI_FILE ETL"
-        await self.file_helper.async_update_authz(did=did, rev=rev)
+        retrying = True
+        while retrying:
+            try:
+                (
+                    did,
+                    rev,
+                    md5sum,
+                    filesize,
+                    file_name,
+                    _,
+                ) = await self.file_helper.async_find_by_name(
+                    filename=virus_sequence["file_name"]
+                )
+                retrying = False
+            except Exception as e:
+                print(
+                    f"ERROR: Fail to get indexd for {filename}. Detail {e}. Retrying ..."
+                )
+                await asyncio.sleep(5)
+
+        assert (
+            did
+        ), f"file {filename} does not exist in the index, rerun NCBI_MANIFEST ETL"
+
+        retrying = True
+        while retrying:
+            try:
+                await self.file_helper.async_update_authz(did=did, rev=rev)
+                retrying = False
+            except Exception as e:
+                print(
+                    f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
+                )
+                await asyncio.sleep(5)
 
         virus_sequence["file_size"] = filesize
         virus_sequence["md5sum"] = md5sum
@@ -564,11 +664,8 @@ class NCBI(base.BaseETL):
         for field in ["country_region", "continent", "latitude", "longitude"]:
             if field in SPECIAL_MAP_FIELDS:
                 old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
-                summary_location[field] = (
-                    handler(response.get(old_name))
-                    if dtype != type(response.get(old_name))
-                    else response.get(old_name)
-                )
+                summary_location[field] = handler(response.get(old_name))
+
             elif field in response:
                 summary_location[field] = str(response.get(field))
 
