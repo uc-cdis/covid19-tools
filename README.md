@@ -105,9 +105,9 @@ covid19-tools
 ### NCBI
 
 There are 3 ETL processes regarding NCBI as describe followings:
-    * NCBI_MANIFEST: Index virus sequence object data to indexd
-    * NCBI_FILE: Split the big metadata into multiple files by accession numbers and index them
-    * NCBI: Submit NCBI clinical data to the graph.
+- NCBI_MANIFEST: Index virus sequence object data to indexd
+- NCBI_FILE: Split the big metadata into multiple files by accession numbers and index them
+- NCBI: Submit NCBI clinical data to the graph.
 
 While either NCBI_MANIFEST or NCBI_FILE can run first, NCBI needs to run the last because it needs the indexd information from the two ETLs
 
@@ -130,8 +130,8 @@ covid19-tools
 `Gen3Secrets/g3auto/covid19-etl/default.json`
 
 *Notes*:
-    * NCBI_MANIFEST ETL uses `last_submission_identifier` field of the project node to keep track the last submission datetime. That prevents the etl from checking and re-indexing the files which were already indexed.
-    * Virus sequence run taxonomy without a matching submitter id in virus sequence link to CMC only, otherwise link to both CMC and virus sequence
+- NCBI_MANIFEST ETL uses `last_submission_identifier` field of the project node to keep track the last submission datetime. That prevents the etl from checking and re-indexing the files which were already indexed.
+- Virus sequence run taxonomy without a matching submitter id in virus sequence link to CMC only, otherwise link to both CMC and virus sequence
 
 
 [chi-nbhd]: https://covid19neighborhoods.southsideweekly.com/
