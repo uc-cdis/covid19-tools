@@ -26,8 +26,6 @@ def conform_data_format(data, field_name):
         pattern = "(.+/)?[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}$"
     elif field_name == "url":
         pattern = "s3://.*"
-    elif field_name == "authz":
-        pattern = "/programs/open/project/.+"
     elif field_name == "size":
         pattern = "[0-9]+$"
     elif field_name == "md5":
@@ -87,7 +85,7 @@ class NCBI_MANIFEST(base.BaseETL):
                     guid = conform_data_format(words[0].strip(), "guid")
                     size = int(conform_data_format(words[2].strip(), "size"))
                     md5 = conform_data_format(words[3].strip(), "md5")
-                    authz = conform_data_format(words[4].strip(), "authz")
+                    authz = f"/programs/{self.program_name}/project/{self.project_code}"
                     url = conform_data_format(words[5].strip(), "url")
                     release_date = parse(re.sub(r":[0-9]{3}", "", words[6].strip()))
                     yield guid, size, md5, authz, url, release_date

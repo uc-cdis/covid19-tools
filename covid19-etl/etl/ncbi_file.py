@@ -188,7 +188,7 @@ class NCBI_FILE(base.BaseETL):
                                 print(f"Finish process {n_rows} of file {node_name}")
 
                         except Exception as e:
-                            print(f"ERROR: {e}")
+                            print(f"ERROR: line {line}. Detail {e}")
                             # close the file
                             if f:
                                 f.close()
