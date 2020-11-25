@@ -133,7 +133,6 @@ covid19-tools
 - NCBI_MANIFEST ETL uses `last_submission_identifier` field of the project node to keep track the last submission datetime. That prevents the etl from checking and re-indexing the files which were already indexed.
 - Virus sequence run taxonomy without a matching submitter id in virus sequence link to CMC only, otherwise link to both CMC and virus sequence
 
-
 [chi-nbhd]: https://covid19neighborhoods.southsideweekly.com/
 [chi-nbhd-json]: https://covid19neighborhoods.southsideweekly.com/page-data/index/page-data.json
 [jhu]: https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series
