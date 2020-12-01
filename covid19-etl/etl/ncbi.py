@@ -121,7 +121,9 @@ def read_ncbi_manifest(bucket, key, accession_number_filename_map):
     line_stream = codecs.getreader("utf-8")
     for line in line_stream(s3_object.get()["Body"]):
         words = line.split("\t")
-        accession_number_filename_map[words[1]] = words[5].split("/")[-1]
+        r1 = re.findall("[SDE]RR\d+", words[5])
+        if len(r1) >= 1:
+            accession_number_filename_map[r1[0]] = words[1]
 
 
 class NCBI(base.BaseETL):
@@ -132,7 +134,6 @@ class NCBI(base.BaseETL):
         self.project_code = "ncbi-covid-19"
         self.manifest_bucket = "sra-pub-sars-cov2"
         self.sra_src_manifest = "sra-src/Manifest"
-        self.sra_run_manifest = "run/Manifest"
         self.accession_number_filename_map = {}
 
         self.metadata_helper = MetadataHelper(
@@ -175,11 +176,6 @@ class NCBI(base.BaseETL):
             }
         )
 
-        read_ncbi_manifest(
-            self.manifest_bucket,
-            self.sra_run_manifest,
-            self.accession_number_filename_map,
-        )
         read_ncbi_manifest(
             self.manifest_bucket,
             self.sra_src_manifest,
@@ -234,9 +230,10 @@ class NCBI(base.BaseETL):
         for record in records:
             if record["acc"] in self.accession_number_filename_map:
                 accession_number = record["acc"]
-                accession_number_set.add(accession_number)
                 print(f"Get from bigquery response {accession_number}")
-                await self._parse_big_query_response(record)
+                success = await self._parse_big_query_response(record)
+                if success:
+                    accession_number_set.add(accession_number)
 
         cmc_submitter_id = format_submitter_id("cmc_ncbi_covid19", {})
         for accession_number in submitting_accession_numbers:
@@ -542,7 +539,12 @@ class NCBI(base.BaseETL):
             start = end
 
     async def _parse_big_query_response(self, response):
-        """Parse the big query response"""
+        """
+        Parse the big query response and get indexd record
+
+        Return True if success
+
+        """
 
         accession_number = response["acc"]
 
@@ -616,6 +618,7 @@ class NCBI(base.BaseETL):
 
         _, file_extension = os.path.splitext(virus_sequence["file_name"])
         virus_sequence["data_format"] = file_extension.replace(".", "")
+        filename = virus_sequence["file_name"]
 
         retrying = True
         while retrying:
@@ -627,9 +630,7 @@ class NCBI(base.BaseETL):
                     filesize,
                     file_name,
                     _,
-                ) = await self.file_helper.async_find_by_name(
-                    filename=virus_sequence["file_name"]
-                )
+                ) = await self.file_helper.async_find_by_name(filename=filename)
                 retrying = False
             except Exception as e:
                 print(
@@ -637,9 +638,8 @@ class NCBI(base.BaseETL):
                 )
                 await asyncio.sleep(5)
 
-        assert (
-            did
-        ), f"file {filename} does not exist in the index, rerun NCBI_MANIFEST ETL"
+        if not did:
+            return False
 
         retrying = True
         while retrying:
@@ -672,3 +672,4 @@ class NCBI(base.BaseETL):
         self.submitting_data["virus_sequence"].append(virus_sequence)
         self.submitting_data["summary_location"].append(summary_location)
         self.submitting_data["sample"].append(sample)
+        return True

@@ -47,7 +47,6 @@ class NCBI_MANIFEST(base.BaseETL):
 
         self.manifest_bucket = "sra-pub-sars-cov2"
         self.sra_src_manifest = "sra-src/Manifest"
-        self.sra_run_manifest = "run/Manifest"
         self.program_name = "open"
         self.project_code = "ncbi-covid-19"
         self.token = access_token
@@ -104,10 +103,7 @@ class NCBI_MANIFEST(base.BaseETL):
         loop = asyncio.get_event_loop()
         try:
             loop.run_until_complete(
-                asyncio.gather(
-                    self.index_manifest(self.sra_run_manifest),
-                    self.index_manifest(self.sra_src_manifest),
-                )
+                asyncio.gather(self.index_manifest(self.sra_src_manifest))
             )
             loop.run_until_complete(asyncio.gather(AsyncFileHelper.close_session()))
 
