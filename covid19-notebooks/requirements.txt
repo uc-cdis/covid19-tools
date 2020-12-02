@@ -1,4 +1,4 @@
-gen3==2.2.3
+gen3<3.0.0
 matplotlib==2.2.3
 numpy==1.18.2
 pandas==1.0.3
