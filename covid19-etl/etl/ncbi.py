@@ -324,6 +324,10 @@ class NCBI(base.BaseETL):
                 "virus_sequence_run_taxonomy", {"accession_number": accession_number}
             )
 
+            contig_taxonomy_submitter_id = format_submitter_id(
+                "virus_sequence_contig_taxonomy", {"accession_number": accession_number}
+            )
+
             if node_name == "virus_sequence_contig":
                 submitted_json = {
                     "submitter_id": submitter_id,
@@ -366,6 +370,17 @@ class NCBI(base.BaseETL):
                     "data_format": "json",
                     "data_category": "HMMER Scab of Contigs",
                 }
+            elif node_name == "virus_sequence_contig_taxonomy":
+                submitted_json = {
+                    "submitter_id": submitter_id,
+                    "core_metadata_collections": [{"submitter_id": cmc_submitter_id}],
+                    "virus_sequence_contigs": [{"submitter_id": contig_submitter_id}],
+                    "accession_number": accession_number,
+                    "data_type": "Contig Taxonomy",
+                    "data_format": "json",
+                    "data_category": "Kmer-based Taxonomy Analysis of Contigs",
+                }
+
             else:
                 raise Exception(f"ERROR: {node_name} does not exist")
 

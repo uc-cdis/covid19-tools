@@ -47,6 +47,7 @@ class NCBI_FILE(base.BaseETL):
         self.nodes = {
             "virus_sequence_contig": ["contigs/contigs.json"],
             "virus_sequence_peptide": ["peptides/peptides.json"],
+            "virus_sequence_contig_taxonomy": ["taxonomy/taxonomy.json"],
             "virus_sequence_blastn": [
                 "blastn/blastn.tsv",
                 "acc\tqacc\tstaxid\tsacc\tslen\tlength\tbitscore\tscore\tpident\tsskingdom\tevalue\tssciname\n",
