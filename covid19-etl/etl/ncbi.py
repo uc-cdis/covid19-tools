@@ -20,6 +20,37 @@ from etl.ncbi_file import NCBI_FILE
 
 DATA_PATH = os.path.dirname(os.path.abspath(__file__))
 
+FILE_EXTENSIONS = ["json", "tsv", "gb", "fastqsanger", "fasta", "fastq", "hmmer", "bam"]
+
+FILE_EXTENSION_MAPPING = {
+    "fq": "fastq",
+}
+
+
+def get_file_extension(filename):
+    """get file extension from the filename"""
+
+    _, file_extension = os.path.splitext(filename)
+    file_extension = file_extension.replace(".", "")
+
+    if file_extension in FILE_EXTENSIONS:
+        return file_extension
+    elif file_extension in FILE_EXTENSION_MAPPING:
+        return FILE_EXTENSION_MAPPING[file_extension]
+
+    # Special handling
+    for extension in FILE_EXTENSIONS:
+        res = re.findall(f"\.{extension}\.", filename)
+        if len(res) > 0:
+            return extension
+
+    for extension in FILE_EXTENSION_MAPPING:
+        res = re.findall(f"\.{extension}\.", filename)
+        if len(res) > 0:
+            return FILE_EXTENSION_MAPPING[extension]
+
+    return ""
+
 
 def convert_to_int(s):
     try:
@@ -631,8 +662,7 @@ class NCBI(base.BaseETL):
             accession_number
         ]
 
-        _, file_extension = os.path.splitext(virus_sequence["file_name"])
-        virus_sequence["data_format"] = file_extension.replace(".", "")
+        virus_sequence["data_format"] = get_file_extension(virus_sequence["file_name"])
         filename = virus_sequence["file_name"]
 
         retrying = True
