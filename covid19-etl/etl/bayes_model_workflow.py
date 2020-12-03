@@ -6,7 +6,7 @@ from etl import base
 from utils.fence_helper import get_api_key, get_access_token
 
 
-class MARINER_WORKFLOW(base.BaseETL):
+class BAYES_MODEL_WORKFLOW(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
         self.headers = {"Authorization": f"Bearer {access_token}"}
