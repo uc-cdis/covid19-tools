@@ -22,9 +22,7 @@ DATA_PATH = os.path.dirname(os.path.abspath(__file__))
 
 FILE_EXTENSIONS = ["json", "tsv", "gb", "fastqsanger", "fasta", "fastq", "hmmer", "bam"]
 
-FILE_EXTENSION_MAPPING = {
-    "fq": "fastq",
-}
+FILE_EXTENSION_MAPPING = {"fq": "fastq", "fa": "fasta"}
 
 
 def get_file_extension(filename):
