@@ -128,10 +128,8 @@ class JHU(base.BaseETL):
                 },
             },
         }
-        (
-            self.existing_summary_locations,
-            self.last_date,
-        ) = self.metadata_helper.get_existing_data_jhu()
+        self.existing_summary_locations = []
+        self.last_date = ""
 
     def files_to_submissions(self):
         """
@@ -149,6 +147,11 @@ class JHU(base.BaseETL):
                 "deaths": "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv",
             },
         }
+
+        (
+            self.existing_summary_locations,
+            self.last_date,
+        ) = self.metadata_helper.get_existing_data_jhu()
 
         for file_type in ["global", "US_counties"]:
             for data_type, url in urls[file_type].items():
