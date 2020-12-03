@@ -47,7 +47,7 @@ def get_file_extension(filename):
         if len(res) > 0:
             return FILE_EXTENSION_MAPPING[extension]
 
-    return ""
+    return "unknown"
 
 
 def convert_to_int(s):
