@@ -10,7 +10,7 @@ class BAYES_MODEL_WORKFLOW(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
         self.headers = {"Authorization": f"Bearer {access_token}"}
-        self.api_key = get_api_key(base_url, headers=self.headers)
+        self.api_key = None
 
         self.model_version = "v3.2"
         self.status_ping_minutes = 10
@@ -39,6 +39,8 @@ class BAYES_MODEL_WORKFLOW(base.BaseETL):
         return resp_data["status"]
 
     def files_to_submissions(self):
+        self.api_key = get_api_key(base_url, headers=self.headers)
+
         print("Preparing request body")
         url = f"https://raw.githubusercontent.com/uc-cdis/covid19model/{self.model_version}/cwl/request_body.json"
         r = requests.get(url)
