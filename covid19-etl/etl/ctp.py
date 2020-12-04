@@ -149,32 +149,40 @@ class CTP(base.BaseETL):
         fast lookup during merging process.
 
         """
-        url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR_xmYt4ACPDZCDJcY12kCiMiH0ODyx3E1ZvgOHB8ae1tRcjXbs_yWBOA4j4uoCEADVfC1PS2jYO68B/pub?gid=43720681&single=true&output=csv"
+        url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS8SzaERcKJOD_EzrtCDK1dX1zkoMochlA9iHoHg_RSw3V8bkpfk1mpw4pfL5RdtSOyx_oScsUtyXyk/pub?gid=43720681&single=true&output=csv"
+        print("Getting data from {}".format(url))
         races = {}
         with closing(requests.get(url, stream=True)) as r:
             f = (line.decode("utf-8") for line in r.iter_lines())
             reader = csv.reader(f, delimiter=",", quotechar='"')
             headers = next(reader)
-            if headers[0] == "404: Not Found":
-                print("  Unable to get file contents, received {}.".format(headers))
-                return
 
+            assert (
+                headers[0] != "404: Not Found"
+            ), "Unable to get file contents, received {}.".format(headers)
+            assert len(headers) >= 3, "Unexpected headers: {}".format(headers)
             assert (headers[0], headers[1], headers[2]) == (
                 "Date",
                 "State",
                 "Cases_Total",
-            ), "The first 3 column names of the race data must be Dat, State, Cases_Total"
-
+            ), "The first 3 column names of the race data must be Dat, State, Cases_Total. Got: {}".format(
+                headers
+            )
             assert self.expected_race_headers.issubset(
                 set(headers)
             ), "CSV headers have changed (expected {} is a subset of {}). We may need to update the ETL code".format(
                 self.expected_race_headers, headers
             )
+
             for row in reader:
+                if not row:
+                    continue
                 try:
                     races[(row[0], row[1], row[2])] = row[3:]
                 except Exception as e:
-                    print(f"Error. Detail {e}")
+                    print(
+                        f"Error processing race row: {row}.\nSkipping row. Detail: {e}"
+                    )
         return races, headers
 
     def parse_file(self, url):
@@ -195,9 +203,9 @@ class CTP(base.BaseETL):
 
             headers = next(reader)
 
-            if headers[0] == "404: Not Found":
-                print("  Unable to get file contents, received {}.".format(headers))
-                return
+            assert (
+                headers[0] != "404: Not Found"
+            ), "Unable to get file contents, received {}.".format(headers)
 
             assert self.expected_file_headers.issubset(
                 set(headers)
@@ -316,7 +324,7 @@ class CTP(base.BaseETL):
 
         for k, v in map_csv_fields.items():
             value = row[self.header_to_column[v]]
-            if value and value.lower() != "nan":
+            if value and value.lower() not in ["nan", "n/a"]:
                 summary_clinical[k] = int(value.replace(",", ""))
 
         dataQualityGrade = row[self.header_to_column["dataQualityGrade"]]
