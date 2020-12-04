@@ -8,7 +8,7 @@
 | [COV-273][cov-273] | IDPH Facility data | [here][idph-facility] ([JSON][idph-facility-json]) | Scheduled |
 | [COV-345][cov-345] | IDPH Hospital data | [here][idph-hospital] ([JSON][idph-hospital-json]) | Scheduled |
 | [COV-18][cov-18] | nCOV2019 | [here][ncov2019] | One-time |
-| [COV-34][cov-34], [COV-454][cov-454] | CTP | [here][ctp] | Scheduled |
+| [COV-34][cov-34], [COV-454][cov-454] | CTP | [here][ctp] and [here][race] | Scheduled |
 | [COV-97][cov-97] | DS4C | [Kaggle][ds4c] | One-time |
 | [COV-126][cov-126] | DSCI | [Kaggle][dsci] | One-time |
 | [COV-172][cov-172] | DSFSI | [here][dsfsi] | One-time |
@@ -151,7 +151,7 @@ covid19-tools
 [chestxray8]: https://github.com/muhammedtalo/COVID-19
 [ccmap]: https://github.com/covidcaremap/covid19-healthsystemcapacity/tree/master/data/published
 [ctp]: https://covidtracking.com/data
-[race]: https://docs.google.com/spreadsheets/d/e/2PACX-1vR_xmYt4ACPDZCDJcY12kCiMiH0ODyx3E1ZvgOHB8ae1tRcjXbs_yWBOA4j4uoCEADVfC1PS2jYO68B/pub?gid=43720681&single=true&output=csv
+[race]: https://covidtracking.com/race
 [npi-pro]: https://www.arcgis.com/home/item.html?id=7e80baf1773e4fd9b44fe9fb054677db
 [ncov2019]: https://www.kaggle.com/sudalairajkumar/novel-corona-virus-2019-dataset?select=COVID19_line_list_data.csv
 [vac-tracker]:https://biorender.com/page-data/covid-vaccine-tracker/page-data.json
