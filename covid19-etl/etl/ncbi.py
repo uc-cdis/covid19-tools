@@ -138,8 +138,8 @@ SPECIAL_MAP_FIELDS = {
             None,
         ),
     ),
-    "latitude": ("geographic_location__latitude__sam", str, identity_function),
-    "longitude": ("geographic_location__longitude__sam", str, identity_function),
+    # "latitude": ("geographic_location__latitude__sam", str, identity_function),
+    # "longitude": ("geographic_location__longitude__sam", str, identity_function),
 }
 
 
@@ -606,6 +606,8 @@ class NCBI(base.BaseETL):
             "host_associated_environmental_package_sam",
             "organism",
             "collection_date",
+            "country_region",
+            "continent",
         ]:
             if field in SPECIAL_MAP_FIELDS:
                 old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
@@ -704,15 +706,15 @@ class NCBI(base.BaseETL):
         )
         summary_location["projects"] = [{"code": self.project_code}]
 
-        for field in ["country_region", "continent", "latitude", "longitude"]:
-            if field in SPECIAL_MAP_FIELDS:
-                old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
-                summary_location[field] = handler(response.get(old_name))
+        # for field in ["country_region", "continent", "latitude", "longitude"]:
+        #     if field in SPECIAL_MAP_FIELDS:
+        #         old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
+        #         summary_location[field] = handler(response.get(old_name))
 
-            elif field in response:
-                summary_location[field] = str(response.get(field))
+        #     elif field in response:
+        #         summary_location[field] = str(response.get(field))
 
         self.submitting_data["virus_sequence"].append(virus_sequence)
-        self.submitting_data["summary_location"].append(summary_location)
+        # self.submitting_data["summary_location"].append(summary_location)
         self.submitting_data["sample"].append(sample)
         return True
