@@ -680,6 +680,9 @@ class NCBI(base.BaseETL):
                 await asyncio.sleep(5)
 
         if not did:
+            print(
+                f"file {filename} does not exist in the index, rerun NCBI_MANIFEST ETL"
+            )
             return False
 
         retrying = True
