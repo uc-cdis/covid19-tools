@@ -94,10 +94,9 @@ class AsyncFileHelper:
     async def async_index_record(self, did, size, filename, url, authz, md5):
         """Asynchronous update authz field for did"""
 
-        url = f"{self.base_url}/index/index"
         session = AsyncFileHelper.get_session()
         async with session.post(
-            url,
+            f"{self.base_url}/index/index",
             json={
                 "did": did,
                 "form": "object",

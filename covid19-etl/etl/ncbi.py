@@ -20,6 +20,35 @@ from etl.ncbi_file import NCBI_FILE
 
 DATA_PATH = os.path.dirname(os.path.abspath(__file__))
 
+FILE_EXTENSIONS = ["json", "tsv", "gb", "fastqsanger", "fasta", "fastq", "hmmer", "bam"]
+
+FILE_EXTENSION_MAPPING = {"fq": "fastq", "fa": "fasta"}
+
+
+def get_file_extension(filename):
+    """get file extension from the filename"""
+
+    _, file_extension = os.path.splitext(filename)
+    file_extension = file_extension.replace(".", "")
+
+    if file_extension in FILE_EXTENSIONS:
+        return file_extension
+    elif file_extension in FILE_EXTENSION_MAPPING:
+        return FILE_EXTENSION_MAPPING[file_extension]
+
+    # Special handling
+    for extension in FILE_EXTENSIONS:
+        res = re.findall(f"\.{extension}\.", filename)
+        if len(res) > 0:
+            return extension
+
+    for extension in FILE_EXTENSION_MAPPING:
+        res = re.findall(f"\.{extension}\.", filename)
+        if len(res) > 0:
+            return FILE_EXTENSION_MAPPING[extension]
+
+    return "unknown"
+
 
 def convert_to_int(s):
     try:
@@ -109,8 +138,6 @@ SPECIAL_MAP_FIELDS = {
             None,
         ),
     ),
-    "latitude": ("geographic_location__latitude__sam", str, identity_function),
-    "longitude": ("geographic_location__longitude__sam", str, identity_function),
 }
 
 
@@ -121,7 +148,9 @@ def read_ncbi_manifest(bucket, key, accession_number_filename_map):
     line_stream = codecs.getreader("utf-8")
     for line in line_stream(s3_object.get()["Body"]):
         words = line.split("\t")
-        accession_number_filename_map[words[1]] = words[5].split("/")[-1]
+        r1 = re.findall("[SDE]RR\d+", words[5])
+        if len(r1) >= 1:
+            accession_number_filename_map[r1[0]] = words[1]
 
 
 class NCBI(base.BaseETL):
@@ -132,7 +161,6 @@ class NCBI(base.BaseETL):
         self.project_code = "ncbi-covid-19"
         self.manifest_bucket = "sra-pub-sars-cov2"
         self.sra_src_manifest = "sra-src/Manifest"
-        self.sra_run_manifest = "run/Manifest"
         self.accession_number_filename_map = {}
 
         self.metadata_helper = MetadataHelper(
@@ -156,7 +184,6 @@ class NCBI(base.BaseETL):
         )
 
         self.submitting_data = {
-            "summary_location": [],
             "sample": [],
             "virus_sequence": [],
             "core_metadata_collection": [],
@@ -175,11 +202,6 @@ class NCBI(base.BaseETL):
             }
         )
 
-        read_ncbi_manifest(
-            self.manifest_bucket,
-            self.sra_run_manifest,
-            self.accession_number_filename_map,
-        )
         read_ncbi_manifest(
             self.manifest_bucket,
             self.sra_src_manifest,
@@ -234,9 +256,10 @@ class NCBI(base.BaseETL):
         for record in records:
             if record["acc"] in self.accession_number_filename_map:
                 accession_number = record["acc"]
-                accession_number_set.add(accession_number)
                 print(f"Get from bigquery response {accession_number}")
-                await self._parse_big_query_response(record)
+                success = await self._parse_big_query_response(record)
+                if success:
+                    accession_number_set.add(accession_number)
 
         cmc_submitter_id = format_submitter_id("cmc_ncbi_covid19", {})
         for accession_number in submitting_accession_numbers:
@@ -327,6 +350,10 @@ class NCBI(base.BaseETL):
                 "virus_sequence_run_taxonomy", {"accession_number": accession_number}
             )
 
+            contig_taxonomy_submitter_id = format_submitter_id(
+                "virus_sequence_contig_taxonomy", {"accession_number": accession_number}
+            )
+
             if node_name == "virus_sequence_contig":
                 submitted_json = {
                     "submitter_id": submitter_id,
@@ -369,6 +396,17 @@ class NCBI(base.BaseETL):
                     "data_format": "json",
                     "data_category": "HMMER Scab of Contigs",
                 }
+            elif node_name == "virus_sequence_contig_taxonomy":
+                submitted_json = {
+                    "submitter_id": submitter_id,
+                    "core_metadata_collections": [{"submitter_id": cmc_submitter_id}],
+                    "virus_sequence_contigs": [{"submitter_id": contig_submitter_id}],
+                    "accession_number": accession_number,
+                    "data_type": "Contig Taxonomy",
+                    "data_format": "json",
+                    "data_category": "Kmer-based Taxonomy Analysis of Contigs",
+                }
+
             else:
                 raise Exception(f"ERROR: {node_name} does not exist")
 
@@ -542,13 +580,17 @@ class NCBI(base.BaseETL):
             start = end
 
     async def _parse_big_query_response(self, response):
-        """Parse the big query response"""
+        """
+        Parse the big query response and get indexd record
+
+        Return True if success
+
+        """
 
         accession_number = response["acc"]
 
         sample = {}
         virus_sequence = {}
-        summary_location = {}
 
         sample["submitter_id"] = f"sample_{accession_number}"
         sample["projects"] = [{"code": self.project_code}]
@@ -560,6 +602,8 @@ class NCBI(base.BaseETL):
             "host_associated_environmental_package_sam",
             "organism",
             "collection_date",
+            "country_region",
+            "continent",
         ]:
             if field in SPECIAL_MAP_FIELDS:
                 old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
@@ -614,8 +658,8 @@ class NCBI(base.BaseETL):
             accession_number
         ]
 
-        _, file_extension = os.path.splitext(virus_sequence["file_name"])
-        virus_sequence["data_format"] = file_extension.replace(".", "")
+        virus_sequence["data_format"] = get_file_extension(virus_sequence["file_name"])
+        filename = virus_sequence["file_name"]
 
         retrying = True
         while retrying:
@@ -627,9 +671,7 @@ class NCBI(base.BaseETL):
                     filesize,
                     file_name,
                     _,
-                ) = await self.file_helper.async_find_by_name(
-                    filename=virus_sequence["file_name"]
-                )
+                ) = await self.file_helper.async_find_by_name(filename=filename)
                 retrying = False
             except Exception as e:
                 print(
@@ -637,9 +679,11 @@ class NCBI(base.BaseETL):
                 )
                 await asyncio.sleep(5)
 
-        assert (
-            did
-        ), f"file {filename} does not exist in the index, rerun NCBI_MANIFEST ETL"
+        if not did:
+            print(
+                f"file {filename} does not exist in the index, rerun NCBI_MANIFEST ETL"
+            )
+            return False
 
         retrying = True
         while retrying:
@@ -656,19 +700,6 @@ class NCBI(base.BaseETL):
         virus_sequence["md5sum"] = md5sum
         virus_sequence["object_id"] = did
 
-        summary_location["submitter_id"] = format_submitter_id(
-            "virus", {"accession_number": accession_number}
-        )
-        summary_location["projects"] = [{"code": self.project_code}]
-
-        for field in ["country_region", "continent", "latitude", "longitude"]:
-            if field in SPECIAL_MAP_FIELDS:
-                old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
-                summary_location[field] = handler(response.get(old_name))
-
-            elif field in response:
-                summary_location[field] = str(response.get(field))
-
         self.submitting_data["virus_sequence"].append(virus_sequence)
-        self.submitting_data["summary_location"].append(summary_location)
         self.submitting_data["sample"].append(sample)
+        return True
