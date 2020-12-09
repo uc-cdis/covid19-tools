@@ -130,6 +130,7 @@ covid19-tools
 `Gen3Secrets/g3auto/covid19-etl/default.json`
 
 *Notes*:
+- An accession number is supposed in the format of `[SDE]RR\d+`. SRR for data submitted to NCBI, ERR for EMBL-EBI (European Molecular Biology Laboratory), and DRR for DDBJ (DNA Data Bank of Japan)
 - NCBI_MANIFEST ETL uses `last_submission_identifier` field of the project node to keep track the last submission datetime. That prevents the etl from checking and re-indexing the files which were already indexed.
 - Virus sequence run taxonomy without a matching submitter id in virus sequence link to CMC only, otherwise link to both CMC and virus sequence
 
