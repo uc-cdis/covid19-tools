@@ -3,6 +3,7 @@ import re
 from contextlib import closing
 
 import requests
+import datetime
 
 from etl import base
 from utils.metadata_helper import MetadataHelper
@@ -100,6 +101,21 @@ class OWID2(base.BaseETL):
         url = "https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/owid-covid-data.csv"
         self.parse_file(url)
 
+    def insert_row_value(self, row_value):
+        summary_location_list = []
+        (
+            summary_location,
+            summary_clinical,
+            summary_socio_demographic,
+        ) = row_value
+        summary_location_submitter_id = summary_location["submitter_id"]
+        if summary_location_submitter_id not in summary_location_list:
+            self.summary_locations.append(summary_location)
+            summary_location_list.append(summary_location_submitter_id)
+
+        self.summary_clinicals.append(summary_clinical)
+        self.summary_socio_demographics.append(summary_socio_demographic)
+
     def parse_file(self, url):
         """
         Converts a CSV file to data we can submit via Sheepdog. Stores the
@@ -129,22 +145,17 @@ class OWID2(base.BaseETL):
                 expected_h, headers
             )
 
-            summary_location_list = []
+            pre_row = None
 
             for row in reader:
-                (
-                    summary_location,
-                    summary_clinical,
-                    summary_socio_demographic,
-                ) = self.parse_row(row)
-
-                summary_location_submitter_id = summary_location["submitter_id"]
-                if summary_location_submitter_id not in summary_location_list:
-                    self.summary_locations.append(summary_location)
-                    summary_location_list.append(summary_location_submitter_id)
-
-                self.summary_clinicals.append(summary_clinical)
-                self.summary_socio_demographics.append(summary_socio_demographic)
+                res = self.parse_row(pre_row, row)
+                if res is not None:
+                    self.insert_row_value(res)
+                pre_row = row
+            if pre_row is not None:
+                res = self.parse_row(pre_row, None)
+                if res is not None:
+                    self.insert_row_value(res)
 
     def create_clinical(self, row, date, summary_location_submitter_id):
         summary_clinical_submitter_id = format_summary_clinical_submitter_id(
@@ -190,24 +201,9 @@ class OWID2(base.BaseETL):
             "positive_rate": ("positive_rate", float),
             "tests_units": ("tests_units", str),
             "cardiovasc_death_rate": ("cardiovasc_death_rate", float),
-            "diabetes_prevalence": ("diabetes_prevalence", float),
-            "hospital_beds_per_thousand": ("hospital_beds_per_thousand", float)
+            "diabetes_prevalence": ("diabetes_prevalence", float)
+            # "hospital_beds_per_thousand": ("hospital_beds_per_thousand", float)
             # "human_development_index": ("human_development_index", float),
-        }
-
-        map_csv_socio_fields = {
-            "stringency_index": ("stringency_index", float),
-            "population": ("population", int),
-            "population_density": ("population_density", float),
-            "median_age": ("median_age", float),
-            "aged_65_older": ("aged_65_older", float),
-            "aged_70_older": ("aged_70_older", float),
-            "gdp_per_capita": ("gdp_per_capita", float),
-            "extreme_poverty": ("extreme_poverty", float),
-            "female_smokers": ("female_smokers", float),
-            "male_smokers": ("male_smokers", float),
-            "handwashing_facilities": ("handwashing_facilities", float),
-            "life_expectancy": ("life_expectancy", float),
         }
 
         for k, (v, dtype) in map_csv_fields.items():
@@ -220,11 +216,6 @@ class OWID2(base.BaseETL):
                         summary_clinical[k] = float(value.replace(",", ""))
                 except Exception:
                     pass
-
-        for k in map_csv_socio_fields.keys():
-            summary_clinical[
-                k
-            ] = None  # TODO: remove when the properties are removed from dictionary
 
         return summary_clinical
 
@@ -272,7 +263,7 @@ class OWID2(base.BaseETL):
 
         return summary_socio_demographic
 
-    def parse_row(self, row):
+    def parse_row(self, pre_row, row):
         """
         Converts a row of a CSV file to data we can submit via Sheepdog
 
@@ -284,24 +275,31 @@ class OWID2(base.BaseETL):
                 - location data, in a format ready to be submitted to Sheepdog
                 - { "date1": <value>, "date2": <value> } from the row data
         """
+        if pre_row is None:
+            return None
 
-        date = row[self.header_to_column["date"]]
+        pre_date = pre_row[self.header_to_column["date"]]
+        pre_country = pre_row[self.header_to_column["location"]]
+        pre_iso_code = pre_row[self.header_to_column["iso_code"]]
 
-        country = row[self.header_to_column["location"]]
+        if row is not None:
+            iso_code = row[self.header_to_column["iso_code"]]
 
-        summary_location_submitter_id = format_location_submitter_id(country)
+        if row is not None and pre_iso_code == iso_code:
+            return None
 
+        summary_location_submitter_id = format_location_submitter_id(pre_country)
         summary_location = {
-            "country_region": country,
+            "country_region": pre_country,
             "submitter_id": summary_location_submitter_id,
             "projects": [{"code": self.project_code}],
         }
 
         return (
             summary_location,
-            self.create_clinical(row, date, summary_location_submitter_id),
+            self.create_clinical(pre_row, pre_date, summary_location_submitter_id),
             self.create_summary_socio_demographic(
-                row, date, summary_location_submitter_id
+                pre_row, pre_date, summary_location_submitter_id
             ),
         )
 
