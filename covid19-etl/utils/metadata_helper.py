@@ -3,6 +3,7 @@ import datetime
 import json
 from math import ceil
 from time import sleep
+from dateutil.parser import parse
 
 import requests
 
@@ -232,6 +233,8 @@ class MetadataHelper:
         )
         try:
             response = self.query_peregrine(query_string)
+            if response["data"]["project"][0]["last_submission_identifier"] is None:
+                return None
             return parse(response["data"]["project"][0]["last_submission_identifier"])
         except Exception as ex:
             print(
@@ -240,10 +243,8 @@ class MetadataHelper:
             raise
 
     def update_last_submission(self, last_submission_date_time):
-        headers = {
-            "content-type": "application/json",
-            "Authorization": f"Bearer {self.access_token}",
-        }
+        headers = {"content-type": "application/json"}
+        headers["Authorization"] = self.headers["Authorization"]
         record = {
             "code": self.project_code,
             "dbgap_accession_number": self.project_code,
