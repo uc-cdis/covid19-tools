@@ -561,6 +561,7 @@ class NCBI(base.BaseETL):
 
         start = 0
         offset = 100
+        client = bigquery.Client()
         while start < len(accession_numbers):
             end = min(start + offset, len(accession_numbers))
             stm = 'SELECT * FROM `nih-sra-datastore`.sra.metadata where consent = "public"'
@@ -570,7 +571,6 @@ class NCBI(base.BaseETL):
                 stm = stm + f' or acc = "{accession_number}"'
             stm = stm + ")"
 
-            client = bigquery.Client()
             query_job = client.query(stm)
 
             results = query_job.result()  # Waits for job to complete.
