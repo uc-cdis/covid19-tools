@@ -23,7 +23,7 @@ df_new$submitter_id=str_replace_all(df_new$submitter_id,"/","_")
 df_sample=select(df_new,-sequence_length,-nextstrain_clade)%>%mutate(type="sample",projects.code="SIU-SARS-CoV2")
 
 #Fix County Names
-df_sample_new$county=substr(df_sample_new$county,1,nchar(df_sample_new$county)-13)
+df_sample$county=substr(df_sample$county,1,nchar(df_sample$county)-13)
 
 #This splits apart the submitter_id with the auto generated information from the gen3-client for the samples.submitter_id.
 df_vs_new=mutate(df_vs,samples.submitter_id=submitter_id)%>%separate(samples.submitter_id,c("Nothing","samples.submitter_id"),sep = "Walder-SIU-SARS-CoV2_")%>%select(-id,-project_id,-core_metadata_collections.id,-Nothing)
