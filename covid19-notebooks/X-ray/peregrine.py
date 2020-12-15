@@ -104,7 +104,7 @@ def download_object(guid):
 
     download_url = url + "user/data/download/" + guid[0]
     r = requests.get(
-        download_url, headers={"Authorization": "bearer " + get_token()}
+        download_url, headers={"Authorization": "bearer " + get_access_token_from_wts()}
     ).text
     data = json.loads(r)
     image_url = data["url"]
