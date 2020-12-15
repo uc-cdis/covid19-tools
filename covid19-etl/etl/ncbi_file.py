@@ -198,6 +198,8 @@ class NCBI_FILE(base.BaseETL):
                     print(f"ERROR: Can not download {key}. Detail {e}")
                     raise
                 # Index the last file
+                if f:
+                    f.close()
                 await self.file_to_indexd(
                     Path(f"{DATA_PATH}/{node_name}_{accession_number}.{ext}")
                 )
