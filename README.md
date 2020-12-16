@@ -24,7 +24,7 @@
 | [COV-521][cov-521] | ATLAS | [here][atlas] | One-time |
 | [COV-465][cov-465] | NCBI-METADATA | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
 | [COV-482][cov-482] | NCBI-MANIFEST | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
-| [COV-532][cov-532] | COM-MOBILITY | [bucket](https://github.com/uc-cdis/covid19-tools#com_mobility) | scheduled|
+| [COV-532][cov-532] | COM-MOBILITY | [here](com-mobility) | scheduled|
 
 
 ## Deployment
@@ -159,6 +159,7 @@ covid19-tools
 [vac-tracker]:https://biorender.com/page-data/covid-vaccine-tracker/page-data.json
 [stoplight]: https://covidstoplight.org/api/v0/location/US
 [atlas]: https://opportunityinsights.org/data/?geographic_level=0&topic=0&paper_id=1652#resource-listing
+[com-mobility]: https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv
 [cov-12]: https://occ-data.atlassian.net/browse/COV-12
 [cov-18]: https://occ-data.atlassian.net/browse/COV-18
 [cov-24]: https://occ-data.atlassian.net/browse/COV-24
