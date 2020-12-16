@@ -266,5 +266,5 @@ class COM_MOBILITY(base.BaseETL):
             self.metadata_helper.add_record_to_submit(sc_record)
         self.metadata_helper.batch_submit_records()
         self.metadata_helper.update_last_submission(
-            self.last_submission_date_time.strptime("%Y%m%d")
+            self.last_submission_date_time.strftime("%Y-%m-%d")
         )
