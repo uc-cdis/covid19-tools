@@ -24,6 +24,8 @@ FILE_EXTENSIONS = ["json", "tsv", "gb", "fastqsanger", "fasta", "fastq", "hmmer"
 
 FILE_EXTENSION_MAPPING = {"fq": "fastq", "fa": "fasta"}
 
+MAX_RETRIES = 3
+
 
 def get_file_extension(filename):
     """get file extension from the filename"""
@@ -303,12 +305,13 @@ class NCBI(base.BaseETL):
             assert (
                 did
             ), f"file {filename} does not exist in the index, rerun NCBI_FILE ETL"
-            trying = True
-            while trying:
+
+            tries = 0
+            while tries < MAX_RETRIES:
                 try:
                     await self.file_helper.async_update_authz(did=did, rev=rev)
-                    trying = False
                 except Exception as e:
+                    tries += 1
                     print(f"Can not update indexd for {did}. Detail {e}. Retrying...")
 
             submitted_json["file_size"] = filesize
@@ -436,12 +439,13 @@ class NCBI(base.BaseETL):
             assert (
                 did
             ), f"file {filename} does not exist in the index, rerun NCBI_FILE ETL"
-            retrying = True
-            while retrying:
+
+            tries = 0
+            while tries < MAX_RETRIES:
                 try:
                     await self.file_helper.async_update_authz(did=did, rev=rev)
-                    retrying = False
                 except Exception as e:
+                    tries += 1
                     print(
                         f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
                     )
