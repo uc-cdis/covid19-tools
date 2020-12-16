@@ -3,6 +3,7 @@ import datetime
 import json
 from math import ceil
 from time import sleep
+from dateutil.parser import parse
 
 import requests
 
@@ -222,4 +223,39 @@ class MetadataHelper:
             return response.json()
         except:
             print(f"Guppy did not return JSON: {response.text}")
+            raise
+
+    def get_last_submission(self):
+        query_string = (
+            '{ project (first: 0, dbgap_accession_number: "'
+            + self.project_code
+            + '") { last_submission_identifier } }'
+        )
+        try:
+            response = self.query_peregrine(query_string)
+            if response["data"]["project"][0]["last_submission_identifier"] is None:
+                return None
+            return parse(response["data"]["project"][0]["last_submission_identifier"])
+        except Exception as ex:
+            print(
+                f"Unable to query peregrine for last_submission_identifier. Detail {ex}"
+            )
+            raise
+
+    def update_last_submission(self, last_submission_date_time):
+        headers = {"content-type": "application/json"}
+        headers["Authorization"] = self.headers["Authorization"]
+        record = {
+            "code": self.project_code,
+            "dbgap_accession_number": self.project_code,
+            "last_submission_identifier": last_submission_date_time,
+        }
+        try:
+            res = requests.put(
+                "{}/api/v0/submission/{}".format(self.base_url, self.program_name),
+                headers=headers,
+                data=json.dumps(record),
+            )
+        except Exception as ex:
+            print(f"Unable to update last_submission_identifier. Detail {ex}")
             raise
