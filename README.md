@@ -24,6 +24,7 @@
 | [COV-521][cov-521] | ATLAS | [here][atlas] | One-time |
 | [COV-465][cov-465] | NCBI-METADATA | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
 | [COV-482][cov-482] | NCBI-MANIFEST | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
+| [COV-532][cov-532] | COM-MOBILITY | [bucket](https://github.com/uc-cdis/covid19-tools#com_mobility) | scheduled|
 
 
 ## Deployment
@@ -181,3 +182,4 @@ covid19-tools
 [cov-465]: https://occ-data.atlassian.net/browse/COV-465
 [cov-482]: https://occ-data.atlassian.net/browse/COV-482
 [cov-454]: https://occ-data.atlassian.net/browse/COV-454
+[cov-532]: https://occ-data.atlassian.net/browse/COV-532
