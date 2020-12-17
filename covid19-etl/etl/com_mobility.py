@@ -35,10 +35,16 @@ def convert_datetime_to_str(dt):
 
 
 def process_county_function(county):
+    if county is None:
+        return None
+    if county.strip() == "":
+        return None
     return county.replace(" County", "").replace(" county", "").strip()
 
 
 def identity_function(s):
+    if isinstance(s, str) and s.strip() == "":
+        return None
     return s
 
 
@@ -188,8 +194,8 @@ class COM_MOBILITY(base.BaseETL):
                     summary_location_submitter_id = format_submitter_id(
                         "summary_location",
                         row_dict["country_region_code"],
-                        row_dict["sub_region_1"].replace("county", "").strip(),
-                        row_dict["sub_region_2"].replace("county", "").strip(),
+                        row_dict["sub_region_1"],
+                        row_dict["sub_region_2"],
                         row_dict["metro_area"],
                         row_dict["date"],
                     )
@@ -250,7 +256,6 @@ class COM_MOBILITY(base.BaseETL):
         `self.location_data already contains Sheepdog records. Batch submits
         all records in `self.location_data` and `self.time_series_data`
         """
-
         # Commented
         # Only required for one time submission of summary_location
         print("Submitting summary_location data")
