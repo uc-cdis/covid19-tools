@@ -209,7 +209,7 @@ class COM_MOBILITY(base.BaseETL):
                     }
 
                     summary_socio_demographic = {
-                        "submitter_id": summary_location_submitter_id,
+                        "submitter_id": summary_socio_demographic_submitter_id,
                         "summary_locations": [
                             {"submitter_id": summary_location_submitter_id}
                         ],
@@ -241,7 +241,8 @@ class COM_MOBILITY(base.BaseETL):
 
                     self.summary_locations.append(summary_location)
                     self.summary_socio_demographics.append(summary_socio_demographic)
-        self.last_submission_date_time = the_lattest_data_datetime
+        if the_lattest_data_datetime:
+            self.last_submission_date_time = the_lattest_data_datetime
 
     def submit_metadata(self):
         """
