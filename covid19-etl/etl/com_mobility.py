@@ -142,7 +142,9 @@ class COM_MOBILITY(base.BaseETL):
             url (str): URL at which the CSV file is available
         """
 
-        self.last_submission_date_time = self.metadata_helper.get_last_submission()
+        self.last_submission_date_time = (
+            None  # self.metadata_helper.get_last_submission()
+        )
         the_lattest_data_datetime = None
 
         print("Getting data from {}".format(url))
@@ -171,7 +173,6 @@ class COM_MOBILITY(base.BaseETL):
                 row_dict = dict(zip(headers, row))
                 if row_dict["country_region_code"] != "US":
                     continue
-
                 if (
                     not self.last_submission_date_time
                     or parse(row_dict["date"]) > self.last_submission_date_time
@@ -260,7 +261,8 @@ class COM_MOBILITY(base.BaseETL):
         # self.metadata_helper.batch_submit_records()
 
         print("Submitting summary_socio_demographic data")
-        for sc in self.summary_socio_demographics:
+
+        for sc in self.summary_socio_demographics[::-1]:
             sc_record = {"type": "summary_socio_demographic"}
             sc_record.update(sc)
             self.metadata_helper.add_record_to_submit(sc_record)
