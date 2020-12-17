@@ -310,6 +310,7 @@ class NCBI(base.BaseETL):
             while tries < MAX_RETRIES:
                 try:
                     await self.file_helper.async_update_authz(did=did, rev=rev)
+                    break
                 except Exception as e:
                     tries += 1
                     print(f"Can not update indexd for {did}. Detail {e}. Retrying...")
@@ -444,6 +445,7 @@ class NCBI(base.BaseETL):
             while tries < MAX_RETRIES:
                 try:
                     await self.file_helper.async_update_authz(did=did, rev=rev)
+                    break
                 except Exception as e:
                     tries += 1
                     print(
@@ -689,15 +691,16 @@ class NCBI(base.BaseETL):
             )
             return False
 
-        retrying = True
-        while retrying:
+        retries = 0
+        while retries < MAX_RETRIES:
             try:
                 await self.file_helper.async_update_authz(did=did, rev=rev)
-                retrying = False
+                break
             except Exception as e:
                 print(
                     f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
                 )
+                retries += 1
                 await asyncio.sleep(5)
 
         virus_sequence["file_size"] = filesize
