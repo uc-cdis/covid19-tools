@@ -252,12 +252,12 @@ class COM_MOBILITY(base.BaseETL):
 
         # Commented
         # Only required for one time submission of summary_location
-        print("Submitting summary_location data")
-        for loc in self.summary_locations:
-            loc_record = {"type": "summary_location"}
-            loc_record.update(loc)
-            self.metadata_helper.add_record_to_submit(loc_record)
-        self.metadata_helper.batch_submit_records()
+        # print("Submitting summary_location data")
+        # for loc in self.summary_locations:
+        #     loc_record = {"type": "summary_location"}
+        #     loc_record.update(loc)
+        #     self.metadata_helper.add_record_to_submit(loc_record)
+        # self.metadata_helper.batch_submit_records()
 
         print("Submitting summary_socio_demographic data")
         for sc in self.summary_socio_demographics:
