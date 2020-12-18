@@ -520,7 +520,10 @@ class NCBI(base.BaseETL):
             if len(r1) == 0:
                 continue
             read_accession_number = r1[0]
-            if f"{node_name}_{read_accession_number}" not in existed_accession_numbers:
+            if (
+                f"{node_name}_{read_accession_number}".lower()
+                not in existed_accession_numbers
+            ):
                 submitting_accession_numbers.add(read_accession_number)
 
         return list(submitting_accession_numbers)

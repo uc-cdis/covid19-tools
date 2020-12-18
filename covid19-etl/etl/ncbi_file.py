@@ -222,7 +222,7 @@ class NCBI_FILE(base.BaseETL):
         query_string = "{ " + node_name + " (first:0) { submitter_id } }"
         response = await self.metadata_helper.async_query_peregrine(query_string)
         records = response["data"][node_name]
-        return set([record["submitter_id"] for record in records])
+        return set([record["submitter_id"].lower() for record in records])
 
     async def parse_row(
         self, line, node_name, ext, headers, accession_number, n_rows, f, excluded_set
