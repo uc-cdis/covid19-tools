@@ -294,7 +294,7 @@ class NCBI(base.BaseETL):
                         md5sum,
                         filesize,
                         file_name,
-                        _,
+                        authz,
                     ) = await self.file_helper.async_find_by_name(filename=filename)
                     trying = False
                 except Exception as e:
@@ -306,14 +306,17 @@ class NCBI(base.BaseETL):
                 did
             ), f"file {filename} does not exist in the index, rerun NCBI_FILE ETL"
 
-            tries = 0
-            while tries < MAX_RETRIES:
-                try:
-                    await self.file_helper.async_update_authz(did=did, rev=rev)
-                    break
-                except Exception as e:
-                    tries += 1
-                    print(f"Can not update indexd for {did}. Detail {e}. Retrying...")
+            if not authz:
+                tries = 0
+                while tries < MAX_RETRIES:
+                    try:
+                        await self.file_helper.async_update_authz(did=did, rev=rev)
+                        break
+                    except Exception as e:
+                        tries += 1
+                        print(
+                            f"Can not update indexd for {did}. Detail {e}. Retrying..."
+                        )
 
             submitted_json["file_size"] = filesize
             submitted_json["md5sum"] = md5sum
@@ -428,7 +431,7 @@ class NCBI(base.BaseETL):
                         md5sum,
                         filesize,
                         file_name,
-                        _,
+                        authz,
                     ) = await self.file_helper.async_find_by_name(filename=filename)
                     retrying = False
                 except Exception as e:
@@ -441,17 +444,18 @@ class NCBI(base.BaseETL):
                 did
             ), f"file {filename} does not exist in the index, rerun NCBI_FILE ETL"
 
-            tries = 0
-            while tries < MAX_RETRIES:
-                try:
-                    await self.file_helper.async_update_authz(did=did, rev=rev)
-                    break
-                except Exception as e:
-                    tries += 1
-                    print(
-                        f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
-                    )
-                    await asyncio.sleep(5)
+            if not authz:
+                tries = 0
+                while tries < MAX_RETRIES:
+                    try:
+                        await self.file_helper.async_update_authz(did=did, rev=rev)
+                        break
+                    except Exception as e:
+                        tries += 1
+                        print(
+                            f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
+                        )
+                        await asyncio.sleep(5)
 
             submitted_json["file_size"] = filesize
             submitted_json["md5sum"] = md5sum
@@ -676,7 +680,7 @@ class NCBI(base.BaseETL):
                     md5sum,
                     filesize,
                     file_name,
-                    _,
+                    authz,
                 ) = await self.file_helper.async_find_by_name(filename=filename)
                 retrying = False
             except Exception as e:
@@ -691,17 +695,18 @@ class NCBI(base.BaseETL):
             )
             return False
 
-        retries = 0
-        while retries < MAX_RETRIES:
-            try:
-                await self.file_helper.async_update_authz(did=did, rev=rev)
-                break
-            except Exception as e:
-                print(
-                    f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
-                )
-                retries += 1
-                await asyncio.sleep(5)
+        if not authz:
+            retries = 0
+            while retries < MAX_RETRIES:
+                try:
+                    await self.file_helper.async_update_authz(did=did, rev=rev)
+                    break
+                except Exception as e:
+                    print(
+                        f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
+                    )
+                    retries += 1
+                    await asyncio.sleep(5)
 
         virus_sequence["file_size"] = filesize
         virus_sequence["md5sum"] = md5sum
