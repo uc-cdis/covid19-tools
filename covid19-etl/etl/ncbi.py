@@ -231,7 +231,8 @@ class NCBI(base.BaseETL):
                     self.files_to_virus_sequence_run_taxonomy_submission(results[0])
                 )
             )
-            loop.run_until_complete(asyncio.gather(AsyncFileHelper.close_session()))
+            if AsyncFileHelper.session:
+                loop.run_until_complete(asyncio.gather(AsyncFileHelper.close_session()))
         finally:
             loop.close()
         end = time.strftime("%X")
