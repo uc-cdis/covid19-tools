@@ -251,6 +251,9 @@ class NCBI(base.BaseETL):
     ):
         """get submitting data for virus_sequence_run_taxonomy node"""
 
+        if not submitting_accession_numbers:
+            return
+
         records = self._get_response_from_big_query(submitting_accession_numbers)
 
         # Keep track accession_numbers having link to virus_sequence nodes
