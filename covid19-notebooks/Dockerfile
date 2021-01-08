@@ -13,6 +13,7 @@ RUN apt-get update && \
 	gnupg2 \
 	python3 \
 	python3-pip \
+	python3-pandas \
 	r-base \
 	r-cran-rstan \
 	r-cran-tidyverse \
