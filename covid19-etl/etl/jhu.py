@@ -228,8 +228,10 @@ class JHU(base.BaseETL):
                     # do not re-submit summary_clinical data that
                     # already exist. Assume anything older than the last
                     # submitted date has already been submitted
-                    if time_series_date_to_string(date) > time_series_date_to_string(
-                        self.last_date
+                    if (
+                        time_series_date_to_string(date)
+                        > time_series_date_to_string(self.last_date)
+                        or LAST_DATE_ONLY
                     ):
                         self.time_series_data[location_submitter_id][date][
                             data_type
