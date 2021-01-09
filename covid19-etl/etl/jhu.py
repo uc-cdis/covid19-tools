@@ -206,10 +206,6 @@ class JHU(base.BaseETL):
                 )
             )
 
-            if LAST_DATE_ONLY:
-                # skip columns corresponding to older dates
-                headers = headers[0:first_date_i] + [last_date]
-
             for row in reader:
                 if not row:  # ignore empty rows
                     continue
@@ -304,7 +300,10 @@ class JHU(base.BaseETL):
 
         date_to_value = {}
         dates_start = header_to_column["dates_start"]
-        for i in range(dates_start, len(headers)):
+        dates_indices = range(dates_start, len(headers))
+        if LAST_DATE_ONLY:
+            dates_indices = [len(headers) - 1]
+        for i in dates_indices:
             date = headers[i]
             date = get_unified_date_format(date)
 
