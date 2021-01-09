@@ -267,7 +267,7 @@ class MetadataHelper:
         # access_token directly).
         import itertools
 
-        batch_size = 100
+        batch_size = 200
         verbose = True
         project_id = f"{self.program_name}-{self.project_code}"
         for node in ordered_node_list:
