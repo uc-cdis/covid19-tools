@@ -64,8 +64,12 @@ class MetadataHelper:
                 "Did not receive any data from Guppy. Is the token expired?"
             )
         loc = query_res["data"]["location"][0]
-        # from format: %Y-%m-%dT00:00:00
-        latest_submitted_date = loc["date"].split("T")[0]
+        if loc.get("date"):
+            # from format: %Y-%m-%dT00:00:00
+            latest_submitted_date = loc["date"].split("T")[0]
+        else:
+            # don't break if Guppy returns date=None
+            latest_submitted_date = "0001-01-01"
 
         return summary_locations, latest_submitted_date
 
