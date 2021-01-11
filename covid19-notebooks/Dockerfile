@@ -1,6 +1,7 @@
-FROM debian:bullseye
+# FROM debian:bullseye
 
-RUN echo clear cache
+# testing..
+FROM debian:buster
 
 ### python dep handling
 
@@ -68,9 +69,6 @@ RUN Rscript -e "install.packages('visdat', dependencies=TRUE)"
 RUN Rscript -e "install.packages('mlr3verse', dependencies=TRUE)"
 RUN Rscript -e "install.packages('ranger', dependencies=TRUE)"
 RUN Rscript -e "install.packages('zoo', dependencies=TRUE)"
-RUN Rscript -e "install.packages('V8', dependencies=TRUE)"
-RUN Rscript -e "install.packages('Rcpp', dependencies=TRUE)"
-RUN Rscript -e "install.packages('rstan', repos = 'https://cloud.r-project.org/', dependencies = TRUE)"
 
 # copy R bayes-by-county simulation files
 COPY ./bayes-by-county/ /nb-etl/bayes-by-county/
