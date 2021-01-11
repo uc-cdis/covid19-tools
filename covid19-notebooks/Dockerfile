@@ -68,6 +68,7 @@ RUN Rscript -e "install.packages('visdat', dependencies=TRUE)"
 RUN Rscript -e "install.packages('mlr3verse', dependencies=TRUE)"
 RUN Rscript -e "install.packages('ranger', dependencies=TRUE)"
 RUN Rscript -e "install.packages('zoo', dependencies=TRUE)"
+RUN Rscript -e "install.packages('V8', dependencies=TRUE)"
 
 # copy R bayes-by-county simulation files
 COPY ./bayes-by-county/ /nb-etl/bayes-by-county/
