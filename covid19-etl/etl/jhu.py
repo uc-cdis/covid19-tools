@@ -9,6 +9,12 @@ from etl import base
 from utils.metadata_helper import MetadataHelper
 
 
+# we are only keeping in Sheepdog the latest data (last date in the
+# original data source) to avoid memory issues. when that's fixed,
+# we can go back to storing all the JHU data.
+LAST_DATE_ONLY = True
+
+
 def format_location_submitter_id(country, province, county=None):
     """summary_location_<country>_<province>_<county>"""
     submitter_id = "summary_location_{}".format(country)
@@ -192,6 +198,14 @@ class JHU(base.BaseETL):
                 expected_h, obtained_h
             )
 
+            first_date_i = [i for i, h in enumerate(headers) if h.endswith("/20")][0]
+            last_date = headers[-1]
+            print(
+                "  First date: {}; last date: {}".format(
+                    headers[first_date_i], last_date
+                )
+            )
+
             for row in reader:
                 if not row:  # ignore empty rows
                     continue
@@ -214,8 +228,10 @@ class JHU(base.BaseETL):
                     # do not re-submit summary_clinical data that
                     # already exist. Assume anything older than the last
                     # submitted date has already been submitted
-                    if time_series_date_to_string(date) > time_series_date_to_string(
-                        self.last_date
+                    if (
+                        time_series_date_to_string(date)
+                        > time_series_date_to_string(self.last_date)
+                        or LAST_DATE_ONLY
                     ):
                         self.time_series_data[location_submitter_id][date][
                             data_type
@@ -286,7 +302,10 @@ class JHU(base.BaseETL):
 
         date_to_value = {}
         dates_start = header_to_column["dates_start"]
-        for i in range(dates_start, len(headers)):
+        dates_indices = range(dates_start, len(headers))
+        if LAST_DATE_ONLY:
+            dates_indices = [len(headers) - 1]
+        for i in dates_indices:
             date = headers[i]
             date = get_unified_date_format(date)
 
@@ -311,6 +330,11 @@ class JHU(base.BaseETL):
         `self.location_data already contains Sheepdog records. Batch submits
         all records in `self.location_data` and `self.time_series_data`
         """
+        if LAST_DATE_ONLY:
+            # delete the old data from the Sheepdog DB
+            print("Deleting old summary_clinical data")
+            self.metadata_helper.delete_nodes(["summary_clinical"])
+
         print("Submitting summary_location data")
         for location in self.location_data.values():
             record = {"type": "summary_location"}
