@@ -1,6 +1,6 @@
 FROM debian:bullseye
 
-# clear cache
+RUN echo clear cache
 
 ### python dep handling
 
