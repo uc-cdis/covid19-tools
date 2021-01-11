@@ -1,7 +1,7 @@
 # FROM debian:bullseye
 
 # testing..
-FROM debian:buster
+FROM debian:bullseye-20201012
 
 ### python dep handling
 
