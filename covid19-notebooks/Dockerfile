@@ -31,7 +31,6 @@ RUN pip3 install -r nb-etl-requirements.txt
 # install R dependencies
 RUN apt-get update && \
 	apt-get install -y build-essential \
-	libboost-all-dev \
 	wget \
 	libxml2-dev \
 	libcurl4-openssl-dev \
@@ -57,6 +56,9 @@ RUN apt-get update && \
 	r-cran-ggpubr \
 	r-cran-cowplot \
 	r-cran-isoband
+
+RUN apt-get update && \
+	apt-get install -y libboost-all-dev
 
 RUN Rscript -e "install.packages('EnvStats', dependencies=TRUE)"
 RUN Rscript -e "install.packages('BH', dependencies=TRUE)"
