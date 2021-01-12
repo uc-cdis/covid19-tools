@@ -4,63 +4,43 @@
     <meta charset="UTF-8">
     <title>Welcome Page</title>
     <style>
-        .header {
+        body {
             font-family: "Source Sans Pro", sans-serif;
-            padding: 20px;
-            background : white;
             color : black;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            background: rgb(245, 245, 245);
+            margin: 0;
+        }
+        .header {
+            padding: 10px 20px;
+            margin: 0 0 20px;
+            background : #FFF;
+            border-bottom: solid rgb(66, 28, 82) 2px;
         }
         .header h1 {
-            font-family: "Source Sans Pro", sans-serif;
-            font-size: 3vw;
-            padding-left: 10px;
-        }
-
-        img {
-            width: 50%;
-        }
-
-        .bar {
-            width: 100%;
-            height: 30px;
-            background-color: #421C52
+            font-size: 3.2vw;
         }
         .content {
-            padding-left: 10px;
-            font-family: "Source Sans Pro", sans-serif;
-        }
-
-        .footer {
-            width: 99%;
-            height: 30px;
-            background-color: #421C52;
-            position: fixed;
-            bottom: 0pt
+            padding: 1px 10px 10px 10px;
+            background : #FFF;
+            margin: 0 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
     </style>
 </head>
 <body>
 <div class="header">
-    <img src = "https://qa-covid19.planx-pla.net/dashboard/Public/sponsors-logo/chicagoland_covid19_commons.png">
-    <h1><b>Welcome to the Chicagoland Pandemic Response Commons</b></h1>
-</div>
-
-<div class="bar">
+    <h1>Welcome to the Chicagoland COVID-19 Commons Workspace</h1>
 </div>
 
 <div class="content">
-    <h3>
-        This is your personal workspace. The “pd” folder represents your persistent drive: the files you save here will still be available when
-        you come back after terminating your workspace session. Any personal files outside of this folder will be lost.
-        <p>Please use the launcher tab to create a new notebook or explore one of our existing notebooks by navigating
-            to the “covid19-notebook” folder and double-clicking on the notebook of your choice. Feel free to edit and experiment with this collection of notebooks. They are your personal copies! </p>
-    </h3>
-</div>
-
-<div class="footer">
+    <h2>This is your personal workspace.</h2> 
+    <p><strong>The "pd" folder represents your persistent drive:</strong> 
+        <ul>
+            <li>The files you save here will still be available when you come back after terminating your workspace session</li>
+            <li>Any personal files outside of this folder will be lost</li>
+        </ul>
+    </p>
+    <p>Please use the launcher tab to create a new notebook or explore one of our existing notebooks by navigating to the “covid19-notebook” folder and double-clicking on the notebook of your choice. Feel free to edit and experiment with this collection of notebooks. They are your personal copies!</p>
 </div>
 
 </body>
