@@ -352,7 +352,7 @@ class JHU(base.BaseETL):
                     "type": "summary_clinical",
                     "submitter_id": submitter_id,
                     "summary_locations": [{"submitter_id": location_submitter_id}],
-                    "date": time_series_date_to_string(date),
+                    "date": date,
                 }
                 for data_type, value in data.items():
                     record[data_type] = value
