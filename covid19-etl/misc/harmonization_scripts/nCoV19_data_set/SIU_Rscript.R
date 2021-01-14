@@ -4,13 +4,15 @@ library(stringi)
 
 #Paste in your file directory path to where your file lives
 path_to_files="COVID19/SIU_data/Metadata/"
-metadata_file="2020-12-08.csv"
 
+#Input needed for the metadata file and the name of the CMC node submitter_id
+metadata_file="2020-12-29.csv"
+cmc="SIU-SARS-CoV2_2020-12-29"
+
+#Read in files
 df=read_csv(file = paste(path_to_files,metadata_file,sep=""))
 
 df_vs_in=read_tsv(file = paste(path_to_files,"virus_sequence.tsv",sep=""))
-
-cmc="SIU-SARS-CoV2_2020-12-08"
 
 #Filter out the columns based on their CMC submitter_id, thus allowing for new submissions (df_vs), while keeping old submissions (df_vs_old) to be tacked on later.
 
