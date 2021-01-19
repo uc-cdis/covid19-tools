@@ -53,7 +53,6 @@ RUN pip3 install -r nb-etl-requirements.txt
 COPY ./bayes-by-county/ /nb-etl/bayes-by-county/
 
 # copy Python notebooks
-COPY ./seir-forecast/seir-forecast.ipynb /nb-etl/
 COPY ./generate_top10_plots.py /nb-etl/
 
 COPY ./nb-etl-run.sh /nb-etl/
