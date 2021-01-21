@@ -3,6 +3,8 @@
 # testing..
 FROM debian:bullseye-20200908
 
+RUN echo clear cache
+
 ### python dep handling
 
 # attempt python pkg installs ..
