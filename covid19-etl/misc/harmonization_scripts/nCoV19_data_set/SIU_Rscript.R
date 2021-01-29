@@ -2,12 +2,20 @@ library(tidyverse)
 library(readr)
 library(stringi)
 
+#Before running this script, file submission must occur:
+#Run the "split_multifasta.py" script to transform the multifasta into a directory with single files.
+#Using the gen3-client upload these files to the commons for mapping. Use the following general command: `./gen3-client upload --profile=<Profile> --upload-path=directory/path/to/output_single_fasta/.`
+#On the gen3 commons, go to submit data. First create a core_metadata_collection entity under the project, "Walder-SIU-SARS-CoV2", with the following submitter_id pattern: "SIU-SARS-CoV2_<year-month-day>"
+#Go to the "map my files page" and map the files in your account. Select the project "Walder-SIU-SARS-CoV2", select the node "virus sequence", file type is "fasta", data_category is "nucleotide", data_type is "Sequence", and the core_metadata_collection entity will be the one that was just created.
+#After mapping, go to the project page <url/Walder-SIU-SARS-CoV2>, click on the "virus_sequence" node and then download the tsv to the directory designated in "path_to_files". 
+#At this point run this script.
+
 #Paste in your file directory path to where your file lives
 path_to_files="COVID19/SIU_data/Metadata/"
 
 #Input needed for the metadata file and the name of the CMC node submitter_id
-metadata_file="2020-12-29.csv"
-cmc="SIU-SARS-CoV2_2020-12-29"
+metadata_file="2021-01-29.csv"
+cmc="SIU-SARS-CoV2_2021-01-29"
 
 #Read in files
 df=read_csv(file = paste(path_to_files,metadata_file,sep=""))
@@ -57,3 +65,7 @@ df_vs_sub=left_join(df_vs_new,df_vs_clin)
 #Write out both files to TSV format.
 write_tsv(df_sample,paste(path_to_files,"sample_new_submission.tsv",sep=""), na="")
 write_tsv(df_vs_sub,paste(path_to_files,"vs_new_submission.tsv",sep=""), na="")
+
+
+#After the script has run, submit the two new files on the project page <url/Walder-SIU-SARS-CoV2> using the "upload file" option. 
+#Submit the "sample_new_submission.tsv" first, followed by the "vs_new_submission.tsv".
