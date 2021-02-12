@@ -4,7 +4,7 @@ rm './visitdata-grouped.csv'
 touch './visitdata-grouped.csv'
 
 # Get all of and keep header from Illinois
-echo "Illinois"
+echo "Getting visit data for Illinois"
 wget -q "https://visitdata.org/data/groupedIllinois.csv" -O "./Illinois.csv"
 cat "./Illinois.csv" >> './visitdata-grouped.csv'
 rm "./Illinois.csv"

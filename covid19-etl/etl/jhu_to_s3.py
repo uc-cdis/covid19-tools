@@ -17,19 +17,23 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
 """
     First, we use the raw JHU CSV data to generate self.nested_dict. (1)
     It contains the data for all dates.
+    => parse_file_to_nested_dict()
 
     Then, we use self.nested_dict to generate a GeoJson file. (2)
     It only contains the data for the latest available date.
     It's used to display the density map.
+    => nested_dict_to_geojson()
 
     Then, we use self.nested_dict to generate a JSON file. (3)
     It only contains the data for the latest available date.
     The data is organized by country, state and county.
     It's used to display the choropleth map.
+    => nested_dict_to_data_by_level()
 
     Finally, we use self.nested_dict to generate JSON files with
     all the dates, sorted by country, state or county. (4)
     They are used to display the time series plots.
+    => nested_dict_to_time_series_by_level()
 
     All these data files are pushed to S3.
 
