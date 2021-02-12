@@ -22,6 +22,9 @@ ISO_CODES_MAPPING = {
     # ISO codes for countries that are not in the CSV file
     "Kosovo": {"iso2": "XK", "iso3": "XKX"},
     "West Bank and Gaza": {"iso2": "PS", "iso3": "PSE"},
+    # JHU has data for boats - we want to include them in total counts
+    "Diamond Princess": {"iso2": "Diamond Princess", "iso3": "Diamond Princess"},
+    "MS Zaandam": {"iso2": "MS Zaandam", "iso3": "MS Zaandam"},
 }
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))

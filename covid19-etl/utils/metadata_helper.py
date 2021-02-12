@@ -64,8 +64,12 @@ class MetadataHelper:
                 "Did not receive any data from Guppy. Is the token expired?"
             )
         loc = query_res["data"]["location"][0]
-        # from format: %Y-%m-%dT00:00:00
-        latest_submitted_date = loc["date"].split("T")[0]
+        if loc.get("date"):
+            # from format: %Y-%m-%dT00:00:00
+            latest_submitted_date = loc["date"].split("T")[0]
+        else:
+            # don't break if Guppy returns date=None
+            latest_submitted_date = "0001-01-01"
 
         return summary_locations, latest_submitted_date
 
@@ -259,3 +263,58 @@ class MetadataHelper:
         except Exception as ex:
             print(f"Unable to update last_submission_identifier. Detail {ex}")
             raise
+
+    def delete_nodes(self, ordered_node_list):
+        # copy of Gen3Submission.delete_nodes
+        # TODO: once https://github.com/uc-cdis/gen3sdk-python/pull/72 is
+        # merged, just use the SDK (need this PR so we can use an
+        # access_token directly).
+        import itertools
+
+        batch_size = 200
+        verbose = True
+        project_id = f"{self.program_name}-{self.project_code}"
+        for node in ordered_node_list:
+            if verbose:
+                print(node, end="", flush=True)
+            first_uuid = ""
+            while True:
+                query_string = f"""{{
+                    {node} (first: {batch_size}, project_id: "{project_id}") {{
+                        id
+                    }}
+                }}"""
+                res = self.query_peregrine(query_string)
+                uuids = [x["id"] for x in res["data"][node]]
+                if len(uuids) == 0:
+                    break  # all done
+                if first_uuid == uuids[0]:
+                    raise Exception("Failed to delete. Exiting")
+                first_uuid = uuids[0]
+                if verbose:
+                    print(".", end="", flush=True)
+
+                    # copy of Gen3Submission.delete_records
+                    api_url = "{}/api/v0/submission/{}/{}/entities".format(
+                        self.base_url, self.program_name, self.project_code
+                    )
+                    for i in itertools.count():
+                        uuids_to_delete = uuids[batch_size * i : batch_size * (i + 1)]
+                        if len(uuids_to_delete) == 0:
+                            break
+                        output = requests.delete(
+                            "{}/{}".format(api_url, ",".join(uuids_to_delete)),
+                            headers=self.headers,
+                        )
+                        try:
+                            output.raise_for_status()
+                        except requests.exceptions.HTTPError:
+                            print(
+                                "\n{}\nFailed to delete uuids: {}".format(
+                                    output.text, uuids_to_delete
+                                )
+                            )
+                            raise
+
+            if verbose:
+                print()
