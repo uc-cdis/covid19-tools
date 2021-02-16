@@ -1,5 +1,4 @@
+# also need pandas, matplotlib, numpy, scipy => installed in Dockfile
+# to avoid install issues
+
 jupyter==1.0.0
-matplotlib==3.2.1
-numpy==1.18.2
-pandas==1.0.3
-scipy==1.4.1
