@@ -103,11 +103,17 @@ def get_observation_images(project_id):
 def download_object(guid):
 
     download_url = url + "user/data/download/" + guid[0]
-    r = requests.get(
-        download_url, headers={"Authorization": "bearer " + get_access_token_from_wts()}
-    ).text
-    data = json.loads(r)
-    image_url = data["url"]
+    r = requests.get( 
+        download_url, headers={"Authorization": "bearer " + get_access_token_from_wts()} 
+    ) 
+    assert r.status_code == 200, (r.text + "\n" + str(r.status_code)) 
+    try: 
+        data = r.json() 
+    except ValueError as e: 
+        print(r.text) 
+        raise(e) 
+    assert "url" in data, data 
+    image_url = data["url"] 
 
     r = requests.get(image_url, stream=True)
     # Check if the image was retrieved successfully
