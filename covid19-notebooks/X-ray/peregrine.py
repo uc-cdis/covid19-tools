@@ -48,12 +48,17 @@ def query_api(query_txt, variables=None):
         query = {"query": query_txt, "variables": variables}
 
     request_url = url + "api/v0/submission/graphql"
-    output = requests.post(
+    r = requests.post(
         request_url,
         headers={"Authorization": "bearer " + get_access_token_from_wts()},
         json=query,
-    ).text
-    data = json.loads(output)
+    )
+    assert r.status_code == 200, r.text + "\n" + str(r.status_code)
+    try:
+        data = r.json()
+    except ValueError as e:
+        print(r.text)
+        raise (e)
 
     if "errors" in data:
         print(data)
@@ -69,6 +74,7 @@ def get_images(project_id):
         % project_id
     )
     data = query_api(query_txt)
+    assert "data" in data, data
 
     images = []
     for image in data["data"]["imaging_file"]:
