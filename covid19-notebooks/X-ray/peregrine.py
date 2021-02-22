@@ -95,6 +95,7 @@ def get_observation_images(project_id):
         % project_id
     )
     data = query_api(query_txt)
+    assert "data" in data, data
 
     images = []
     for image in data["data"]["subject"]:
