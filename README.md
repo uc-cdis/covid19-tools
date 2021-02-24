@@ -12,13 +12,13 @@
 | [COV-97][cov-97] | DS4C | [Kaggle][ds4c] | One-time |
 | [COV-126][cov-126] | DSCI | [Kaggle][dsci] | One-time |
 | [COV-172][cov-172] | DSFSI | [here][dsfsi] | One-time |
-| ~~[COV-170][cov-170] | CCMap | [here][ccmap] | One-time ~~|
+| ~~[COV-170]~~[cov-170] | ~~CCMap~~ | ~~[here]~~[ccmap] | ~~One-time ~~|
 | [COV-192][cov-192] | OWID2 | [here][owid] | Scheduled |
 | [COV-237][cov-237] | Chicago Neighborhoods Data | [here][chi-nbhd] ([JSON][chi-nbhd-json]) | Scheduled |
-| ~~[COV-361][cov-361] | NPI-PRO | [here][npi-pro] | One-time ~~|
+| ~~[COV-361]~~[cov-361] | ~~NPI-PRO~~ | ~~[here]~~[npi-pro] | ~~One-time ~~|
 | [COV-220][cov-220] | COXRAY | [Kaggle][coxray] | One-time |
 | [COV-422][cov-422] | SSR | Controlled data | One-time (for now) |
-| ~~[COV-434][cov-434] | STOPLIGHT | [here][stoplight] | scheduled ~~|
+| ~~[COV-434]~~[cov-434] | ~~STOPLIGHT~~ | ~~[here]~~[stoplight] | ~~scheduled ~~|
 | [COV-450][cov-422] | VAC-TRACKER | [here][vac-tracker] | scheduled |
 | [COV-453][cov-453] | CHESTX-RAY8 | [here][chestxray8] | One-time |
 | [COV-521][cov-521] | ATLAS | [here][atlas] | One-time |
