@@ -13,8 +13,10 @@ library(ggpubr)
 library(bayesplot)
 library(cowplot)
 library(zoo)
+library(plotly)
 
 source("utils/geom-stepribbon.r")
+
 #---------------------------------------------------------------------------
 make_three_pannel_plot <- function(){
 
@@ -42,12 +44,17 @@ make_three_pannel_plot <- function(){
   Rt = out$Rt[,(idx-6):idx,]
   Rt <- apply(Rt, c(1,3), mean)
 
+  date_bin = floor(dim(Rt)[1]/10)
+  date_break = paste(as.character(date_bin),"weeks",sep=" ")
+
   # visualize it
   colnames(Rt) <- codeToName$name
   g = mcmc_intervals(Rt,prob = .9) +
     ggtitle(sprintf("Average Rt %s to %s", format(lastObs-6, "%B %d"),format(lastObs, "%B %d")), "with 90% posterior credible intervals") +
     xlab("Rt") + ylab("County") +
-    theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5)) # center title and subtitle
+    theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),axis.text.y = element_blank()) # center title and subtitle
+  plg<-ggplotly(g)
+  htmlwidgets::saveWidget(plg, sprintf("../modelOutput/figures/Rt_All.html"))
   ggsave(sprintf("../modelOutput/figures/Rt_All.png"),g,width=6,height=4)
 
   # next
@@ -201,7 +208,8 @@ make_three_pannel_plot <- function(){
                covariates_country_long = covariates_country_long,
                filename2 = filename2,
                country = countryName,
-               code = country)
+               code = country,
+               date_break=date_break)
 
     # allErr[[i]] <- county_deaths_and_est
   }
@@ -326,7 +334,7 @@ gg_error <- function(df, target, title, path){
 # todo: break down into 3 fn's - modular, man, modular
 
 make_plots <- function(data_country, covariates_country_long,
-                       filename2, country, code){
+                       filename2, country, code, date_break){
 
     countyDir <- file.path("../modelOutput/figures", code)
     dir.create(countyDir, showWarnings = FALSE)
@@ -375,7 +383,7 @@ make_plots <- function(data_country, covariates_country_long,
                     aes(x = time, ymin = cases_min, ymax = cases_max, fill = key)) +
         xlab("Time") +
         ylab("Cases") +
-        scale_x_date(date_breaks = "2 weeks", labels = date_format("%e %b")) +
+        scale_x_date(date_breaks = date_break, labels = date_format("%e %b")) +
         scale_fill_manual(name = "", labels = c("50%", "95%"),
                         values = c(alpha("deepskyblue4", 0.55),
                                     alpha("deepskyblue4", 0.45))) +
@@ -409,7 +417,7 @@ make_plots <- function(data_country, covariates_country_long,
         aes(ymin = death_min, ymax = death_max, fill = key)) +
         xlab("Time") +
         ylab("Deaths") +
-        scale_x_date(date_breaks = "2 weeks", labels = date_format("%e %b")) +
+        scale_x_date(date_breaks = date_break, labels = date_format("%e %b")) +
         scale_fill_manual(name = "", labels = c("50%", "95%"),
                         values = c(alpha("deepskyblue4", 0.55),
                                     alpha("deepskyblue4", 0.45))) +
@@ -461,7 +469,7 @@ make_plots <- function(data_country, covariates_country_long,
         scale_shape_manual(name = "Interventions", labels = plot_labels,
                         values = c(21, 22, 23, 24, 25, 12)) +
         scale_colour_discrete(name = "Interventions", labels = plot_labels) +
-        scale_x_date(date_breaks = "2 weeks", labels = date_format("%e %b")) +
+        scale_x_date(date_breaks = date_break, labels = date_format("%e %b")) +
         theme_pubr() +
         theme(axis.text.x = element_text(angle = 45, hjust = 1),
                     plot.title = element_text(hjust = 0.5),
