@@ -81,7 +81,7 @@ class NCBI_MANIFEST(base.BaseETL):
                     if row_num < last_row_num:
                         continue
                     if row_num % 1000 == 0:
-                        print(f"Proccessed {row_num} rows of {key}")
+                        print(f"Processed {row_num} rows of {key}")
                     words = line.split("\t")
                     guid = conform_data_format(words[0].strip(), "guid")
                     size = int(conform_data_format(words[2].strip(), "size"))
@@ -105,7 +105,9 @@ class NCBI_MANIFEST(base.BaseETL):
             loop.run_until_complete(
                 asyncio.gather(self.index_manifest(self.sra_src_manifest))
             )
-            loop.run_until_complete(asyncio.gather(AsyncFileHelper.close_session()))
+            future = AsyncFileHelper.close_session()
+            if future:
+                loop.run_until_complete(asyncio.gather(future))
 
         finally:
             loop.close()
@@ -147,7 +149,7 @@ class NCBI_MANIFEST(base.BaseETL):
                         retrying = False
                     except Exception as e:
                         print(
-                            f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying ..."
+                            f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying..."
                         )
                         await asyncio.sleep(5)
 
@@ -166,7 +168,7 @@ class NCBI_MANIFEST(base.BaseETL):
                     except Exception as e:
                         retries += 1
                         print(
-                            f"ERROR: Fail to create new indexd record for {guid}. Detail {e}. Retrying ..."
+                            f"ERROR: Fail to create new indexd record for {guid}. Detail {e}. Retrying..."
                         )
                         await asyncio.sleep(5)
 
