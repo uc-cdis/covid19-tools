@@ -22,8 +22,9 @@
 | [COV-450][cov-422] | VAC-TRACKER | [here][vac-tracker] | scheduled |
 | [COV-453][cov-453] | CHESTX-RAY8 | [here][chestxray8] | One-time |
 | [COV-521][cov-521] | ATLAS | [here][atlas] | One-time |
-| [COV-465][cov-465] | NCBI-METADATA | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
+| [COV-465][cov-465] | NCBI-FILE | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
 | [COV-482][cov-482] | NCBI-MANIFEST | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
+| [COV-465][cov-465] | NCBI | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
 | [COV-532][cov-532] | COM-MOBILITY | [here](com-mobility) | scheduled|
 
 
@@ -50,9 +51,9 @@ S3_BUCKET=<name of bucket to upload data to>
 40  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ctp bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
 50  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=owid2 bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
 0  21   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=chi_nbhd bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-10  21   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ncbi_file bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-10  22   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ncbi_manifest bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-10  23   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ncbi bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+0  21   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ncbi_file bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+10  21   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ncbi_manifest bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+30  22   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ncbi bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
  0 */3   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/etl-cronjob.sh ]; then bash $HOME/cloud-automation/files/scripts/etl-cronjob.sh; else echo "no etl-cronjob.sh"; fi) > $HOME/etl-cronjob.log 2>&1
 ```
 
@@ -105,16 +106,16 @@ covid19-tools
 
 ### NCBI
 
-There are 3 ETL processes regarding NCBI as describe followings:
-- NCBI_MANIFEST: Index virus sequence object data to indexd
-- NCBI_FILE: Split the big metadata into multiple files by accession numbers and index them
-- NCBI: Submit NCBI clinical data to the graph.
+There are 3 NCBI ETL processes:
+- `NCBI_MANIFEST`: Index virus sequence object data in indexd.
+- `NCBI_FILE`: Split the clinical metadata into multiple files by accession numbers, and index the files in indexd.
+- `NCBI`: Submit NCBI clinical data to the graph by creating metadata records for the files indexed by NCBI_FILE.
 
-While either NCBI_MANIFEST or NCBI_FILE can run first, NCBI needs to run the last because it needs the indexd information from the two ETLs
+While either NCBI_MANIFEST or NCBI_FILE can run first, NCBI needs to run last because it needs the indexd information from the other two. It is common for object data to become available before the associated metadata, so the `NCBI_MANIFEST` job might index files that we don't have metadata for yet, in that case the files are not linked to the graph.
 
-The input data for NCBI_MANIFEST is available in public bucket sra-pub-sars-cov2.
+The input data for NCBI_MANIFEST is available in public bucket `sra-pub-sars-cov2`.
 
-The input data for NCBI and NCBI_FILE are available in public bucket sra-pub-sars-cov2-metadata-us-east-1 with the structure as follow
+The input data for NCBI and NCBI_FILE are available in public bucket `sra-pub-sars-cov2-metadata-us-east-1` with the following structure:
 
 ```
 covid19-tools
