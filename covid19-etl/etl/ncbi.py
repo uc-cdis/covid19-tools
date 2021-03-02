@@ -341,7 +341,7 @@ class NCBI(base.BaseETL):
                 retrying = False
             except Exception as e:
                 print(
-                    f"Can not query peregine with {node_name}. Detail {e}. Retrying ..."
+                    f"Can not query peregine with {node_name}. Detail {e}. Retrying..."
                 )
 
         for accession_number in submitting_accession_numbers:
@@ -440,7 +440,7 @@ class NCBI(base.BaseETL):
                     retrying = False
                 except Exception as e:
                     print(
-                        f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying ..."
+                        f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying..."
                     )
                     await asyncio.sleep(5)
 
@@ -457,7 +457,7 @@ class NCBI(base.BaseETL):
                     except Exception as e:
                         tries += 1
                         print(
-                            f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
+                            f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying..."
                         )
                         await asyncio.sleep(5)
 
@@ -692,7 +692,7 @@ class NCBI(base.BaseETL):
                 retrying = False
             except Exception as e:
                 print(
-                    f"ERROR: Fail to get indexd for {filename}. Detail {e}. Retrying ..."
+                    f"ERROR: Fail to get indexd for {filename}. Detail {e}. Retrying..."
                 )
                 await asyncio.sleep(5)
 
@@ -710,7 +710,7 @@ class NCBI(base.BaseETL):
                     break
                 except Exception as e:
                     print(
-                        f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying ..."
+                        f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying..."
                     )
                     retries += 1
                     await asyncio.sleep(5)
