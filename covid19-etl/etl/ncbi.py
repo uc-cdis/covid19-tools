@@ -587,6 +587,7 @@ class NCBI(base.BaseETL):
             for accession_number in accession_numbers[start + 1 : end]:
                 stm = stm + f' or acc = "{accession_number}"'
             stm = stm + ")"
+            print(f"  bigquery: {stm}")
 
             query_job = client.query(stm)
 
