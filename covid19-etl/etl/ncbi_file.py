@@ -286,7 +286,7 @@ class NCBI_FILE(base.BaseETL):
                 retrying = False
             except Exception as e:
                 print(
-                    f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying ..."
+                    f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying..."
                 )
                 await asyncio.sleep(5)
 
@@ -299,7 +299,7 @@ class NCBI_FILE(base.BaseETL):
                     retrying = False
                 except Exception as e:
                     print(
-                        f"ERROR: Fail to upload file {filepath}. Detail {e}. Retrying ..."
+                        f"ERROR: Fail to upload file {filepath}. Detail {e}. Retrying..."
                     )
                     await asyncio.sleep(5)
         else:

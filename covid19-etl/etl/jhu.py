@@ -1,9 +1,9 @@
-import csv
-import re
-import requests
 from collections import defaultdict
 from contextlib import closing
+import csv
 from datetime import datetime
+import re
+import requests
 
 from etl import base
 from utils.metadata_helper import MetadataHelper

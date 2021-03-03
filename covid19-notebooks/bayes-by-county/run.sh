@@ -6,6 +6,9 @@
 # example call:
 # sh run.sh us_base 150 4000 [--validate]
 
+# exit if any step fails
+set -e
+
 echo "\n--- running input ETL and model with these parameters ---"
 echo 'stanModel = ' $1
 echo 'minimumDeaths = ' $2
@@ -24,7 +27,7 @@ wget -O Global_Mobility_Report.csv https://www.gstatic.com/covid19/mobility/Glob
 cd ./visit-data/
 sh get-visit-data.sh
 cd ../../../r
-Rscript mobility-regression.r > /dev/null 2>&1
+Rscript mobility-regression.r
 
 # run the model via R script
 echo "\n- Model Run -"

@@ -17,19 +17,23 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
 """
     First, we use the raw JHU CSV data to generate self.nested_dict. (1)
     It contains the data for all dates.
+    => parse_file_to_nested_dict()
 
     Then, we use self.nested_dict to generate a GeoJson file. (2)
     It only contains the data for the latest available date.
     It's used to display the density map.
+    => nested_dict_to_geojson()
 
     Then, we use self.nested_dict to generate a JSON file. (3)
     It only contains the data for the latest available date.
     The data is organized by country, state and county.
     It's used to display the choropleth map.
+    => nested_dict_to_data_by_level()
 
     Finally, we use self.nested_dict to generate JSON files with
     all the dates, sorted by country, state or county. (4)
     They are used to display the time series plots.
+    => nested_dict_to_time_series_by_level()
 
     All these data files are pushed to S3.
 
@@ -373,11 +377,6 @@ class JHU_TO_S3(base.BaseETL):
                 of ["confirmed", "deaths", "recovered"]
             headers (list(str)): CSV file headers (first row of the file)
             row (list(str)): row of data
-
-        Returns:
-            (dict, dict) tuple:
-                - location data, in a format ready to be submitted to Sheepdog
-                - { "date1": <value>, "date2": <value> } from the row data
         """
         if not row:  # ignore empty rows
             return
@@ -390,10 +389,12 @@ class JHU_TO_S3(base.BaseETL):
         latitude = row[header_to_column["latitude"]] or "0"
         longitude = row[header_to_column["longitude"]] or "0"
 
+        # Data with "Out of <state>" or "Unassigned" county value have
+        # unknown coordinates of (0,0). We keep them to have accurate counts,
+        # but they should not be displayed on the map: remove coordinates.
         if int(float(latitude)) == 0 and int(float(longitude)) == 0:
-            # Data with "Out of <state>" or "Unassigned" county value have
-            # unknown coordinates of (0,0). We don't submit them for now
-            return None, None
+            latitude = None
+            longitude = None
 
         codes = get_codes_for_country_name(self.codes_dict, country)
         iso3 = codes["iso3"]
@@ -774,6 +775,7 @@ class JHU_TO_S3(base.BaseETL):
 
         for data_level in ["country", "state", "county"]:
             print("  Uploading {} files".format(data_level.capitalize()))
+            i = 0
             for location_id, data_by_date in tmp[data_level].items():
                 # remove values smaller than the threshold
                 for date, data in data_by_date.items():
@@ -785,6 +787,9 @@ class JHU_TO_S3(base.BaseETL):
                 )
 
                 # write to local file, upload to S3, delete local file
+                if data_level == "county" and i % 100 == 0:
+                    print(f"    {i} / {len(tmp[data_level])}")
+                i += 1
                 with open(abs_path, "w") as f:
                     json.dump(data_by_date, f)
                 s3_path = os.path.relpath(abs_path, CURRENT_DIR)

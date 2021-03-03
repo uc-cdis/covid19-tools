@@ -3,6 +3,8 @@
 set -euxo pipefail
 
 # run Python notebooks and push outputs to S3
+
+# ===> commenting out `seir-forecast` - broken and unsused
 # FILE="seir-forecast.ipynb"
 # if [ ! -f $FILE ]; then
 #   echo "$FILE not exist. Exiting..."
@@ -27,6 +29,7 @@ cd /nb-etl/bayes-by-county/
 
 # sh run.sh <stan_model> <deaths_cutoff> <nIterations>
 sh run.sh us_mobility 10 200
+echo "Done!"
 
 # copy images to S3 under prefix "bayes-by-county"
 # directory structure:
@@ -40,6 +43,7 @@ sh run.sh us_mobility 10 200
 #     <more FIPS folders>
 #     CountyCodeList.txt
 #     Rt_All.png
+
 echo "Copying to S3 bucket..."
 if [[ -n "$S3_BUCKET" ]]; then
   # don't copy over the .keep (or any non-image or county list) file
