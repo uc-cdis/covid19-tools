@@ -2,6 +2,7 @@ FROM debian:bullseye
 
 # install R dependencies
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+	curl \
 	build-essential \
 	wget \
 	libboost-all-dev \
@@ -62,5 +63,5 @@ COPY ./bayes-by-county/ /nb-etl/bayes-by-county/
 COPY ./seir-forecast/seir-forecast.ipynb /nb-etl/
 COPY ./generate_top10_plots.py /nb-etl/
 
-COPY ./nb-etl-run.sh /nb-etl/
-CMD [ "bash", "/nb-etl/nb-etl-run.sh" ]
+COPY ./nb-etl-run.sh ./run-with-slack.sh /nb-etl/
+CMD [ "bash", "/nb-etl/run-with-slack.sh" ]
