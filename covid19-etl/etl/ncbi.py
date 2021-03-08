@@ -211,7 +211,6 @@ class NCBI(base.BaseETL):
         )
 
     def submit_metadata(self):
-
         start = time.strftime("%X")
         loop = asyncio.get_event_loop()
         tasks = []
@@ -469,40 +468,40 @@ class NCBI(base.BaseETL):
             self.submitting_data[node_name].append(submitted_json)
         return submitting_accession_numbers
 
-    async def get_submitting_accession_number_list_for_run_taxonomy(self):
-        """get submitting number list for run_taxonomy file"""
+    # async def get_submitting_accession_number_list_for_run_taxonomy(self):
+    #     """get submitting number list for run_taxonomy file"""
 
-        node_name = "virus_sequence_run_taxonomy"
-        submitting_accession_numbers = set()
-        existed_accession_numbers = await self.data_file.get_existed_accession_numbers(
-            node_name
-        )
+    #     node_name = "virus_sequence_run_taxonomy"
+    #     submitting_accession_numbers = set()
+    #     existed_accession_numbers = await self.data_file.get_existed_accession_numbers(
+    #         node_name
+    #     )
 
-        s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
-        s3_object = s3.Object(self.data_file.bucket, self.data_file.nodes[node_name][0])
-        file_path = f"{DATA_PATH}/virus_sequence_run_taxonomy.gz"
-        s3_object.download_file(file_path)
+    #     s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
+    #     s3_object = s3.Object(self.data_file.bucket, self.data_file.nodes[node_name][0])
+    #     file_path = f"{DATA_PATH}/virus_sequence_run_taxonomy.gz"
+    #     s3_object.download_file(file_path)
 
-        n_lines = 0
-        with gzip.open(file_path, "rb") as f:
-            while True:
-                bline = f.readline()
-                if not bline:
-                    break
-                n_lines += 1
-                if n_lines % 10000 == 0:
-                    print(f"Finish process {n_lines} of file {node_name}")
-                line = bline.decode("UTF-8")
-                r1 = re.findall("[SDE]RR\d+", line)
-                if len(r1) == 0:
-                    continue
-                read_accession_number = r1[0]
-                if (
-                    f"{node_name}_{read_accession_number}"
-                    not in existed_accession_numbers
-                ):
-                    submitting_accession_numbers.add(read_accession_number)
-        return list(submitting_accession_numbers)
+    #     n_lines = 0
+    #     with gzip.open(file_path, "rb") as f:
+    #         while True:
+    #             bline = f.readline()
+    #             if not bline:
+    #                 break
+    #             n_lines += 1
+    #             if n_lines % 10000 == 0:
+    #                 print(f"Finish process row {n_lines} of file {node_name}")
+    #             line = bline.decode("UTF-8")
+    #             r1 = re.findall("[SDE]RR\d+", line)
+    #             if len(r1) == 0:
+    #                 continue
+    #             read_accession_number = r1[0]
+    #             if (
+    #                 f"{node_name}_{read_accession_number}"
+    #                 not in existed_accession_numbers
+    #             ):
+    #                 submitting_accession_numbers.add(read_accession_number)
+    #     return list(submitting_accession_numbers)
 
     async def get_submitting_accession_number_list(self, node_name):
         """get submitting acession number list"""
@@ -520,7 +519,7 @@ class NCBI(base.BaseETL):
             r1 = re.findall("[SDE]RR\d+", line)
             n_lines += 1
             if n_lines % 10000 == 0:
-                print(f"Finish process {n_lines} of file {node_name}")
+                print(f"Finish process row {n_lines} of file {node_name}")
             if len(r1) == 0:
                 continue
             read_accession_number = r1[0]
