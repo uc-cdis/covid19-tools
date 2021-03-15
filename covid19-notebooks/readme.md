@@ -52,3 +52,7 @@ In this notebook, we obtain the clinical data for multiple projects from the Chi
 ### "Visualize Statistical Summary Reports from Partnering Healthcare Providers" notebook:
 
 This notebook provides an example of how to visualize the status of COVID-19 and general patient information from multiple regional healthcare providers using the demo Statistical Summary Report data from 03/10/2020 to 11/10/2020.
+
+### "Google Mobility Data Visualization" notebook:
+
+In this notebook, we demonstrate how to query the google mobility data using the BigQuery API client python library, and visualize the mobility changes over time across the United States since February 2020.
