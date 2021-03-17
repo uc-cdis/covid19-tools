@@ -330,7 +330,7 @@ gg_error <- function(df, target, title, path){
         legend.position = "None") +
     guides(fill=guide_legend(ncol=1))
 
-  save_ploy(filename = path, p)
+  save_plot(filename = path, p)
 }
 
 #---------------------------------------------------------------------------
