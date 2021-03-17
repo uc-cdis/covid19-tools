@@ -41,21 +41,25 @@ make_three_pannel_plot <- function(){
   idx <- dimensions[2] - length(cd)
 
   # here we calculate avg Rt over the 7 days leading up to the last observation
+  date_bin = ceiling(dimensions[2]/(10*7))
+  date_break = paste(as.character(date_bin),"weeks",sep=" ")
   Rt = out$Rt[,(idx-6):idx,]
   Rt <- apply(Rt, c(1,3), mean)
 
-  date_bin = floor(dim(Rt)[1]/10)
-  date_break = paste(as.character(date_bin),"weeks",sep=" ")
-
   # visualize it
   colnames(Rt) <- codeToName$name
-  g = mcmc_intervals(Rt,prob = .9) +
+  g_svg = mcmc_intervals(Rt,prob = .9) +
+    ggtitle(sprintf("Average Rt %s to %s", format(lastObs-6, "%B %d"),format(lastObs, "%B %d")), "with 90% posterior credible intervals") +
+    xlab("Rt") + ylab("County") +
+    theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5)) # center title and subtitle
+  g_html = mcmc_intervals(Rt,prob = .9) +
     ggtitle(sprintf("Average Rt %s to %s", format(lastObs-6, "%B %d"),format(lastObs, "%B %d")), "with 90% posterior credible intervals") +
     xlab("Rt") + ylab("County") +
     theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5),axis.text.y = element_blank()) # center title and subtitle
-  plg<-ggplotly(g)
+  plg<-ggplotly(g_html)
   htmlwidgets::saveWidget(plg, sprintf("../modelOutput/figures/Rt_All.html"))
-  ggsave(sprintf("../modelOutput/figures/Rt_All.png"),g,width=6,height=4)
+  ggsave(sprintf("../modelOutput/figures/Rt_All.svg"),g_svg,width=6,height=4)
+  ggsave(sprintf("../modelOutput/figures/Rt_All.png"),g_svg,width=6,height=4)
 
   # next
   # 1. Rt pre-lockdown
@@ -393,8 +397,8 @@ make_plots <- function(data_country, covariates_country_long,
             legend.position = "None") +
         guides(fill=guide_legend(ncol=1))
 
+    save_plot(filename = file.path(countyDir, "cases.svg"), p1)
     save_plot(filename = file.path(countyDir, "cases.png"), p1)
-
     ### p2
 
     data_deaths_95 <- data.frame(data_country$time, data_country$death_min,
@@ -427,6 +431,7 @@ make_plots <- function(data_country, covariates_country_long,
             legend.position = "None") +
         guides(fill=guide_legend(ncol=1))
 
+    save_plot(filename = file.path(countyDir, "deaths.svg"), p2)
     save_plot(filename = file.path(countyDir, "deaths.png"), p2)
 
     ### p3
@@ -475,6 +480,7 @@ make_plots <- function(data_country, covariates_country_long,
                     plot.title = element_text(hjust = 0.5),
                     legend.position="right")
 
+    save_plot(filename = file.path(countyDir, "Rt.svg"), p3)
     save_plot(filename = file.path(countyDir, "Rt.png"), p3)
 
     # df_err <- data.frame(time=deaths_err$time, deaths=deaths_err$deaths, est=deaths_err$est, countyName=country)
