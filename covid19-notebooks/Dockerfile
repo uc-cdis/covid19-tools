@@ -1,4 +1,4 @@
-FROM debian:bullseye
+FROM quay.io/cdis/debian:bullseye
 
 # install R dependencies
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
