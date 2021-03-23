@@ -325,7 +325,10 @@ class CTP(base.BaseETL):
         for k, v in map_csv_fields.items():
             value = row[self.header_to_column[v]]
             if value and value.lower() not in ["nan", "n/a"]:
-                summary_clinical[k] = int(value.replace(",", ""))
+                try:
+                    summary_clinical[k] = int(value.replace(",", ""))
+                except:
+                    pass
 
         dataQualityGrade = row[self.header_to_column["dataQualityGrade"]]
         if dataQualityGrade:

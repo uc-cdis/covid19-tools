@@ -186,7 +186,9 @@ class NCBI_FILE(base.BaseETL):
                             accession_numbers.add(accession_number)
                             n_rows += 1
                             if n_rows % 10000 == 0:
-                                print(f"Finish process row {n_rows} of file {node_name}")
+                                print(
+                                    f"Finish process row {n_rows} of file {node_name}"
+                                )
 
                         except Exception as e:
                             print(f"ERROR: line {line}. Detail {e}")
