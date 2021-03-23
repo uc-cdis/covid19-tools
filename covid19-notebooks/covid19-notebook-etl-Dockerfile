@@ -1,0 +1,25 @@
+# This is the Dockerfile for the "covid19-notebook-etl" job.
+
+FROM quay.io/cdis/debian:bullseye
+
+WORKDIR /nb-etl
+
+# install Python dependencies
+RUN apt-get update && apt-get install -y \
+	python3 \
+	python3-pip \
+	python3-pandas \
+	python3-matplotlib \
+	python3-numpy \
+	python3-scipy
+
+COPY ./nb-etl-requirements.txt /nb-etl/
+RUN pip3 install -r nb-etl-requirements.txt
+RUN pip3 install awscli==1.18.*
+
+# copy Python notebooks
+COPY ./seir-forecast/seir-forecast.ipynb /nb-etl/
+COPY ./generate_top10_plots.py /nb-etl/
+
+COPY ./nb-etl-run.sh ./covid19-notebook-etl-run-with-slack.sh /nb-etl/
+CMD [ "bash", "/nb-etl/covid19-notebook-etl-run-with-slack.sh" ]

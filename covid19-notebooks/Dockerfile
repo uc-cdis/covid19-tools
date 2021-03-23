@@ -1,3 +1,10 @@
+# DEPRECATED
+# This is an old Dockerfile for the "nb-etl" (renamed "covid19-nb-etl") job.
+#
+# The Bayes model is not run by this job anymore, but we keep this Dockerfile,
+# the "run-with-slack.sh" and "nb-etl-run.sh" scripts, and the
+# "bayes-by-county" folder until we're ready to delete them.
+
 FROM quay.io/cdis/debian:bullseye
 
 # install R dependencies
