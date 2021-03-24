@@ -20,5 +20,5 @@ echo "Copying to S3 bucket..."
 if [[ -n "$S3_BUCKET" ]]; then
 #   aws s3 cp "simulated_cases.txt" "$S3_BUCKET/simulated_cases.txt"
 #   aws s3 cp "observed_cases.txt" "$S3_BUCKET/observed_cases.txt"
-  aws s3 cp "top10.txt" "$S3_BUCKET/top10.txt"
+  aws s3 cp "top10.txt" "$S3_BUCKET/charts_data/top10.txt"
 fi
