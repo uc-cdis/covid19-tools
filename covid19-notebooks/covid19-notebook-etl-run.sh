@@ -17,7 +17,7 @@ NOTEBOOKS=(
 )
 for file in "${NOTEBOOKS[@]}"; do
   if [ ! -f $file ]; then
-    echo "$file not exist. Exiting..."
+    echo "$file does not exist. Exiting"
     exit 1
   fi
   echo "Running notebook $file..."
