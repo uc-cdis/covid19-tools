@@ -2,3 +2,7 @@ covid19-notebooks/html-notebooks/
 __pycache__/
 .idea
 covid19-etl/.idea
+*.ipynb_checkpoints
+*.pytest_cache
+*.vscode
+.python-version
