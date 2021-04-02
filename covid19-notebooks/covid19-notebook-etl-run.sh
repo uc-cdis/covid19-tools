@@ -26,6 +26,6 @@ done
 
 echo "Copying to S3 bucket..."
 aws s3 cp top10.txt $S3_BUCKET/charts_data/top10.txt
-for file in IL_tab_charts*.png; do
+for file in IL_tab_charts*.svg; do
   aws s3 cp $file $S3_BUCKET/charts_data/
 done
