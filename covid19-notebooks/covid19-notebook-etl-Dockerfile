@@ -13,13 +13,13 @@ RUN apt-get update && apt-get install -y \
 	python3-numpy \
 	python3-scipy
 
+RUN pip3 install awscli==1.18.*
 COPY ./covid19-notebook-etl-requirements.txt /src/
 RUN pip3 install -r covid19-notebook-etl-requirements.txt
-RUN pip3 install awscli==1.18.*
 
-# copy Python notebooks
-COPY ./seir-forecast/seir-forecast.ipynb /src/
+# copy Python scripts/notebooks
 COPY ./generate_top10_plots.py /src/
+COPY ./IL_tab_charts.ipynb /src/
 
 COPY ./covid19-notebook-etl-run.sh ./covid19-notebook-etl-run-with-slack.sh /src/
 CMD [ "bash", "/src/covid19-notebook-etl-run-with-slack.sh" ]
