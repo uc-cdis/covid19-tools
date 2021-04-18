@@ -5,6 +5,7 @@ from contextlib import closing
 import requests
 
 from etl import base
+from etl.idph import IDPH
 from utils.format_helper import (
     derived_submitter_id,
     format_submitter_id,
@@ -15,7 +16,7 @@ from utils.metadata_helper import MetadataHelper
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-class IDPH_FACILITY(base.BaseETL):
+class IDPH_FACILITY(IDPH):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
 
@@ -73,9 +74,10 @@ class IDPH_FACILITY(base.BaseETL):
                 return
 
             if "LTC_Reported_Cases" in data:
-                summary_location_submitter_id = format_submitter_id(
-                    "summary_location", {"country": self.country, "state": self.state}
-                )
+                (
+                    summary_location_submitter_id,
+                    summary_clinical_submitter_id,
+                ) = self.get_location_and_clinical_submitter_id(None, date)
 
                 summary_location = {
                     "country_region": self.country,
@@ -84,12 +86,6 @@ class IDPH_FACILITY(base.BaseETL):
                     "province_state": self.state,
                 }
 
-                summary_clinical_submitter_id = derived_submitter_id(
-                    summary_location_submitter_id,
-                    "summary_location",
-                    "summary_clinical",
-                    {"date": date},
-                )
                 summary_clinical = {
                     "confirmed": data["LTC_Reported_Cases"]["confirmed_cases"],
                     "deaths": data["LTC_Reported_Cases"]["deaths"],
