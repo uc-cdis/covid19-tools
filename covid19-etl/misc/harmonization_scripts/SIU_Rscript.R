@@ -2,6 +2,9 @@ library(tidyverse)
 library(readr)
 library(stringi)
 
+#NOTE: This files has been updated as of the 2021-04-19 dataset which included values within the pangolin_lineage property.
+
+
 #Before running this script, file submission must occur:
 #Run the "split_multifasta.py" script to transform the multifasta into a directory with single files.
 #Using the gen3-client upload these files to the commons for mapping. Use the following general command: `./gen3-client upload --profile=<Profile> --upload-path=directory/path/to/output_single_fasta/.`
@@ -14,8 +17,8 @@ library(stringi)
 path_to_files="COVID19/SIU_data/Metadata/"
 
 #Input needed for the metadata file and the name of the CMC node submitter_id
-metadata_file="2021-01-29.csv"
-cmc="SIU-SARS-CoV2_2021-01-29"
+metadata_file="2021-04-19.csv"
+cmc="SIU-SARS-CoV2_2021-04-19"
 
 #Read in files
 df=read_csv(file = paste(path_to_files,metadata_file,sep=""))
@@ -45,7 +48,7 @@ df_new$host[grep(pattern = "Human",df$host)]<-"Homo sapiens"
 df_new$submitter_id=str_replace_all(df_new$submitter_id,"/","_")
 
 #Add columns for sample submission.
-df_sample=select(df_new,-sequence_length,-nextstrain_clade)%>%mutate(type="sample",projects.code="SIU-SARS-CoV2")
+df_sample=select(df_new,-sequence_length,-nextstrain_clade,-pangolin_lineage)%>%mutate(type="sample",projects.code="SIU-SARS-CoV2")
 
 #Fix County Names
 df_sample$county=substr(df_sample$county,1,nchar(df_sample$county)-13)
@@ -57,7 +60,7 @@ df_vs_new=mutate(df_vs,samples.submitter_id=submitter_id,project_id="Walder-SIU-
 df_vs_new$samples.submitter_id=substr(df_vs_new$samples.submitter_id,1,nchar(df_vs_new$samples.submitter_id)-5)
 
 #pull metadata from raw data for virus sequence node.
-df_vs_clin=select(df_new,submitter_id,sequence_length,nextstrain_clade)%>%mutate(samples.submitter_id=submitter_id)%>%select(-submitter_id)
+df_vs_clin=select(df_new,submitter_id,sequence_length,nextstrain_clade,pangolin_lineage)%>%mutate(samples.submitter_id=submitter_id)%>%select(-submitter_id)
 
 #join the existing virus sequence node in the commons with the metadata from the raw data.
 df_vs_sub=left_join(df_vs_new,df_vs_clin)
@@ -69,3 +72,18 @@ write_tsv(df_vs_sub,paste(path_to_files,"vs_new_submission.tsv",sep=""), na="")
 
 #After the script has run, submit the two new files on the project page <url/Walder-SIU-SARS-CoV2> using the "upload file" option. 
 #Submit the "sample_new_submission.tsv" first, followed by the "vs_new_submission.tsv".
+
+
+###############################
+#
+# NOTES
+#
+###############################
+
+#The following samples and data files have been removed from the SIU datasets:
+# hCoV-19/USA/IL-IDPH-COO-I-000961/2021 (mismatch between county and zipcode)
+# 
+# 
+# 
+# 
+# 
