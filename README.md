@@ -8,7 +8,7 @@
 | [COV-273][cov-273] | IDPH Facility data | [here][idph-facility] ([JSON][idph-facility-json]) | Scheduled |
 | [COV-345][cov-345] | IDPH Hospital data | [here][idph-hospital] ([JSON][idph-hospital-json]) | Scheduled |
 | [COV-18][cov-18] | nCOV2019 | [here][ncov2019] | One-time |
-| [COV-34][cov-34], [COV-454][cov-454] | CTP | [here][ctp] and [here][race] | Scheduled |
+| ~~[COV-34][cov-34]~~, ~~[COV-454][cov-454]~~ | ~~CTP~~ | ~~[here][ctp]~~ and ~~[here][race]~~ | ~~Scheduled~~ |
 | [COV-97][cov-97] | DS4C | [Kaggle][ds4c] | One-time |
 | [COV-126][cov-126] | DSCI | [Kaggle][dsci] | One-time |
 | [COV-172][cov-172] | DSFSI | [here][dsfsi] | One-time |
