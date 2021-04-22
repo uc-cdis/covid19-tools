@@ -114,7 +114,7 @@ class GAGNON_LAB_STRAIN_DATA(base.BaseETL):
         )
 
     def publish_to_s3(self):
-        print("Uploading mobility data json to S3...")
+        print("Uploading strain data json to S3...")
         self.s3_client.put_object(
             Body=str(json.dumps(self.nested_dict)),
             Bucket=self.s3_bucket,

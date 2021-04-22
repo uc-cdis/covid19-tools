@@ -101,7 +101,14 @@ class GOOGLE_MOBILITY(base.BaseETL):
         if not row:  # ignore empty rows
             return
 
-        if row[0] != "US" and row[2] != "Illinois":
+        if (
+            row[self.column_headers["country_region_code"]] != "US"
+        ):  # ignore non united states
+            return
+
+        if (
+            row[self.column_headers["census_fips_code"]] == ""
+        ):  # ignore non county level data
             return
 
         if row[self.column_headers["census_fips_code"]] not in self.nested_dict:
