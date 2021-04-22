@@ -566,7 +566,11 @@ class JHU_TO_S3(base.BaseETL):
                         del feat_county["properties"]["date"]
                         features.append(feat_county)
 
-        geojson = {"type": "FeatureCollection", "features": features}
+        geojson = {
+            "type": "FeatureCollection",
+            "features": features,
+            "last_updated": self.latest_date,
+        }
         with open(
             os.path.join(CURRENT_DIR, MAP_DATA_FOLDER, GEOJSON_FILENAME), "w"
         ) as f:
