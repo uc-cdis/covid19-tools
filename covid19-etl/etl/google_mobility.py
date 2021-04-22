@@ -61,6 +61,7 @@ class GOOGLE_MOBILITY(base.BaseETL):
             "residential_percent_change_from_baseline",
         ]
         self.column_headers = {
+            "country_region_code": 0,
             "census_fips_code": 6,
             "place_id": 7,
             "date": 8,
