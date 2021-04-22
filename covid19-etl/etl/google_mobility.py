@@ -101,13 +101,13 @@ class GOOGLE_MOBILITY(base.BaseETL):
         if not row:  # ignore empty rows
             return
 
-        if row[0] == "US" and row[2] == "Illinois":
+        if row[0] != "US" and row[2] != "Illinois":
             return
 
         if row[self.column_headers["census_fips_code"]] not in self.nested_dict:
-            self.nested_dict[self.column_headers["census_fips_code"]] = []
+            self.nested_dict[row[self.column_headers["census_fips_code"]]] = []
 
-        self.nested_dict[self.column_headers["census_fips_code"]].append(
+        self.nested_dict[row[self.column_headers["census_fips_code"]]].append(
             {
                 "place_id": row[self.column_headers["place_id"]],
                 "daysElapsed": getDiffDaysSinceDataEpoch(
@@ -136,7 +136,7 @@ class GOOGLE_MOBILITY(base.BaseETL):
             }
         )
 
-        self.json_file = json.dumps(self.nested_dict)
+        # self.json_file = json.dumps(self.nested_dict)
 
     def publish_to_s3(self):
         print("Uploading mobility data json to S3...")

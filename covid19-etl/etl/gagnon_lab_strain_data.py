@@ -91,9 +91,9 @@ class GAGNON_LAB_STRAIN_DATA(base.BaseETL):
             return
 
         if row[self.column_headers["countyFIPS"]] not in self.nested_dict:
-            self.nested_dict[self.column_headers["countyFIPS"]] = []
+            self.nested_dict[row[self.column_headers["countyFIPS"]]] = []
 
-        self.nested_dict[self.column_headers["countyFIPS"]].append(
+        self.nested_dict[row[self.column_headers["countyFIPS"]]].append(
             {
                 "DE": getDiffDaysSinceDataEpoch(
                     datetime.strptime(row[self.column_headers["date"]], "%Y-%m-%d")
