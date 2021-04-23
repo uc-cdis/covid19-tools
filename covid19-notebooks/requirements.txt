@@ -1,5 +1,5 @@
 fastai==1.0.61
-gen3>=3.0.0
+gen3
 matplotlib
 numpy
 pandas
