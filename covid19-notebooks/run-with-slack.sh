@@ -1,16 +1,16 @@
 if ! bash "/nb-etl/nb-etl-run.sh"; then
-    echo "JOBFAIL: nb-etl-job"
+    echo "JOB FAILED: nb-etl-job"
     if [[ -n "$slackWebHook" && "$slackWebHook" != "None" ]]; then
         echo "Posting failed message to slack.."
-        payload="{\"attachments\": [{\"fallback\": \"JOBFAIL: nb-etl job on ${gen3Env}\",\"color\": \"#ff0000\",\"pretext\": \"JOBFAIL: nb-etl job on ${gen3Env}\",\"author_name\": \"Pod name: ${HOSTNAME}\",\"title\": \"NB-ETL JOB FAILED\",\"text\": \"JOBFAIL: nb-etl job on ${gen3Env}\",\"ts\": "$(date +%s)"}]}"
+        payload="{\"attachments\": [{\"fallback\": \"JOB FAILED: nb-etl job on ${gen3Env}\",\"color\": \"#ff0000\",\"title\": \"JOB FAILED: nb-etl job on ${gen3Env}\",\"text\": \"Pod name: ${HOSTNAME}\",\"ts\": "$(date +%s)"}]}"
         echo "${payload}"
         curl -X POST --data-urlencode "payload=${payload}" "${slackWebHook}"
     fi
 else
-    echo "JOBSUCCESS: nb-etl-job"
+    echo "JOB SUCCESS: nb-etl-job"
     if [[ -n "$slackWebHook" && "$slackWebHook" != "None" ]]; then
         echo "Posting success message to slack.."
-        payload="{\"attachments\": [{\"fallback\": \"JOBSUCCESS: nb-etl job on ${gen3Env}\",\"color\": \"#2EB67D\",\"pretext\": \"JOBSUCCESS: nb-etl job on ${gen3Env}\",\"author_name\": \"Pod name: ${HOSTNAME}\",\"title\": \"NB-ETL JOB SUCCEDED :tada:\",\"text\": \"JOBSUCCESS: nb-etl job on ${gen3Env}\",\"ts\": \"$(date +%s)\"}]}"
+        payload="{\"attachments\": [{\"fallback\": \"JOB SUCCESS: nb-etl job on ${gen3Env}\",\"color\": \"#2EB67D\",\"title\": \"JOB SUCCESS: nb-etl job on ${gen3Env}\",\"text\": \"Pod name: ${HOSTNAME}\",\"ts\": \"$(date +%s)\"}]}"
         curl -X POST --data-urlencode "payload=${payload}" "${slackWebHook}"
     fi
 fi

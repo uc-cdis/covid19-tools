@@ -2,6 +2,11 @@
 
 set -euxo pipefail
 
+if [[ -z "${S3_BUCKET-}" ]]; then
+  echo "No S3 bucket provided (use env var S3_BUCKET)"
+  exit 1
+fi
+
 # run Python notebooks and push outputs to S3
 
 # ===> commenting out `seir-forecast` - broken and unsused
