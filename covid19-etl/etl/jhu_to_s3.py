@@ -146,6 +146,8 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
             },
             ...
         },
+        # Date data was last updated
+        "last_updated": "2020-04-20",
     }
 
     (4) Times series data:
@@ -566,11 +568,7 @@ class JHU_TO_S3(base.BaseETL):
                         del feat_county["properties"]["date"]
                         features.append(feat_county)
 
-        geojson = {
-            "type": "FeatureCollection",
-            "features": features,
-            "last_updated": self.latest_date,
-        }
+        geojson = {"type": "FeatureCollection", "features": features}
         with open(
             os.path.join(CURRENT_DIR, MAP_DATA_FOLDER, GEOJSON_FILENAME), "w"
         ) as f:
@@ -683,6 +681,8 @@ class JHU_TO_S3(base.BaseETL):
             for location_id, data in locations.items():
                 js[data_level][location_id] = replace_small_counts(data, data_level)
 
+        # add last updated date
+        js["last_updated"] = self.latest_date
         with open(
             os.path.join(CURRENT_DIR, MAP_DATA_FOLDER, JSON_BY_LEVEL_FILENAME), "w"
         ) as f:
