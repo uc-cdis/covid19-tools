@@ -49,8 +49,6 @@ class IDPH_VACCINE(IDPH):
             return counties
         for item in root_json:
             county = item.get("CountyName")
-            if county.lower() == "out of state":
-                continue
             counties.append(county)
             self.counties_inventory[county] = item
         return counties
@@ -59,8 +57,6 @@ class IDPH_VACCINE(IDPH):
         """
         Reads JSON file and convert the data to Sheepdog records
         """
-        counties = self.parse_list_of_counties()
-        print(counties)
 
         # latest_submitted_date = self.metadata_helper.get_str_latest_submitted_date_idph()
         # if latest_submitted_date == self.date:
@@ -157,9 +153,9 @@ class IDPH_VACCINE(IDPH):
             "InventoryReportDate": "date",
         }
 
-        counties = self.parse_list_of_counties()
+        self.parse_list_of_counties()
         state_summary_clinical_submitter_id = ""
-        for county in counties:
+        for county in self.counties_inventory:
             county_covid_response = requests.get(
                 COUNTY_COVID_LINK_FORMAT.format(county),
                 headers={"content-type": "json"},
@@ -219,8 +215,7 @@ class IDPH_VACCINE(IDPH):
             # for (key, value) in county_demo_mapping.items():
             #     summary_clinical[value] = county_demo_data.get(key)
             for (key, value) in inventory_reported.items():
-                if county in self.counties_inventory:
-                    summary_clinical[value] = self.counties_inventory[county].get(key)
+                summary_clinical[value] = self.counties_inventory[county].get(key)
 
             self.summary_locations[summary_location_submitter_id] = summary_location
             self.summary_clinicals[summary_clinical_submitter_id] = summary_clinical

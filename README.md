@@ -7,6 +7,7 @@
 | [COV-79][cov-79] | IDPH Zipcode data| ([JSON][idph-zipcode-json]) | Scheduled |
 | [COV-273][cov-273] | IDPH Facility data | [here][idph-facility] ([JSON][idph-facility-json]) | Scheduled |
 | [COV-345][cov-345] | IDPH Hospital data | [here][idph-hospital] ([JSON][idph-hospital-json]) | Scheduled |
+| [COV-720](https://occ-data.atlassian.net/browse/COV-720) | IDPH Vaccine | [here](http://www.dph.illinois.gov/content/covid-19-vaccine-administration-data) | scheduled|
 | [COV-18][cov-18] | nCOV2019 | [here][ncov2019] | One-time |
 | [COV-34][cov-34], [COV-454][cov-454] | CTP | [here][ctp] and [here][race] | Scheduled |
 | [COV-97][cov-97] | DS4C | [Kaggle][ds4c] | One-time |
