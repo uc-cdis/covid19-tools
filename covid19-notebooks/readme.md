@@ -60,4 +60,4 @@ In this notebook, we demonstrate how to query the google mobility data using the
 
 ## "PFB_example" notebook:
 
-Once a PFB is loaded into the workspace, either by uploading a PFB file or by exporting a PFB from explorer, the data contained in the PFB may be examined by converting to tsv files. This notebook provides a tutorial on how to export data contained in a PFB for analysis into a workspace environment using the PyPFB library via the Gen3 CLI.
+Once a PFB is loaded into the workspace, either by uploading a PFB file or by exporting a PFB from explorer, the data contained in the PFB may be examined by converting to tsv files. This notebook provides a tutorial on how to export data contained in a PFB for analysis into a workspace environment using the PyPFB library via the Gen3 CLI and directly in python.
