@@ -7,7 +7,7 @@
 
 2. Navigate to the `Workspace` page, select the workspace named `A collection of Jupyter notebooks to explore health outcomes for COVID-19` (it will take several minutes to launch).
 3. Navigate to the `covid19-notebook` directory. Double click on the notebook you wish to run to open it. From the navigation bar on the top left, click "Run" and then select "Run All Cells" to execute the notebook. If you are running the notebook in our Workspace, you should not need to install dependencies.
-4. If a notebook requires API key, run [Gen3 Auth Helper](https://uc-cdis.github.io/gen3sdk-python/_build/html/auth.html) as follows:
+4. If a notebook requires an API key, run [Gen3 Auth Helper](https://uc-cdis.github.io/gen3sdk-python/_build/html/auth.html) as follows:
 
 ```
 # Import Gen3Auth
