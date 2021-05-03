@@ -38,6 +38,21 @@ class IDPH(base.BaseETL):
         self.summary_locations = []
         self.summary_clinicals = []
 
+    def get_location_and_clinical_submitter_id(self, county, date):
+        summary_location_submitter_id = format_submitter_id(
+            "summary_location",
+            {"country": self.country, "state": self.state, "county": county}
+            if county is not None
+            else {"country": self.country, "state": self.state},
+        )
+        summary_clinical_submitter_id = derived_submitter_id(
+            summary_location_submitter_id,
+            "summary_location",
+            "summary_clinical",
+            {"date": date},
+        )
+        return summary_location_submitter_id, summary_clinical_submitter_id
+
     def il_counties(self):
         with open(
             os.path.join(CURRENT_DIR, "data/IL_counties_central_coords_lat_long.tsv")
@@ -122,17 +137,10 @@ class IDPH(base.BaseETL):
             illinois_data["testDate"], "%m/%d/%Y"
         ).strftime("%Y-%m-%d")
 
-        summary_location_submitter_id = format_submitter_id(
-            "summary_location",
-            {"country": self.country, "state": self.state, "county": county},
-        )
-
-        summary_clinical_submitter_id = derived_submitter_id(
+        (
             summary_location_submitter_id,
-            "summary_location",
-            "summary_clinical",
-            {"date": date},
-        )
+            summary_clinical_submitter_id,
+        ) = self.get_location_and_clinical_submitter_id(county, date)
 
         summary_clinical = {
             "submitter_id": summary_clinical_submitter_id,
@@ -158,10 +166,10 @@ class IDPH(base.BaseETL):
         """
         county = county_json["County"]
 
-        summary_location_submitter_id = format_submitter_id(
-            "summary_location",
-            {"country": self.country, "state": self.state, "county": county},
-        )
+        (
+            summary_location_submitter_id,
+            summary_clinical_submitter_id,
+        ) = self.get_location_and_clinical_submitter_id(county, date)
 
         summary_location = {
             "submitter_id": summary_location_submitter_id,
@@ -183,13 +191,6 @@ class IDPH(base.BaseETL):
                 summary_location["latitude"] = str(county_json["lat"])
             if county_json["lon"] != 0:
                 summary_location["longitude"] = str(county_json["lon"])
-
-        summary_clinical_submitter_id = derived_submitter_id(
-            summary_location_submitter_id,
-            "summary_location",
-            "summary_clinical",
-            {"date": date},
-        )
 
         summary_clinical = {
             "submitter_id": summary_clinical_submitter_id,
@@ -221,7 +222,6 @@ class IDPH(base.BaseETL):
                                 mapping[item[field]], "tested"
                             )
                             summary_clinical[age_group_tested_field] = item["tested"]
-
         return summary_location, summary_clinical
 
     def submit_metadata(self):
