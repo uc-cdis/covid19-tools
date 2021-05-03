@@ -44,26 +44,27 @@ class IDPH_VACCINE(IDPH):
         json_response = json.loads(response.text)
         self.date = idph_get_date(json_response.get("lastUpdatedDate"))
         root_json = json_response.get("VaccineAdministration")
-        counties = []
         if root_json is None:
-            return counties
+            return
         for item in root_json:
             county = item.get("CountyName")
-            counties.append(county)
             self.counties_inventory[county] = item
-        return counties
 
     def files_to_submissions(self):
         """
         Reads JSON file and convert the data to Sheepdog records
         """
 
-        # latest_submitted_date = self.metadata_helper.get_str_latest_submitted_date_idph()
-        # if latest_submitted_date == self.date:
-        #     print("Nothing to submit: data of latest submitted date and IDPH are the same.")
+        # latest_submitted_date = (
+        #     self.metadata_helper.get_latest_submitted_date_idph()
+        # )
+        # if latest_submitted_date != None and latest_submitted_date == self.date:
+        #     print(
+        #         "Nothing to submit: data of latest submitted date and IDPH are the same."
+        #     )
         #     return
-        #
-        # print(f"Getting data for date: {self.date}")
+
+        print(f"Getting data for date: {self.date}")
         self.parse_file()
 
     def get_group_clinical_demographic_submitter_id(
@@ -125,8 +126,8 @@ class IDPH_VACCINE(IDPH):
             latest_submitted_date (date): the date of latest available "summary_clinical" for project
             url (str): URL at which the JSON file is available
         """
-        state_summary_clinical_submitter_id = self.parse_county_data()
-        self.parse_total_state_wide(state_summary_clinical_submitter_id)
+        illinois_summary_clinical_submitter_id = self.parse_county_data()
+        self.parse_total_state_wide(illinois_summary_clinical_submitter_id)
 
     def parse_county_data(self):
         county_vaccine_mapping = {
@@ -154,7 +155,7 @@ class IDPH_VACCINE(IDPH):
         }
 
         self.parse_list_of_counties()
-        state_summary_clinical_submitter_id = ""
+        illiois_summary_clinical_submitter_id = ""
         for county in self.counties_inventory:
             county_covid_response = requests.get(
                 COUNTY_COVID_LINK_FORMAT.format(county),
@@ -173,7 +174,7 @@ class IDPH_VACCINE(IDPH):
                 summary_clinical_submitter_id,
             ) = self.get_location_and_clinical_submitter_id(county, self.date)
             if county.lower() == "illinois":
-                state_summary_clinical_submitter_id = summary_clinical_submitter_id
+                illiois_summary_clinical_submitter_id = summary_clinical_submitter_id
 
             for k in ["Age", "Race", "Gender"]:
                 data = county_demo_data.get(k)
@@ -219,7 +220,7 @@ class IDPH_VACCINE(IDPH):
 
             self.summary_locations[summary_location_submitter_id] = summary_location
             self.summary_clinicals[summary_clinical_submitter_id] = summary_clinical
-        return state_summary_clinical_submitter_id
+        return illiois_summary_clinical_submitter_id
 
     def parse_total_state_wide(self, state_summary_clinical_submitter_id):
         county_covid_response = requests.get(
