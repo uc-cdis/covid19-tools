@@ -30,10 +30,15 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
     It's used to display the choropleth map.
     => nested_dict_to_data_by_level()
 
-    Finally, we use self.nested_dict to generate JSON files with
+    Then, we use self.nested_dict to generate JSON files with
     all the dates, sorted by country, state or county. (4)
     They are used to display the time series plots.
     => nested_dict_to_time_series_by_level()
+
+    Then, we use self.nested_dict to generate JSON files with
+    all the dates, sorted by county in IL only. (5)
+    They are used to display the map data for IL.
+    => nested_dict_to_data_by_time()
 
     All these data files are pushed to S3.
 
@@ -163,12 +168,36 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
         },
         ...
     }
+
+    (5) Choropleth IL map JSON by date:
+    Values are truncated or excluded to reduce file size
+    Date only added if C or D has changed from previous date
+    {
+        # IL only
+        "il_county_list": {
+            <US county FIPS>: {
+                "county": <county name>,
+                "by_date": {
+                    "<date>": {
+                        "C": <confirmed>
+                        "D": <deaths>
+                    },
+                    ...
+                },
+                ...
+            },
+            ...
+        },
+        # Date data was last updated
+        "last_updated": "2020-04-20",
+    }
 """
 
 
 MAP_DATA_FOLDER = "map_data"
 GEOJSON_FILENAME = "jhu_geojson_latest.json"
 JSON_BY_LEVEL_FILENAME = "jhu_json_by_level_latest.json"
+IL_JSON_BY_TIME_FILENAME = "jhu_il_json_by_time_latest.json"
 TIME_SERIES_DATA_FOLDER = "time_series"
 MINIMUM_COUNT = 5
 
@@ -189,13 +218,20 @@ def get_unified_date_format(date):
     return "-".join((year, month, day))
 
 
-def replace_small_counts(data, data_level):
+def replace_small_counts_simple(data):
     # remove values smaller than the threshold
     count_replacement = f"<{MINIMUM_COUNT}"
+    if data < MINIMUM_COUNT:
+        data = count_replacement
+    return data
+
+
+def replace_small_counts(data, data_level):
+    # look through data to remove values smaller than the threshold
     res = data.copy()
     for field in ["confirmed", "deaths", "recovered"]:
-        if field in res and res[field] < MINIMUM_COUNT:
-            res[field] = count_replacement
+        if field in res:
+            res[field] = replace_small_counts_simple(res[field])
 
     # we don't have any "recovered" data for US and Canada
     # states/counties, and displaying "<5" looks bad: removing
@@ -322,6 +358,7 @@ class JHU_TO_S3(base.BaseETL):
         self.nested_dict_to_geojson()
         self.nested_dict_to_data_by_level()
         self.nested_dict_to_time_series_by_level()
+        self.nested_dict_to_data_by_time()
 
         print("Latest date: {}".format(self.latest_date))
 
@@ -800,6 +837,61 @@ class JHU_TO_S3(base.BaseETL):
                 self.s3_client.upload_file(abs_path, self.s3_bucket, s3_path)
                 os.remove(abs_path)
         print("  Done in {} secs".format(int(time.time() - start)))
+
+    def nested_dict_to_data_by_time(self):
+        """
+        See `nested_dict_to_geojson` docstring for details on the aggregation.
+        """
+        print("Generating {}...".format(IL_JSON_BY_TIME_FILENAME))
+        countyList = {}
+        for country_data in self.nested_dict.values():
+
+            # for US only
+            if country_data["country_region"] != "US":
+                continue
+
+            for province_data in country_data.get("provinces", {}).values():
+
+                # for IL only
+                if province_data["province_state"] != "Illinois":
+                    continue
+
+                for county_data in province_data.get("counties", {}).values():
+                    county_fips = county_data["fips"]
+
+                    countyList[county_fips] = {
+                        "county": county_data["county"],
+                        "by_date": {},
+                    }
+                    lastValue = {}
+                    # add county-level time_series data for IL counties
+                    for date, ts in county_data["time_series"].items():
+                        confirmed = ts.get("confirmed", 0)
+                        deaths = ts.get("deaths", 0)
+                        tempObj = {}
+
+                        if confirmed >= MINIMUM_COUNT:
+                            tempObj["C"] = replace_small_counts_simple(confirmed)
+
+                        if deaths >= MINIMUM_COUNT:
+                            tempObj["D"] = replace_small_counts_simple(deaths)
+
+                        if tempObj and lastValue != tempObj:
+                            # store last value to eliminate duplicate data and reduce file size
+                            lastValue = tempObj
+                            # add this US county. it shouldn't already be there
+                            countyList[county_fips]["by_date"][date] = tempObj
+
+        with open(
+            os.path.join(CURRENT_DIR, MAP_DATA_FOLDER, IL_JSON_BY_TIME_FILENAME), "w"
+        ) as f:
+            # create smaller file size by eliminating white space
+            f.write(
+                json.dumps(
+                    {"il_county_list": countyList, "last_updated": self.latest_date},
+                    separators=(",", ":"),
+                )
+            )
 
     def submit_metadata(self):
         print("Uploading other files to S3...")
