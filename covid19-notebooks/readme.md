@@ -68,3 +68,7 @@ Once a PFB is loaded into the workspace, either by uploading a PFB file or by ex
 ### "COVID-19 Data Visualization in Illinois" notebook:
 
 This notebook provides a snapshot of publicly available data related to COVID-19 in Illinois. Graphics illustrate the age/race/gender demographics, total and daily administered vaccine doses, google mobility data and statistical model forecasts on cumulative and daily new COVID-19 cases in Illinois.
+
+### "3D Coronavirus SARS-CoV-2 Protein Visualization" notebook:
+
+This notebook provides an example to manipulate coronavirus SARS-CoV-2 DNA sequence, amino acid sequence and use visualization tools to present the three-dimensional (3D) structure of SARS-CoV-2 protein structures interactively.
