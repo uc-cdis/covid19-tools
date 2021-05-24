@@ -200,6 +200,7 @@ class IDPH_VACCINE(IDPH):
                 "submitter_id": summary_location_submitter_id,
                 "projects": [{"code": self.project_code}],
                 "province_state": self.state,
+                "county": county,
             }
             summary_clinical = {
                 "submitter_id": summary_clinical_submitter_id,
