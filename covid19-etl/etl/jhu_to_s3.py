@@ -35,9 +35,9 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
     They are used to display the time series plots.
     => nested_dict_to_time_series_by_level()
 
-    Then, we use self.nested_dict to generate JSON files with
+    Then, we use self.nested_dict to generate a JSON file with
     all the dates, sorted by county in IL only. (5)
-    They are used to display the map data for IL.
+    It's used to display the map data by date for IL.
     => nested_dict_to_data_by_time()
 
     All these data files are pushed to S3.
@@ -170,8 +170,7 @@ from utils.country_codes_utils import get_codes_dictionary, get_codes_for_countr
     }
 
     (5) Choropleth IL map JSON by date:
-    Values are truncated or excluded to reduce file size
-    Date only added if C or D has changed from previous date
+    "C" for Confirmed and "D" for Deaths are used to reduce file size
     {
         # IL only
         "il_county_list": {
@@ -863,24 +862,15 @@ class JHU_TO_S3(base.BaseETL):
                         "county": county_data["county"],
                         "by_date": {},
                     }
-                    lastValue = {}
                     # add county-level time_series data for IL counties
                     for date, ts in county_data["time_series"].items():
                         confirmed = ts.get("confirmed", 0)
                         deaths = ts.get("deaths", 0)
-                        tempObj = {}
 
-                        if confirmed >= MINIMUM_COUNT:
-                            tempObj["C"] = replace_small_counts_simple(confirmed)
-
-                        if deaths >= MINIMUM_COUNT:
-                            tempObj["D"] = replace_small_counts_simple(deaths)
-
-                        if tempObj and lastValue != tempObj:
-                            # store last value to eliminate duplicate data and reduce file size
-                            lastValue = tempObj
-                            # add this US county. it shouldn't already be there
-                            countyList[county_fips]["by_date"][date] = tempObj
+                        countyList[county_fips]["by_date"][date] = {
+                            "C": replace_small_counts_simple(confirmed),
+                            "D": replace_small_counts_simple(deaths),
+                        }
 
         with open(
             os.path.join(CURRENT_DIR, MAP_DATA_FOLDER, IL_JSON_BY_TIME_FILENAME), "w"
