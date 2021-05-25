@@ -608,7 +608,12 @@ class JHU_TO_S3(base.BaseETL):
         with open(
             os.path.join(CURRENT_DIR, MAP_DATA_FOLDER, GEOJSON_FILENAME), "w"
         ) as f:
-            json.dump(geojson, f)
+            f.write(
+                json.dumps(
+                    geojson,
+                    separators=(",", ":"),
+                )
+            )
 
     def nested_dict_to_data_by_level(self):
         """
@@ -722,7 +727,12 @@ class JHU_TO_S3(base.BaseETL):
         with open(
             os.path.join(CURRENT_DIR, MAP_DATA_FOLDER, JSON_BY_LEVEL_FILENAME), "w"
         ) as f:
-            json.dump(js, f)
+            f.write(
+                json.dumps(
+                    js,
+                    separators=(",", ":"),
+                )
+            )
 
     def nested_dict_to_time_series_by_level(self):
         print("Generating time series files...")
@@ -831,7 +841,12 @@ class JHU_TO_S3(base.BaseETL):
                     print(f"    {i} / {len(tmp[data_level])}")
                 i += 1
                 with open(abs_path, "w") as f:
-                    json.dump(data_by_date, f)
+                    f.write(
+                        json.dumps(
+                            data_by_date,
+                            separators=(",", ":"),
+                        )
+                    )
                 s3_path = os.path.relpath(abs_path, CURRENT_DIR)
                 self.s3_client.upload_file(abs_path, self.s3_bucket, s3_path)
                 os.remove(abs_path)
