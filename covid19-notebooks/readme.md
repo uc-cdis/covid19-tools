@@ -44,9 +44,9 @@ In this R markdown, we track COVID-19 local (US) and global cases with active, c
 
 COVID-19 testing is very crucial to understand the spread of the pandemic. In this python notebook, we have focused our efforts on visualizing the COVID-19 testing data across the United States and U.S. Territories from the COVID Tracking Project. The animations will allow you to see how testing data has changed over time.
 
-### "Cross Dataset Analysis on COVID-19 Symptoms and Fatality Rate" notebook:
+### "nCoV-2019 Data Visualization" notebook:
 
-In this notebook, we are performing visual analysis on the individual case reports that provide aggregated data on clinical states (eg., deceased, recovered, alive, etc) and symptoms. We are looking at whether the fatality rates and symptoms are similar across different datasets.
+In this notebook, we are performing some visual analysis on the individual COVID-19 case reports that provide aggregated data on demographic data, geographic location and symptoms. Please note that the data is available from Jan 3, 2020 to April 30, 2020. All results shown in this notebook are for demonstration purposes and should not be considered scientifically rigorous.
 
 ### "Demo: Exploring clinical data from multiple commons" notebook:
 
