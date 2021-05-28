@@ -69,7 +69,6 @@ RUN pip3 install awscli==1.18.*
 COPY ./bayes-by-county/ /nb-etl/bayes-by-county/
 
 # copy Python notebooks
-COPY ./seir-forecast/seir-forecast.ipynb /nb-etl/
 COPY ./generate_top10_plots.py /nb-etl/
 
 COPY ./nb-etl-run.sh ./run-with-slack.sh /nb-etl/
