@@ -40,9 +40,15 @@ class IDPH_VACCINE(IDPH):
         self.summary_group_demographic = {}
 
     def parse_list_of_counties(self):
+        """
+        Store into `self.date` the date the data was last updated, and
+        into `self.counties_inventory` the data in format:
+            { <county name>: { <county properties> } }
+        """
         response = requests.get(ROOT_URL, headers={"content-type": "json"})
         json_response = json.loads(response.text)
         self.date = idph_get_date(json_response.get("lastUpdatedDate"))
+        print(f"Dataset's last updated date: {self.date}")
         root_json = json_response.get("VaccineAdministration")
         if root_json is None:
             return
@@ -64,7 +70,6 @@ class IDPH_VACCINE(IDPH):
         #     )
         #     return
 
-        print(f"Getting data for date: {self.date}")
         self.parse_file()
 
     def get_group_clinical_demographic_submitter_id(
@@ -119,17 +124,19 @@ class IDPH_VACCINE(IDPH):
 
     def parse_file(self):
         """
-        Converts a JSON files to data we can submit via Sheepdog. Stores the
-        records to submit in `self.summary_locations` and `self.summary_clinicals`.
-
-        Args:
-            latest_submitted_date (date): the date of latest available "summary_clinical" for project
-            url (str): URL at which the JSON file is available
+        Converts the source data to data we can submit via Sheepdog. Stores
+        the records to submit in `self.summary_locations`,
+        `self.summary_clinicals` and `self.summary_group_demographic`.
         """
         illinois_summary_clinical_submitter_id = self.parse_county_data()
         self.parse_total_state_wide(illinois_summary_clinical_submitter_id)
 
     def parse_county_data(self):
+        """
+        For each county, converts the raw data into Sheepdog submissions by
+        mapping properties to match the PRC data dictionary.
+        Return the `submitter_id` for the state-wide `summary_clinical` record.
+        """
         county_vaccine_mapping = {
             "AdministeredCount": "vaccine_administered_count",
             "AdministeredCountChange": "vaccine_administered_count_change",
@@ -155,7 +162,7 @@ class IDPH_VACCINE(IDPH):
         }
 
         self.parse_list_of_counties()
-        illiois_summary_clinical_submitter_id = ""
+        illinois_summary_clinical_submitter_id = ""
         for county in self.counties_inventory:
             county_covid_response = requests.get(
                 COUNTY_COVID_LINK_FORMAT.format(county),
@@ -174,7 +181,7 @@ class IDPH_VACCINE(IDPH):
                 summary_clinical_submitter_id,
             ) = self.get_location_and_clinical_submitter_id(county, self.date)
             if county.lower() == "illinois":
-                illiois_summary_clinical_submitter_id = summary_clinical_submitter_id
+                illinois_summary_clinical_submitter_id = summary_clinical_submitter_id
 
             for k in ["Age", "Race", "Gender"]:
                 data = county_demo_data.get(k)
@@ -221,9 +228,12 @@ class IDPH_VACCINE(IDPH):
 
             self.summary_locations[summary_location_submitter_id] = summary_location
             self.summary_clinicals[summary_clinical_submitter_id] = summary_clinical
-        return illiois_summary_clinical_submitter_id
+        return illinois_summary_clinical_submitter_id
 
     def parse_total_state_wide(self, state_summary_clinical_submitter_id):
+        """
+        Parse the Illinois total stats
+        """
         county_covid_response = requests.get(
             TOTAL_VACCINE_LINK, headers={"content-type": "json"}
         )
