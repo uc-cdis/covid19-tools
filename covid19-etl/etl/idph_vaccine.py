@@ -18,6 +18,13 @@ COUNTY_DEMO_LINK_FORMAT = "https://idph.illinois.gov/DPHPublicInformation/api/co
 TOTAL_VACCINE_LINK = "https://idph.illinois.gov/DPHPublicInformation/api/covidvaccine/getStatewideVaccineDetails"
 
 
+def remove_time_from_date_time(str_datetime):
+    datetime_parts = str_datetime.split("T")
+    if len(datetime_parts) > 0:
+        return datetime_parts[0]
+    return str_datetime
+
+
 class IDPH_VACCINE(IDPH):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
@@ -70,7 +77,7 @@ class IDPH_VACCINE(IDPH):
         #     )
         #     return
 
-        self.parse_file()
+        self.parse_link()
 
     def get_group_clinical_demographic_submitter_id(
         self, summary_clinical_submitter_id, key_dict
@@ -122,7 +129,7 @@ class IDPH_VACCINE(IDPH):
                     props_data[v] = props_value.get(k)
         return key_props, props_data
 
-    def parse_file(self):
+    def parse_link(self):
         """
         Converts the source data to data we can submit via Sheepdog. Stores
         the records to submit in `self.summary_locations`,
@@ -215,16 +222,26 @@ class IDPH_VACCINE(IDPH):
                 "summary_locations": [{"submitter_id": summary_location_submitter_id}],
             }
             for (key, value) in county_vaccine_mapping.items():
-                if key == "PctVaccinatedPopulation":
+                if value == "vaccine_persons_fully_vaccinated_pct":
                     summary_clinical[value] = int(county_covid_data.get(key) * 100)
-                elif key == "AdministeredCountRollAvg":
+                elif value == "vaccine_administered_count_roll_avg":
                     summary_clinical[value] = int(county_covid_data.get(key))
+                elif value == "date":
+                    summary_clinical[value] = remove_time_from_date_time(
+                        county_covid_data.get(key)
+                    )
                 else:
                     summary_clinical[value] = county_covid_data.get(key)
             # for (key, value) in county_demo_mapping.items():
             #     summary_clinical[value] = county_demo_data.get(key)
             for (key, value) in inventory_reported.items():
-                summary_clinical[value] = self.counties_inventory[county].get(key)
+                summary_clinical[value] = (
+                    self.counties_inventory[county].get(key)
+                    if value != "date"
+                    else remove_time_from_date_time(
+                        self.counties_inventory[county].get(key)
+                    )
+                )
 
             self.summary_locations[summary_location_submitter_id] = summary_location
             self.summary_clinicals[summary_clinical_submitter_id] = summary_clinical
@@ -247,9 +264,14 @@ class IDPH_VACCINE(IDPH):
             "Report_Date": "date",
         }
         for (key, value) in total_vaccine_mapping.items():
-            self.summary_clinicals[state_summary_clinical_submitter_id][
-                value
-            ] = state_total_data.get(key)
+            if value != "date":
+                self.summary_clinicals[state_summary_clinical_submitter_id][
+                    value
+                ] = state_total_data.get(key)
+            else:
+                self.summary_clinicals[state_summary_clinical_submitter_id][
+                    value
+                ] = remove_time_from_date_time(state_total_data.get(key))
 
     def submit_metadata(self):
         print("Submitting data...")
