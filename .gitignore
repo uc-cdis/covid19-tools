@@ -1,3 +1,4 @@
+*.DS_Store
 covid19-notebooks/html-notebooks/
 __pycache__/
 .idea
