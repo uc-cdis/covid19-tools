@@ -26,8 +26,6 @@ from datetime import datetime
 import json
 import os
 
-# import requests
-
 from etl import base
 from etl.jhu_to_s3 import MAP_DATA_FOLDER
 from utils.country_codes_utils import get_county_to_fips_dictionary
