@@ -62,3 +62,18 @@ def get_codes_for_country_name(codes_dict, country_name):
         return data
 
     raise Exception('Cannot find ISO codes data for "{}"'.format(country_name))
+
+
+def get_county_to_fips_dictionary():
+    """
+    This data comes from https://github.com/kjhealy/fips-codes
+    Return a dict in format { <IL county name>: <IL county FIPS> }
+    """
+    with open(os.path.join(CURRENT_DIR, "state_and_county_fips_master.csv")) as f:
+        reader = csv.DictReader(f, delimiter=",")
+        result = {
+            row["name"].split(" County")[0]: row["fips"]
+            for row in reader
+            if row["state"] == "IL"  # we don't need other states data for now
+        }
+    return result
