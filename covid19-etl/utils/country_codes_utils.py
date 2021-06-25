@@ -25,6 +25,10 @@ ISO_CODES_MAPPING = {
     # JHU has data for boats - we want to include them in total counts
     "Diamond Princess": {"iso2": "Diamond Princess", "iso3": "Diamond Princess"},
     "MS Zaandam": {"iso2": "MS Zaandam", "iso3": "MS Zaandam"},
+    "Summer Olympics 2020": {
+        "iso2": "Summer Olympics 2020",
+        "iso3": "Summer Olympics 2020",
+    },
 }
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
