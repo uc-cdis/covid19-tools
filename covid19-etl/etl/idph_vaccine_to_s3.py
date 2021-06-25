@@ -117,9 +117,12 @@ class IDPH_VACCINE_TO_S3(base.BaseETL):
             {
                 summary_location: [
                     {
-                        county,
+                        county: <county name>,
                         summary_clinicals: [
-                            { date, vaccine_persons_fully_vaccinated },
+                            {
+                                date: <str>,
+                                vaccine_persons_fully_vaccinated: <int>
+                            },
                             ...
                         ]
                     },
@@ -166,6 +169,11 @@ class IDPH_VACCINE_TO_S3(base.BaseETL):
                 # the Chicago data are processed later
                 chicago_data_by_date = data_by_date
             else:
+                if fips in existing_data["il_county_list"]:
+                    # merge existing data and new data
+                    data_by_date = dict(
+                        data_by_date, **existing_data["il_county_list"][fips]["by_date"]
+                    )
                 existing_data["il_county_list"][fips] = {
                     "county": county,
                     "by_date": data_by_date,
