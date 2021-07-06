@@ -23,6 +23,7 @@ def ifexist(mydir):
         shutil.rmtree(mydir)
     os.makedirs(mydir)
 
+
 # Makes directories for file creation
 
 
