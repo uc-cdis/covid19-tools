@@ -34,8 +34,7 @@ for d in range(len(create_dir_list)):
 
 
 # pull apart multifasta and place them into the output folder
-subprocess.call("awk '/^>/{s=++d\".fa\"} {print > s}' %s" %
-                (file_name), shell=True)
+subprocess.call("awk '/^>/{s=++d\".fa\"} {print > s}' %s" % (file_name), shell=True)
 subprocess.call("mv *.fa output_single_fasta/", shell=True)
 
 # rename the files with the sequence id
