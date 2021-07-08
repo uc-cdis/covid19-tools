@@ -1,8 +1,6 @@
 import os
 import json
 
-import requests
-
 from etl.idph import IDPH
 from utils.format_helper import (
     idph_get_date,
@@ -52,7 +50,7 @@ class IDPH_VACCINE(IDPH):
         into `self.counties_inventory` the data in format:
             { <county name>: { <county properties> } }
         """
-        response = requests.get(ROOT_URL, headers={"content-type": "json"})
+        response = self.get(ROOT_URL, headers={"content-type": "json"})
         json_response = json.loads(response.text)
         self.date = idph_get_date(json_response.get("lastUpdatedDate"))
         print(f"Dataset's last updated date: {self.date}")
@@ -98,6 +96,7 @@ class IDPH_VACCINE(IDPH):
             "American Indian or Alaska Nati": "American Indian or Alaskan Native",
             "Hispanic or Latino": "Hispanic",
             "Middle Eastern or North African*": "Middle Eastern or North African",
+            "Middle Eastern or North Africa": "Middle Eastern or North African",
         }
         gender_mapping = {
             "Unknown": "Unknown or Left Blank",
@@ -171,15 +170,17 @@ class IDPH_VACCINE(IDPH):
 
         self.parse_list_of_counties()
         illinois_summary_clinical_submitter_id = ""
-        for county in self.counties_inventory:
-            county_covid_response = requests.get(
+        for i, county in enumerate(self.counties_inventory):
+            if i % 10 == 0:
+                print(f"{i} / {len(self.counties_inventory)} counties")
+            county_covid_response = self.get(
                 COUNTY_COVID_LINK_FORMAT.format(county),
                 headers={"content-type": "json"},
             )
             county_covid_data = json.loads(county_covid_response.text).get(
                 "CurrentVaccineAdministration"
             )
-            county_demo_response = requests.get(
+            county_demo_response = self.get(
                 COUNTY_DEMO_LINK_FORMAT.format(county), headers={"content-type": "json"}
             )
             county_demo_data = json.loads(county_demo_response.text)
@@ -252,7 +253,7 @@ class IDPH_VACCINE(IDPH):
         """
         Parse the Illinois total stats
         """
-        county_covid_response = requests.get(
+        county_covid_response = self.get(
             TOTAL_VACCINE_LINK, headers={"content-type": "json"}
         )
         state_total_data = json.loads(county_covid_response.text)
