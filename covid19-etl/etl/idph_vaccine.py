@@ -95,8 +95,9 @@ class IDPH_VACCINE(IDPH):
             "Black or African-American": "Black",
             "Other race": "Other",
             "Native Hawaiian or Other Pacif": "Native Hawaiian or Other Pacific Islander",
-            "American Indian or Alaska Nati": "American Indian or Alaska Native",
+            "American Indian or Alaska Nati": "American Indian or Alaskan Native",
             "Hispanic or Latino": "Hispanic",
+            "Middle Eastern or North African*": "Middle Eastern or North African",
         }
         gender_mapping = {
             "Unknown": "Unknown or Left Blank",
