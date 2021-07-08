@@ -3,7 +3,6 @@ from contextlib import closing
 import csv
 from datetime import datetime
 import re
-import requests
 
 from etl import base
 from utils.metadata_helper import MetadataHelper
@@ -178,7 +177,7 @@ class JHU(base.BaseETL):
             url (str): URL at which the CSV file is available
         """
         print("Getting data from {}".format(url))
-        with closing(requests.get(url, stream=True)) as r:
+        with closing(self.get(url, stream=True)) as r:
             f = (line.decode("utf-8") for line in r.iter_lines())
             reader = csv.reader(f, delimiter=",", quotechar='"')
 

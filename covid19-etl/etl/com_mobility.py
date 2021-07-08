@@ -1,4 +1,3 @@
-import requests
 import csv
 import re
 from contextlib import closing
@@ -153,7 +152,7 @@ class COM_MOBILITY(base.BaseETL):
 
         print("Getting data from {}".format(url))
 
-        with closing(requests.get(url, stream=True)) as r:
+        with closing(self.get(url, stream=True)) as r:
             f = (line.decode("utf-8") for line in r.iter_lines())
             reader = csv.reader(f, delimiter=",", quotechar='"')
 

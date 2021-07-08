@@ -2,7 +2,6 @@ import os
 import tempfile
 
 import geopandas as gpd
-import requests
 
 from etl import base
 from utils.format_helper import derived_submitter_id, format_submitter_id
@@ -30,7 +29,7 @@ class NPI_PRO(base.BaseETL):
         self.summary_clinicals = []
 
     def download_dataset(self, url):
-        r = requests.get(url, allow_redirects=True)
+        r = self.get(url, allow_redirects=True)
         tf = tempfile.NamedTemporaryFile(suffix=".gdb.zip", delete=False)
         with open(tf.name, "wb") as npi_pro_geodatabase:
             npi_pro_geodatabase.write(r.content)

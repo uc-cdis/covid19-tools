@@ -2,8 +2,6 @@ import datetime
 import os
 from contextlib import closing
 
-import requests
-
 from etl import base
 from etl.idph import IDPH
 from utils.format_helper import (
@@ -61,7 +59,7 @@ class IDPH_FACILITY(IDPH):
             url (str): URL at which the JSON file is available
         """
         print("Getting data from {}".format(url))
-        with closing(requests.get(url, stream=True)) as r:
+        with closing(self.get(url, stream=True)) as r:
             data = r.json()
             date = idph_get_date(data["LastUpdateDate"])
 
