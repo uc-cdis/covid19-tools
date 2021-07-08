@@ -3,8 +3,6 @@ from contextlib import closing
 import datetime
 import re
 
-import requests
-
 from etl import base
 from utils.metadata_helper import MetadataHelper
 
@@ -120,7 +118,7 @@ class OWID(base.BaseETL):
 
     def parse_file(self, url):
         print("Getting data from {}".format(url))
-        with closing(requests.get(url, stream=True)) as r:
+        with closing(self.get(url, stream=True)) as r:
             f = (line.decode("utf-8") for line in r.iter_lines())
             reader = csv.reader(f, delimiter=",", quotechar='"')
 

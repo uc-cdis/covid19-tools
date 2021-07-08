@@ -3,8 +3,6 @@ import os
 import re
 from contextlib import closing
 
-import requests
-
 from etl import base
 from utils.format_helper import (
     derived_submitter_id,
@@ -67,7 +65,7 @@ class IDPH_HOSPITAL(base.BaseETL):
             url (str): URL at which the JSON file is available
         """
         print("Getting data from {}".format(url))
-        with closing(requests.get(url, stream=True)) as r:
+        with closing(self.get(url, stream=True)) as r:
             data = r.json()
             date = idph_get_date(data["LastUpdateDate"])
 

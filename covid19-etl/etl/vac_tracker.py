@@ -1,7 +1,5 @@
 from contextlib import closing
 
-import requests
-
 from etl import base
 from utils.metadata_helper import MetadataHelper
 
@@ -56,7 +54,7 @@ class VAC_TRACKER(base.BaseETL):
             url (str): URL at which the file is available
         """
         print("Getting data from {}".format(url))
-        with closing(requests.get(url, stream=True)) as r:
+        with closing(self.get(url, stream=True)) as r:
             data = r.json()
             try:
                 for treatment in data["result"]["pageContext"]["treatments"]:

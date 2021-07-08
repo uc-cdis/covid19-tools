@@ -68,12 +68,12 @@ class ATLAS(base.BaseETL):
 
         # obtain files
         print("Getting data from {}".format(outcome_url))
-        outcome_response = requests.get(outcome_url)
+        outcome_response = self.get(outcome_url)
         with open(os.path.join(TEMP_DIR, outcome_file_name) + ".zip", "wb") as outfile:
             outfile.write(outcome_response.content)
 
         print("Getting data from {}".format(neighbor_url))
-        neighbor_response = requests.get(neighbor_url)
+        neighbor_response = self.get(neighbor_url)
         with open(neighbor_file_path, "wb") as outfile:
             outfile.write(neighbor_response.content)
 

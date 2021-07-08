@@ -17,7 +17,7 @@ class BAYES_MODEL_WORKFLOW(base.BaseETL):
 
     def get_status(self, run_id):
         url = f"{self.base_url}/ga4gh/wes/v1/runs/{run_id}/status"
-        r = requests.get(url, headers=self.headers)
+        r = self.get(url, headers=self.headers)
 
         if r.status_code == 403:
             print(
@@ -25,7 +25,7 @@ class BAYES_MODEL_WORKFLOW(base.BaseETL):
             )
             new_access_token = get_access_token(self.base_url, self.api_key)
             self.headers = {"Authorization": f"Bearer {new_access_token}"}
-            r = requests.get(url, headers=self.headers)
+            r = self.get(url, headers=self.headers)
 
         assert (
             r.status_code == 200
@@ -43,7 +43,7 @@ class BAYES_MODEL_WORKFLOW(base.BaseETL):
 
         print("Preparing request body")
         url = f"https://raw.githubusercontent.com/uc-cdis/covid19model/{self.model_version}/cwl/request_body.json"
-        r = requests.get(url)
+        r = self.get(url)
         assert r.status_code == 200, f"Could not get request body from {url}"
         request_body = r.json()
         request_body["input"]["s3_bucket"] = f"s3://{self.s3_bucket}"

@@ -1,8 +1,6 @@
 import datetime
 from contextlib import closing
 
-import requests
-
 from etl import base
 from utils.format_helper import derived_submitter_id, format_submitter_id
 from utils.metadata_helper import MetadataHelper
@@ -36,7 +34,7 @@ class CHI_NBHD(base.BaseETL):
 
     def parse_file(self, url):
         print("Getting data from {}".format(url))
-        with closing(requests.get(url, stream=True)) as r:
+        with closing(self.get(url, stream=True)) as r:
             data = r.json()
             data = data["result"]["data"]
             build_time_str = data["build_time"]["nodes"][0]["buildTime"]

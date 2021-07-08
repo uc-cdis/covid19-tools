@@ -1,6 +1,5 @@
 from contextlib import closing
 import datetime
-import requests
 
 from etl import base
 from utils.idph_helper import fields_mapping
@@ -57,7 +56,7 @@ class IDPH_ZIPCODE(base.BaseETL):
             url (str): URL at which the JSON file is available
         """
         print("Getting data from {}".format(url))
-        with closing(requests.get(url, stream=True)) as r:
+        with closing(self.get(url, stream=True)) as r:
             data = r.json()
             date = idph_get_date(data["LastUpdateDate"])
 

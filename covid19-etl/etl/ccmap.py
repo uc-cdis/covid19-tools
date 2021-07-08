@@ -3,8 +3,6 @@ from contextlib import closing
 import datetime
 import re
 
-import requests
-
 from etl import base
 from utils.metadata_helper import MetadataHelper
 
@@ -293,7 +291,7 @@ class CCMAP(base.BaseETL):
             api_url, repo, "commits?path=", url, "&page=1&per_page=1"
         )
 
-        with closing(requests.get(commit_info_url, stream=True)) as r:
+        with closing(self.get(commit_info_url, stream=True)) as r:
             commit_info = r.json()
             last_update_date = commit_info[0]["commit"]["committer"]["date"]
 
@@ -306,7 +304,7 @@ class CCMAP(base.BaseETL):
         url = "{}/{}/{}/{}".format(raw_url, repo, branch, file_url)
 
         print("Getting data from {}".format(url))
-        with closing(requests.get(url, stream=True)) as r:
+        with closing(self.get(url, stream=True)) as r:
             f = (line.decode("utf-8") for line in r.iter_lines())
             reader = csv.reader(f, delimiter=",", quotechar='"')
 

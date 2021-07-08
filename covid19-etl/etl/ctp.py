@@ -3,8 +3,6 @@ import re
 from contextlib import closing
 from datetime import datetime
 
-import requests
-
 from etl import base
 from utils.metadata_helper import MetadataHelper
 
@@ -152,7 +150,7 @@ class CTP(base.BaseETL):
         url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS8SzaERcKJOD_EzrtCDK1dX1zkoMochlA9iHoHg_RSw3V8bkpfk1mpw4pfL5RdtSOyx_oScsUtyXyk/pub?gid=43720681&single=true&output=csv"
         print("Getting data from {}".format(url))
         races = {}
-        with closing(requests.get(url, stream=True)) as r:
+        with closing(self.get(url, stream=True)) as r:
             f = (line.decode("utf-8") for line in r.iter_lines())
             reader = csv.reader(f, delimiter=",", quotechar='"')
             headers = next(reader)
@@ -197,7 +195,7 @@ class CTP(base.BaseETL):
         """
         races, race_headers = self.extract_races()
         print("Getting data from {}".format(url))
-        with closing(requests.get(url, stream=True)) as r:
+        with closing(self.get(url, stream=True)) as r:
             f = (line.decode("utf-8") for line in r.iter_lines())
             reader = csv.reader(f, delimiter=",", quotechar='"')
 
