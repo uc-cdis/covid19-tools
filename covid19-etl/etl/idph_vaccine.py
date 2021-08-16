@@ -193,7 +193,7 @@ class IDPH_VACCINE(IDPH):
                 illinois_summary_clinical_submitter_id = summary_clinical_submitter_id
 
             for k in ["Age", "Race", "Gender"]:
-                data = county_demo_data.get(k)
+                data = county_demo_data.get(k, [])
                 for item in data:
                     keys, props = self.parse_group_clinical_demographic(
                         county_demo_mapping, item
