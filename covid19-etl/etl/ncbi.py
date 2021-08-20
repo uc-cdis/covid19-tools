@@ -150,7 +150,7 @@ def read_ncbi_manifest(bucket, key, accession_number_filename_map):
     line_stream = codecs.getreader("utf-8")
     for line in line_stream(s3_object.get()["Body"]):
         words = line.split("\t")
-        r1 = re.findall("[SDE]RR\d+", words[5])
+        r1 = re.findall("[SDE]RR\d+", words[5])  # words[5] is the URL
         if len(r1) >= 1:
             accession_number_filename_map[r1[0]] = words[1]
 
@@ -225,15 +225,22 @@ class NCBI(base.BaseETL):
 
         try:
             results = loop.run_until_complete(asyncio.gather(*tasks))
+            submitting_accession_numbers = results[0]
             loop.run_until_complete(
                 asyncio.gather(
-                    self.files_to_virus_sequence_run_taxonomy_submission(results[0])
+                    self.files_to_virus_sequence_run_taxonomy_submission(
+                        submitting_accession_numbers
+                    )
                 )
             )
-            if AsyncFileHelper.session:
-                loop.run_until_complete(asyncio.gather(AsyncFileHelper.close_session()))
         finally:
-            loop.close()
+            try:
+                if AsyncFileHelper.session:
+                    future = AsyncFileHelper.close_session()
+                    if future:
+                        loop.run_until_complete(asyncio.gather(future))
+            finally:
+                loop.close()
         end = time.strftime("%X")
 
         for k, v in self.submitting_data.items():
@@ -249,7 +256,11 @@ class NCBI(base.BaseETL):
     async def files_to_virus_sequence_run_taxonomy_submission(
         self, submitting_accession_numbers
     ):
-        """get submitting data for virus_sequence_run_taxonomy node"""
+        """get submitting data for virus_sequence_run_taxonomy node
+
+        Same concept as `files_to_node_submissions`, but also parse `sample`
+        and `virus_sequence` data from BigQuery, and link
+        `virus_sequence_run_taxonomy` nodes to `virus_sequence` nodes."""
 
         if not submitting_accession_numbers:
             return
@@ -329,7 +340,10 @@ class NCBI(base.BaseETL):
             self.submitting_data["virus_sequence_run_taxonomy"].append(submitted_json)
 
     async def files_to_node_submissions(self, node_name):
-        """Get submitting data for the node"""
+        """Get submitting data for the node
+        (for each accession number, find the indexd record for this node and
+        accession number, and map it to the graph. The files should have
+        already been indexed by the NBCI_FILE ETL)"""
 
         retrying = True
         while retrying:
@@ -360,9 +374,9 @@ class NCBI(base.BaseETL):
                 "virus_sequence_run_taxonomy", {"accession_number": accession_number}
             )
 
-            contig_taxonomy_submitter_id = format_submitter_id(
-                "virus_sequence_contig_taxonomy", {"accession_number": accession_number}
-            )
+            # contig_taxonomy_submitter_id = format_submitter_id(
+            #     "virus_sequence_contig_taxonomy", {"accession_number": accession_number}
+            # )
 
             if node_name == "virus_sequence_contig":
                 submitted_json = {
@@ -504,7 +518,8 @@ class NCBI(base.BaseETL):
     #     return list(submitting_accession_numbers)
 
     async def get_submitting_accession_number_list(self, node_name):
-        """get submitting acession number list"""
+        """get list of accession numbers to submit for this node
+        (accession numbers that don't exist yet in the graph data)"""
 
         submitting_accession_numbers = set()
         existed_accession_numbers = await self.data_file.get_existed_accession_numbers(
@@ -573,7 +588,7 @@ class NCBI(base.BaseETL):
         }]
         """
 
-        assert accession_numbers != [], "accession_numbers is not empty"
+        assert accession_numbers != [], "accession_numbers is empty"
 
         start = 0
         offset = 100
@@ -598,6 +613,9 @@ class NCBI(base.BaseETL):
     async def _parse_big_query_response(self, response):
         """
         Parse the big query response and get indexd record
+
+        Store in `self.submitting_data["virus_sequence"]` and
+        `self.submitting_data["sample"]` the data to submit.
 
         Return True if success
 

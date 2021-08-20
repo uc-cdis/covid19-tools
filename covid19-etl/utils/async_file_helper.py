@@ -3,7 +3,7 @@ import requests
 
 
 class AsyncFileHelper:
-    """ Asynchronous file helper class"""
+    """Asynchronous file helper class"""
 
     session = None
 
@@ -23,6 +23,21 @@ class AsyncFileHelper:
     def close_session(cls):
         if cls.session is not None:
             return cls.session.close()
+
+    async def async_get_indexd_record(self, guid):
+        url = f"{self.base_url}/index/index/{guid}"
+        session = AsyncFileHelper.get_session()
+        async with session.get(url) as r:
+            if r.status == 200:
+                return r.json()
+            elif r.status == 404:
+                return None
+            else:
+                r.raise_for_status()
+
+    async def async_indexd_record_exists(self, guid):
+        record = await self.async_get_indexd_record(guid)
+        return True if record else False
 
     async def async_find_by_name(self, filename):
         """Asynchronous call to fine the indexd record given a filename"""
@@ -46,7 +61,7 @@ class AsyncFileHelper:
             return None, None, None, None, "", None
 
     async def async_update_authz(self, did, rev):
-        """Asynchronous update authz field for did"""
+        """Asynchronous update authz field and remove uploader for did"""
 
         url = f"{self.base_url}/index/index/{did}?rev={rev}"
         session = AsyncFileHelper.get_session()
