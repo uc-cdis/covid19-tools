@@ -131,8 +131,8 @@ class IDPH_FACILITY(IDPH):
             "confirmed": confirmed_cases,
             "deaths": deaths,
             "submitter_id": summary_clinical_submitter_id,
-            "lastUpdateEt": date,
-            "date": etlJobDate,
+            "lastUpdateEt": etlJobDate,
+            "date": date,
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
 
