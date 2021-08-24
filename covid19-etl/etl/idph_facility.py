@@ -7,7 +7,6 @@ from etl.idph import IDPH
 from utils.format_helper import (
     derived_submitter_id,
     format_submitter_id,
-    idph_get_date,
     remove_time_from_date_time,
 )
 from utils.metadata_helper import MetadataHelper
@@ -44,14 +43,13 @@ class IDPH_FACILITY(IDPH):
         if latest_submitted_date == today:
             print("Nothing to submit: today and latest submitted date are the same.")
             return
-        today_str = today.strftime("%Y%m%d")
         begin_date = (latest_submitted_date + datetime.timedelta(days=1)).strftime(
             "%m/%d/%Y"
         )
         end_date = today.strftime("%m/%d/%Y")
-        print(f"Getting data for date: {today_str}")
+        print(f"Getting data for dates: {begin_date} - {end_date}")
         url = f"https://idph.illinois.gov/DPHPublicInformation/api/COVIDExport/GetLTCFacilityHistorical?beginDate={begin_date}&endDate={end_date}"
-        self.parse_file(latest_submitted_date, url)
+        self.parse_file(url)
 
     def parse_file(self, url):
         """
@@ -64,6 +62,12 @@ class IDPH_FACILITY(IDPH):
         print("Getting data from {}".format(url))
         with closing(self.get(url, stream=True)) as r:
             data = r.json()
+
+            if len(data) == 0:
+                print(
+                    "Nothing to submit: No new data available in the given date range."
+                )
+                return
 
             for facility in data:
                 date = remove_time_from_date_time(facility["ReportDate"])
@@ -95,7 +99,7 @@ class IDPH_FACILITY(IDPH):
         confirmed_cases = facility["confirmed_cases"]
         deaths = facility["deaths"]
         status = facility.get("status", None)
-        etlJobDate = (datetime.date.today().strftime("%Y-%m-%d"),)
+        etlJobDate = datetime.date.today().strftime("%Y-%m-%d")
         summary_location_submitter_id = format_submitter_id(
             "summary_location",
             {
