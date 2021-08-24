@@ -62,3 +62,10 @@ def check_date_format(date):
     # will throw an error if the date format is not as expected
     # (international date format)
     datetime.datetime.strptime(date, "%Y-%m-%d")
+
+
+def remove_time_from_date_time(str_datetime):
+    datetime_parts = str_datetime.split("T")
+    if len(datetime_parts) > 0:
+        return datetime_parts[0]
+    return str_datetime

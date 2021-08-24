@@ -5,6 +5,7 @@ from etl.idph import IDPH
 from utils.format_helper import (
     idph_get_date,
     derived_submitter_id,
+    remove_time_from_date_time,
 )
 from utils.metadata_helper import MetadataHelper
 
@@ -14,13 +15,6 @@ ROOT_URL = "https://idph.illinois.gov/DPHPublicInformation/api/covidVaccine/getV
 COUNTY_COVID_LINK_FORMAT = "https://idph.illinois.gov/DPHPublicInformation/api/covidVaccine/getVaccineAdministration?countyName={}"
 COUNTY_DEMO_LINK_FORMAT = "https://idph.illinois.gov/DPHPublicInformation/api/covidvaccine/getVaccineAdministrationDemos?countyname={}"
 TOTAL_VACCINE_LINK = "https://idph.illinois.gov/DPHPublicInformation/api/covidvaccine/getStatewideVaccineDetails"
-
-
-def remove_time_from_date_time(str_datetime):
-    datetime_parts = str_datetime.split("T")
-    if len(datetime_parts) > 0:
-        return datetime_parts[0]
-    return str_datetime
 
 
 class IDPH_VACCINE(IDPH):

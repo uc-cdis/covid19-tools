@@ -7,7 +7,7 @@ from etl.idph import IDPH
 from utils.format_helper import (
     derived_submitter_id,
     format_submitter_id,
-    idph_get_date,
+    remove_time_from_date_time,
 )
 from utils.metadata_helper import MetadataHelper
 
@@ -43,61 +43,34 @@ class IDPH_FACILITY(IDPH):
         if latest_submitted_date == today:
             print("Nothing to submit: today and latest submitted date are the same.")
             return
-        today_str = today.strftime("%Y%m%d")
+        begin_date = (latest_submitted_date + datetime.timedelta(days=1)).strftime(
+            "%m/%d/%Y"
+        )
+        end_date = today.strftime("%m/%d/%Y")
+        print(f"Getting data for dates: {begin_date} - {end_date}")
+        url = f"https://idph.illinois.gov/DPHPublicInformation/api/COVIDExport/GetLTCFacilityHistorical?beginDate={begin_date}&endDate={end_date}"
+        self.parse_file(url)
 
-        print(f"Getting data for date: {today_str}")
-        url = "https://dph.illinois.gov/sitefiles/COVIDLTC.json"
-        self.parse_file(latest_submitted_date, url)
-
-    def parse_file(self, latest_submitted_date, url):
+    def parse_file(self, url):
         """
         Converts a JSON files to data we can submit via Sheepdog. Stores the
         records to submit in `self.summary_locations` and `self.summary_clinicals`.
 
         Args:
-            latest_submitted_date (date): the date of latest available "summary_clinical" for project
             url (str): URL at which the JSON file is available
         """
         print("Getting data from {}".format(url))
         with closing(self.get(url, stream=True)) as r:
             data = r.json()
-            date = idph_get_date(data["LastUpdateDate"])
 
-            if latest_submitted_date and date == latest_submitted_date.strftime(
-                "%Y-%m-%d"
-            ):
+            if len(data) == 0:
                 print(
-                    "Nothing to submit: latest submitted date and date from data are the same."
+                    "Nothing to submit: No new data available in the given date range."
                 )
                 return
 
-            if "LTC_Reported_Cases" in data:
-                (
-                    summary_location_submitter_id,
-                    summary_clinical_submitter_id,
-                ) = self.get_location_and_clinical_submitter_id(None, date)
-
-                summary_location = {
-                    "country_region": self.country,
-                    "submitter_id": summary_location_submitter_id,
-                    "projects": [{"code": self.project_code}],
-                    "province_state": self.state,
-                }
-
-                summary_clinical = {
-                    "confirmed": data["LTC_Reported_Cases"]["confirmed_cases"],
-                    "deaths": data["LTC_Reported_Cases"]["deaths"],
-                    "submitter_id": summary_clinical_submitter_id,
-                    "lastUpdateEt": date,
-                    "date": date,
-                    "summary_locations": [
-                        {"submitter_id": summary_location_submitter_id}
-                    ],
-                }
-                self.summary_locations[summary_location_submitter_id] = summary_location
-                self.summary_clinicals[summary_clinical_submitter_id] = summary_clinical
-
-            for facility in data["FacilityValues"]:
+            for facility in data:
+                date = remove_time_from_date_time(facility["ReportDate"])
                 (summary_location, summary_clinical) = self.parse_facility(
                     date, facility
                 )
@@ -126,7 +99,7 @@ class IDPH_FACILITY(IDPH):
         confirmed_cases = facility["confirmed_cases"]
         deaths = facility["deaths"]
         status = facility.get("status", None)
-
+        etlJobDate = datetime.date.today().strftime("%Y-%m-%d")
         summary_location_submitter_id = format_submitter_id(
             "summary_location",
             {
@@ -158,7 +131,7 @@ class IDPH_FACILITY(IDPH):
             "confirmed": confirmed_cases,
             "deaths": deaths,
             "submitter_id": summary_clinical_submitter_id,
-            "lastUpdateEt": date,
+            "lastUpdateEt": etlJobDate,
             "date": date,
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
