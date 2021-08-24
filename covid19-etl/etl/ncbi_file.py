@@ -27,7 +27,7 @@ class NCBI_FILE(base.BaseETL):
         super().__init__(base_url, access_token, s3_bucket)
 
         self.program_name = "open"
-        self.project_code = "ncbi-covid-19"
+        self.project_code = "ncbi"
 
         self.file_helper = AsyncFileHelper(
             base_url=self.base_url,
@@ -153,9 +153,11 @@ class NCBI_FILE(base.BaseETL):
             key(str): the s3 object key where the file lives
             headers(str): headers of the input file
         """
+        print(f"[{node_name}] Reading file 's3://{self.bucket}/{key}'...")
+
         # Build excluded_set which contains all existed accession numbers
         # Don't need to re-submit the data already exist in the database
-        excluded_set = await self.get_existed_accession_numbers(node_name)
+        excluded_set = await self.get_existing_accession_numbers(node_name)
 
         line_stream = codecs.getreader("utf-8")
         tries = 0
@@ -193,18 +195,16 @@ class NCBI_FILE(base.BaseETL):
                             accession_numbers.add(accession_number)
                             n_rows += 1
                             if n_rows % 10000 == 0:
-                                print(
-                                    f"Finish process row {n_rows} of file {node_name}"
-                                )
+                                print(f"[{node_name}] Processed {n_rows} rows")
 
                         except Exception as e:
-                            print(f"ERROR: line {line}. Detail {e}")
+                            print(f"ERROR: line {line}. Details:\n  {e}")
                             # close the file
                             if f:
                                 f.close()
                             await asyncio.sleep(10)
                 except Exception as e:
-                    print(f"ERROR: Can not download {key}. Detail {e}")
+                    print(f"ERROR: Cannot download {key}. Details:\n  {e}")
                     raise
                 # Index the last file
                 if f:
@@ -214,11 +214,11 @@ class NCBI_FILE(base.BaseETL):
                 )
                 break
             except Exception as e:
-                print(f"Can not stream {key} from s3. Retrying...")
+                print(f"Cannot stream {key} from s3. Retrying...")
                 tries += 1
         return accession_numbers
 
-    async def get_existed_accession_numbers(self, node_name):
+    async def get_existing_accession_numbers(self, node_name):
         """
         Get a list of existed accession numbers from the graph
 
@@ -295,7 +295,7 @@ class NCBI_FILE(base.BaseETL):
                 retrying = False
             except Exception as e:
                 print(
-                    f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying..."
+                    f"ERROR: Fail to query indexd for {filename}. Details:\n  {e}. Retrying..."
                 )
                 await asyncio.sleep(5)
 
@@ -308,7 +308,7 @@ class NCBI_FILE(base.BaseETL):
                     retrying = False
                 except Exception as e:
                     print(
-                        f"ERROR: Fail to upload file {filepath}. Detail {e}. Retrying..."
+                        f"ERROR: Fail to upload file {filepath}. Details:\n  {e}. Retrying..."
                     )
                     await asyncio.sleep(5)
         else:

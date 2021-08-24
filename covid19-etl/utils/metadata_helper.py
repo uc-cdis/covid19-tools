@@ -248,7 +248,7 @@ class MetadataHelper:
             return parse(response["data"]["project"][0]["last_submission_identifier"])
         except Exception as ex:
             print(
-                f"Unable to query peregrine for last_submission_identifier. Detail {ex}"
+                f"Unable to query peregrine for last_submission_identifier. Details:\n  {ex}"
             )
             raise
 
@@ -267,7 +267,7 @@ class MetadataHelper:
                 data=json.dumps(record),
             )
         except Exception as ex:
-            print(f"Unable to update last_submission_identifier. Detail {ex}")
+            print(f"Unable to update last_submission_identifier. Details:\n  {ex}")
             raise
 
     def delete_nodes(self, ordered_node_list):

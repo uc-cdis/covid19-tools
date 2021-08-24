@@ -59,7 +59,7 @@ class IDPH_VACCINE_TO_S3(base.BaseETL):
             return json.loads(res["Body"].read().decode("utf-8"))
         except Exception as e:
             print(
-                f"WARNING: Unable to get existing data from S3. Will get all data from Peregrine instead. Details: {e}"
+                f"WARNING: Unable to get existing data from S3. Will get all data from Peregrine instead. Details:\n  {e}"
             )
 
         # return default empty value
@@ -88,7 +88,7 @@ class IDPH_VACCINE_TO_S3(base.BaseETL):
             response = self.metadata_helper.query_peregrine(query_string)
             return response["data"]
         except Exception as ex:
-            print(f"Unable to query peregrine. Detail {ex}")
+            print(f"Unable to query peregrine. Details:\n  {e}")
             raise
 
     def get_last_updated_date(self, summary_clinicals):

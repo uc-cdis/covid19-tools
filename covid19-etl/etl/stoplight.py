@@ -75,7 +75,7 @@ class STOPLIGHT(base.BaseETL):
                         summary_location_list.append(summary_location_submitter_id)
                     self.summary_clinicals.append(summary_clinical)
             except ValueError as e:
-                print(f"ERROR: value error. Detail {e}")
+                print(f"ERROR: value error. Details:\n  {e}")
 
     def parse_node(self, node):
         """

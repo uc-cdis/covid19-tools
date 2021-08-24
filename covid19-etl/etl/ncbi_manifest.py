@@ -49,7 +49,7 @@ class NCBI_MANIFEST(base.BaseETL):
         super().__init__(base_url, access_token, s3_bucket)
 
         self.program_name = "open"
-        self.project_code = "ncbi-covid-19"
+        self.project_code = "ncbi"
         self.token = access_token
         self.last_submitted_guid = None
 
@@ -105,7 +105,7 @@ class NCBI_MANIFEST(base.BaseETL):
                 break  # done reading the manifest!
             except Exception as e:
                 print(
-                    f"Failed to stream 's3://{sra_s3_bucket}/sra_manifest' (try #{tries}). Retrying... Details:\n{e}"
+                    f"Failed to stream 's3://{sra_s3_bucket}/sra_manifest' (try #{tries}). Retrying... Details:\n  {e}"
                 )
                 time.sleep(30)
                 if tries == MAX_RETRIES:
@@ -142,14 +142,15 @@ class NCBI_MANIFEST(base.BaseETL):
                 "last_submission_identifier"
             ]
         except Exception as ex:
-            print(f"Error getting 'last_submission_identifier': {ex}")
+            print(f"Error getting 'last_submission_identifier'. Details:\n  {ex}")
             self.last_submitted_guid = None
         print(
             f"Last submitted GUID ('last_submission_identifier'): {self.last_submitted_guid}"
         )
-        seen_last_submitted_guid = False
-        failed = False
 
+        seen_last_submitted_guid = False
+        last_successful_guid = None
+        failed = False
         for (
             guid,
             filename,
@@ -161,7 +162,7 @@ class NCBI_MANIFEST(base.BaseETL):
         ) in self.read_ncbi_sra_manifest():
             if (
                 not self.last_submitted_guid  # no data was ever submitted yet
-                or not seen_last_submitted_guid  # this data is not already indexed
+                or seen_last_submitted_guid  # this data is not already indexed
             ):
                 retries = 0
                 file_is_indexed = False
@@ -173,7 +174,7 @@ class NCBI_MANIFEST(base.BaseETL):
                         break
                     except Exception as e:
                         print(
-                            f"ERROR: Fail to query indexd for {guid} (try #{retries}). Retrying... Details:\n{e}"
+                            f"ERROR: Fail to query indexd for {guid} (try #{retries}). Retrying... Details:\n  {e}"
                         )
                         if retries == MAX_RETRIES:
                             failed = True
@@ -184,7 +185,7 @@ class NCBI_MANIFEST(base.BaseETL):
                     print(f"{filename} ({guid}) is already indexed")
                     continue
 
-                print(f"start to index {filename} ({guid})")
+                print(f"Indexing {filename} ({guid}) (release date: {release_date})")
                 retries = 0
                 while retries <= MAX_RETRIES:
                     try:
@@ -194,7 +195,7 @@ class NCBI_MANIFEST(base.BaseETL):
                         break
                     except Exception as e:
                         print(
-                            f"ERROR: Fail to create new indexd record for {guid} (try #{retries}). Retrying... Details:\n{e}"
+                            f"ERROR: Fail to create new indexd record for {guid} (try #{retries}). Retrying... Details:\n  {e}"
                         )
                         if retries == MAX_RETRIES:
                             failed = True
@@ -206,13 +207,18 @@ class NCBI_MANIFEST(base.BaseETL):
                 # need to record the `last_submission_identifier`
                 break
 
+            last_successful_guid = guid
+
             # found the last submitted data! start indexing on the next row
             if guid == self.last_submitted_guid:
-                seen_last_submitted_guid == True
+                print("Found last submitted GUID!")
+                seen_last_submitted_guid = True
 
         # update the project's `last_submission_identifier` so that next
         # time we can skip processing the rows we just processed
-        print(f"Updating project's 'last_submission_identifier' to '{guid}'")
+        print(
+            f"Updating project's 'last_submission_identifier' to '{last_successful_guid}'"
+        )
         headers = {
             "content-type": "application/json",
             "Authorization": f"Bearer {self.access_token}",
@@ -220,7 +226,7 @@ class NCBI_MANIFEST(base.BaseETL):
         record = {
             "code": self.project_code,
             "dbgap_accession_number": self.project_code,
-            "last_submission_identifier": guid,  # last GUID we indexed
+            "last_submission_identifier": last_successful_guid,
         }
         res = requests.put(
             "{}/api/v0/submission/{}".format(self.base_url, self.program_name),
@@ -228,3 +234,6 @@ class NCBI_MANIFEST(base.BaseETL):
             data=json.dumps(record),
         )
         res.raise_for_status()
+
+        if failed:
+            raise Exception("Failed to process manifest")

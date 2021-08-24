@@ -1,6 +1,7 @@
+from collections import defaultdict
+import csv
 import os
 import asyncio
-import gzip
 import time
 import re
 from datetime import datetime
@@ -25,6 +26,8 @@ FILE_EXTENSIONS = ["json", "tsv", "gb", "fastqsanger", "fasta", "fastq", "hmmer"
 FILE_EXTENSION_MAPPING = {"fq": "fastq", "fa": "fasta"}
 
 MAX_RETRIES = 3
+
+RESUBMIT_ALL_METADATA = False
 
 
 def get_file_extension(filename):
@@ -77,24 +80,23 @@ def convert_datetime_to_str(dt):
     return dt.strftime("%Y-%m-%d")
 
 
-def identity_function(s):
-    return s
+def _raise(ex):
+    raise ex
 
 
-# The files need to be handled so that they are compatible
-# to gen3 fields
-SPECIAL_MAP_FIELDS = {
-    "avgspotlen": ("avgspotlen", int, convert_to_int),
-    "file_size": ("bytes", int, convert_to_int),
-    "datastore_provider": ("datastore_provider", list, convert_to_list),
-    "datastore_region": ("datastore_region", list, convert_to_list),
-    "ena_first_public_run": ("ena_first_public_run", list, convert_to_list),
-    "ena_last_update_run": ("ena_last_update_run", list, convert_to_list),
-    "mbases": ("mbases", int, convert_to_int),
-    "mbytes": ("mbytes", int, convert_to_int),
+# The fields need to be handled so that they are compatible
+# with gen3 fields. Format: { <gen3 name>: ( <original name>, <handler> ) }
+SRA_SPECIAL_MAP_FIELDS = {
+    "avgspotlen": ("avgspotlen", convert_to_int),
+    "file_size": ("bytes", convert_to_int),
+    "datastore_provider": ("datastore_provider", convert_to_list),
+    "datastore_region": ("datastore_region", convert_to_list),
+    "ena_first_public_run": ("ena_first_public_run", convert_to_list),
+    "ena_last_update_run": ("ena_last_update_run", convert_to_list),
+    "mbases": ("mbases", convert_to_int),
+    "mbytes": ("mbytes", convert_to_int),
     "data_format": (
         "datastore_filetype",
-        str,
         partial(
             get_enum_value,
             [
@@ -114,18 +116,16 @@ SPECIAL_MAP_FIELDS = {
     ),
     "librarylayout": (
         "librarylayout",
-        str,
         partial(get_enum_value, ["Paired", "Single", None], None),
     ),
-    "release_date": ("releasedate", datetime, convert_datetime_to_str),
-    "collection_date": ("collection_date_sam", datetime, convert_datetime_to_str),
-    "ncbi_bioproject": ("bioproject", str, identity_function),
-    "ncbi_biosample": ("biosample", str, identity_function),
-    "sample_accession": ("sample_acc", str, identity_function),
-    "country_region": ("geo_loc_name_country_calc", str, identity_function),
+    "release_date": ("releasedate", convert_datetime_to_str),
+    "collection_date": ("collection_date_sam", convert_datetime_to_str),
+    "ncbi_bioproject": ("bioproject", lambda v: v),
+    "ncbi_biosample": ("biosample", lambda v: v),
+    "sra_accession": ("sample_acc", lambda v: v),
+    "country_region": ("geo_loc_name_country_calc", lambda v: v),
     "continent": (
         "geo_loc_name_country_continent_calc",
-        str,
         partial(
             get_enum_value,
             [
@@ -143,16 +143,100 @@ SPECIAL_MAP_FIELDS = {
 }
 
 
-def read_ncbi_manifest(bucket, key, accession_number_filename_map):
+GENBANK_TO_GEN3_MAPPING = {
+    "Species": {"node": "sample", "prop": "species"},
+    "Genus": {"node": "sample", "prop": "genus"},
+    "Family": {"node": "sample", "prop": "family"},
+    "Accession": [
+        {
+            "node": "sample",
+            "prop": "genbank_accession",
+        },
+        {
+            "node": "sample",
+            "prop": "submitter_id",
+            "transform": lambda v: f"sample_genbank_{v}",
+        },
+        {
+            "node": "virus_sequence",
+            "prop": "submitter_id",
+            "transform": lambda v: f"virus_sequence_{v}",
+        },
+    ],
+    "SRA_Accession": {"node": "sample", "prop": "sra_accession"},
+    "Molecule_type": {"node": "sample", "prop": "sample_type"},
+    "Geo_Location": {"node": "sample", "prop": "country_region"},
+    "USA": {"node": "sample", "prop": "province_state"},
+    "Host": {"node": "sample", "prop": "host"},
+    "Isolation_Source": {"node": "sample", "prop": "isolation_source"},
+    "Collection_Date": {"node": "sample", "prop": "collection_date"},
+    "BioSample": {"node": "sample", "prop": "ncbi_biosample"},
+    "Authors": {"node": "sample", "prop": "submitting_lab"},
+    "Release_Date": {"node": "virus_sequence", "prop": "release_date"},
+    "Length": {
+        "node": "virus_sequence",
+        "prop": "sequence_length",
+        "transform": lambda v: int(v),
+    },
+    "Sequence_Type": {
+        "node": "virus_sequence",
+        "prop": "data_source",
+        "transform": lambda v: _raise(
+            Exception(
+                f'Sequence_Type should be one of ["GenBank", "NCBI", "GISAID"] Got "{v}"'
+            )
+        )
+        if v not in ["GenBank", "NCBI", "GISAID"]
+        else v,
+    },
+    "Nuc_Completeness": {
+        "node": "virus_sequence",
+        "prop": "completeness",
+        "transform": lambda v: _raise(
+            Exception(
+                f'Nuc_Completeness should be one of ["partial", "complete"]. Got "{v}"'
+            )
+        )
+        if v not in ["partial", "complete"]
+        else v,
+    },
+    "GenBank_Title": {"node": "virus_sequence", "prop": "genbank_title"},
+    "Lineage": {"node": "virus_sequence", "prop": "pangolin_lineage"},
+    # not including: Genotype, Segment, Publications, LineageProbability, tax_id
+}
+
+
+def read_ncbi_sra_manifest(accession_number_to_guids_map):
     """read the manifest"""
+    sra_s3_bucket = "sra-pub-sars-cov2"
+    sra_manifest = "sra-src/Manifest"
+    print(f"Reading SRA manifest 's3://{sra_s3_bucket}/{sra_manifest}'...")
     s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
-    s3_object = s3.Object(bucket, key)
+    s3_object = s3.Object(sra_s3_bucket, sra_manifest)
     line_stream = codecs.getreader("utf-8")
-    for line in line_stream(s3_object.get()["Body"]):
+    for i, line in enumerate(line_stream(s3_object.get()["Body"])):
+        # TODO csv
         words = line.split("\t")
-        r1 = re.findall("[SDE]RR\d+", words[5])  # words[5] is the URL
+        guid = words[0]
+        url = words[5]
+        r1 = re.findall("[SDE]RR\d+", url)
         if len(r1) >= 1:
-            accession_number_filename_map[r1[0]] = words[1]
+            accession_number = r1[0]
+            accession_number_to_guids_map[accession_number].append(guid)
+        if i % 10000 == 0 and i != 0:
+            print(f"Processed {i} rows")
+    # TODO remove
+    # with open("/Users/paulineribeyre/Downloads/Manifest_small.tsv") as f:
+    #     for i, line in enumerate(f.readlines()):
+    #         words = line.split("\t")
+    #         guid = words[0]
+    #         url = words[5]
+    #         r1 = re.findall("[SDE]RR\d+", url)
+    #         if len(r1) >= 1:
+    #             accession_number = r1[0]
+    #             accession_number_to_guids_map[accession_number].append(guid)
+    #         if i % 10000 == 0 and i != 0:
+    #             print(f"Processed {i} rows")
 
 
 class NCBI(base.BaseETL):
@@ -160,10 +244,12 @@ class NCBI(base.BaseETL):
         super().__init__(base_url, access_token, s3_bucket)
 
         self.program_name = "open"
-        self.project_code = "ncbi-covid-19"
-        self.manifest_bucket = "sra-pub-sars-cov2"
-        self.sra_src_manifest = "sra-src/Manifest"
-        self.accession_number_filename_map = {}
+        self.project_code = "ncbi"
+        # self.accession_number_to_guids_map = defaultdict(list)
+        self.accession_number_to_guids_map = {  # TODO remove
+            "SRR11915907": ['dg.63D5/b5973b46-da51-3f16-a8e8-ea230828ccfb', 'dg.63D5/c9f73638-1bfb-34bb-985d-7572df991eda']
+        }
+        self.all_accession_numbers = set()
 
         self.metadata_helper = MetadataHelper(
             base_url=self.base_url,
@@ -186,10 +272,10 @@ class NCBI(base.BaseETL):
         )
 
         self.submitting_data = {
-            "sample": [],
-            "virus_sequence": [],
+            "sample": {},  # { <sra accession>: <sample record> }
+            "virus_genome": [],
             "core_metadata_collection": [],
-            "virus_sequence_run_taxonomy": [],
+            "virus_sequence_run_taxonomy": [],  # TODO update node names
             "virus_sequence_contig": [],
             "virus_sequence_blastn": [],
             "virus_sequence_contig_taxonomy": [],
@@ -199,33 +285,35 @@ class NCBI(base.BaseETL):
 
         self.submitting_data["core_metadata_collection"].append(
             {
-                "submitter_id": format_submitter_id("cmc_ncbi_covid19", {}),
+                "submitter_id": "cmc_ncbi_covid19",
                 "projects": [{"code": self.project_code}],
             }
         )
 
-        read_ncbi_manifest(
-            self.manifest_bucket,
-            self.sra_src_manifest,
-            self.accession_number_filename_map,
-        )
+        # TODO enable
+        # read_ncbi_sra_manifest(self.accession_number_to_guids_map)
 
-    def submit_metadata(self):
+    def files_to_submissions(self):
         start = time.strftime("%X")
         loop = asyncio.get_event_loop()
         tasks = []
 
-        for node_name, _ in self.data_file.nodes.items():
-            if node_name == "virus_sequence_run_taxonomy":
-                continue
-            else:
-                tasks.append(
-                    asyncio.ensure_future(self.files_to_node_submissions(node_name))
-                )
+        # TODO enable
+        # for node_name, _ in self.data_file.nodes.items():
+        #     if node_name == "virus_sequence_run_taxonomy":
+        #         continue
+        #     else:
+        #         tasks.append(
+        #             asyncio.ensure_future(self.files_to_node_submissions(node_name))
+        #         )
 
         try:
             results = loop.run_until_complete(asyncio.gather(*tasks))
-            submitting_accession_numbers = results[0]
+            submitting_accession_numbers = (
+                list(self.all_accession_numbers)
+                if RESUBMIT_ALL_METADATA
+                else results[0]
+            )
             loop.run_until_complete(
                 asyncio.gather(
                     self.files_to_virus_sequence_run_taxonomy_submission(
@@ -241,17 +329,30 @@ class NCBI(base.BaseETL):
                         loop.run_until_complete(asyncio.gather(future))
             finally:
                 loop.close()
+
+        # now that we have the SRA metadata ready, check if there is sample
+        # data from GenBank to add
+        self.process_genbank_manifest()
+
         end = time.strftime("%X")
+        print(f"Processing time: From {start} to {end}")
 
-        for k, v in self.submitting_data.items():
-            print(f"Submitting {k} data...")
-            for node in v:
-                node_record = {"type": k}
-                node_record.update(node)
-                self.metadata_helper.add_record_to_submit(node_record)
-            self.metadata_helper.batch_submit_records()
+    def submit_metadata(self):
+        start = time.strftime("%X")
 
-        print(f"Running time: From {start} to {end}")
+        for node, records in self.submitting_data.items():
+            print(f"Submitting {node} data: {len(records)} records")
+            if isinstance(records, dict):  # samples are in a dict
+                records = records.values()
+            for _record in records:
+                record = {"type": node}
+                record.update(_record)
+                print(record) # TODO submit, below
+            #     self.metadata_helper.add_record_to_submit(record)
+            # self.metadata_helper.batch_submit_records()
+
+        end = time.strftime("%X")
+        print(f"Submitting time: From {start} to {end}")
 
     async def files_to_virus_sequence_run_taxonomy_submission(
         self, submitting_accession_numbers
@@ -259,25 +360,31 @@ class NCBI(base.BaseETL):
         """get submitting data for virus_sequence_run_taxonomy node
 
         Same concept as `files_to_node_submissions`, but also parse `sample`
-        and `virus_sequence` data from BigQuery, and link
-        `virus_sequence_run_taxonomy` nodes to `virus_sequence` nodes."""
+        and `virus_genome` data from BigQuery, and link
+        `virus_sequence_run_taxonomy` nodes to `virus_genome` nodes."""
 
         if not submitting_accession_numbers:
             return
 
-        records = self._get_response_from_big_query(submitting_accession_numbers)
+        # bigquery_records = self._get_response_from_big_query(
+        #     submitting_accession_numbers
+        # ) # TODO enable and remove below
+        import datetime as dt
+        bigquery_records = [
+            {'acc': 'SRR11915907', 'assay_type': 'AMPLICON', 'center_name': 'THE PETER DOHERTY INSTITUTE FOR INFECTION AND IMMUNITY', 'consent': 'public', 'experiment': 'SRX8462384', 'sample_name': 'hCoV-19/Australia/VIC1747/2020', 'instrument': 'NextSeq 500', 'librarylayout': 'PAIRED', 'libraryselection': 'PCR', 'librarysource': 'VIRAL RNA', 'platform': 'ILLUMINA', 'sample_acc': 'SRS6763611', 'biosample': 'SAMN15087277', 'organism': 'Severe acute respiratory syndrome coronavirus 2', 'sra_study': 'SRP253798', 'releasedate': dt.datetime(2020, 6, 3, 0, 0), 'bioproject': 'PRJNA613958', 'mbytes': 33, 'loaddate': None, 'avgspotlen': 289, 'mbases': 81, 'insertsize': None, 'library_name': 'VIC1747_illumina', 'biosamplemodel_sam': ['Pathogen.cl'], 'collection_date_sam': dt.date(2020, 5, 24), 'geo_loc_name_country_calc': 'Australia', 'geo_loc_name_country_continent_calc': 'Oceania', 'geo_loc_name_sam': ['Australia: Victoria'], 'ena_first_public_run': [], 'ena_last_update_run': [], 'sample_name_sam': [], 'datastore_filetype': ['fastq', 'sra'], 'datastore_provider': ['gs', 'ncbi', 's3'], 'datastore_region': ['gs.US', 'ncbi.public', 's3.us-east-1'], 'attributes': [{'k': 'bases', 'v': '81931242'}, {'k': 'bytes', 'v': '35181440'}, {'k': 'collected_by_sam', 'v': 'Victorian Infectious Diseases Reference Laboratory (VIDRL)'}, {'k': 'collection_date_sam', 'v': '2020-05-24'}, {'k': 'host_age_sam', 'v': '56'}, {'k': 'host_disease_sam', 'v': 'COVID-19'}, {'k': 'host_sam', 'v': 'Homo sapiens'}, {'k': 'host_sex_sam', 'v': 'female'}, {'k': 'isolate_sam', 'v': 'SARS-CoV-2/human/AUS/VIC1747/2020'}, {'k': 'isolation_source_sam_ss_dpl262', 'v': 'missing'}, {'k': 'lat_lon_sam', 'v': 'missing'}, {'k': 'passage_history_sam_s_dpl312', 'v': 'Original'}, {'k': 'primary_search', 'v': '15087277'}, {'k': 'primary_search', 'v': '613958'}, {'k': 'primary_search', 'v': 'CORONAVIRIDAE'}, {'k': 'primary_search', 'v': 'PRJEB39908'}, {'k': 'primary_search', 'v': 'PRJNA613958'}, {'k': 'primary_search', 'v': 'SAMN15087277'}, {'k': 'primary_search', 'v': 'SRP253798'}, {'k': 'primary_search', 'v': 'SRR11915907'}, {'k': 'primary_search', 'v': 'SRS6763611'}, {'k': 'primary_search', 'v': 'SRX8462384'}, {'k': 'primary_search', 'v': 'VIC1747_R1.fq.gz'}, {'k': 'primary_search', 'v': 'VIC1747_illumina'}, {'k': 'primary_search', 'v': 'hCoV-19/Australia/VIC1747/2020'}], 'jattr': '{"bases": 81931242, "bytes": 35181440, "collected_by_sam": ["Victorian Infectious Diseases Reference Laboratory (VIDRL)"], "collection_date_sam": ["2020-05-24"], "host_age_sam": ["56"], "host_disease_sam": ["COVID-19"], "host_sam": ["Homo sapiens"], "host_sex_sam": ["female"], "isolate_sam": ["SARS-CoV-2/human/AUS/VIC1747/2020"], "isolation_source_sam_ss_dpl262": ["missing"], "lat_lon_sam": ["missing"], "passage_history_sam_s_dpl312": "Original", "primary_search": "15087277"}'}
+        ]
 
-        # Keep track accession_numbers having link to virus_sequence nodes
+        # Keep track of accession numbers with a link to a virus_genome node
         accession_number_set = set()
-        for record in records:
-            if record["acc"] in self.accession_number_filename_map:
+        for record in bigquery_records:
+            if record["acc"] in self.accession_number_to_guids_map:
                 accession_number = record["acc"]
-                print(f"Get from bigquery response {accession_number}")
+                print(f"Get from bigquery response: {accession_number}")
                 success = await self._parse_big_query_response(record)
                 if success:
                     accession_number_set.add(accession_number)
 
-        cmc_submitter_id = format_submitter_id("cmc_ncbi_covid19", {})
+        cmc_submitter_id = self.submitting_data["core_metadata_collection"][0]["submitter_id"]
         for accession_number in submitting_accession_numbers:
             virus_sequence_run_taxonomy_submitter_id = format_submitter_id(
                 "virus_sequence_run_taxonomy", {"accession_number": accession_number}
@@ -293,12 +400,12 @@ class NCBI(base.BaseETL):
 
             # Add link to virus sequence node
             if accession_number in accession_number_set:
-                submitted_json["virus_sequences"] = [
-                    {"submitter_id": f"virus_sequence_{accession_number}"}
+                submitted_json["virus_genomes"] = [
+                    {"submitter_id": f"virus_genome_{accession_number}"}
                 ]
 
             filename = f"virus_sequence_run_taxonomy_{accession_number}.csv"
-            print(f"Get indexd info of {filename}")
+            print(f"Get indexd info for '{filename}'")
             trying = True
             while trying:
                 try:
@@ -313,12 +420,12 @@ class NCBI(base.BaseETL):
                     trying = False
                 except Exception as e:
                     print(
-                        f"Can not get indexd record of {filename}. Detail {e}. Retrying..."
+                        f"Cannot get indexd record of {filename}. Details:\n  {e}. Retrying..."
                     )
 
             assert (
                 did
-            ), f"file {filename} does not exist in the index, rerun NCBI_FILE ETL"
+            ), f"file '{filename}' does not exist in indexd, rerun NCBI_FILE ETL"
 
             if not authz:
                 tries = 0
@@ -329,7 +436,7 @@ class NCBI(base.BaseETL):
                     except Exception as e:
                         tries += 1
                         print(
-                            f"Can not update indexd for {did}. Detail {e}. Retrying..."
+                            f"Cannot update indexd for {did}. Details:\n  {e}. Retrying..."
                         )
 
             submitted_json["file_size"] = filesize
@@ -345,17 +452,20 @@ class NCBI(base.BaseETL):
         accession number, and map it to the graph. The files should have
         already been indexed by the NBCI_FILE ETL)"""
 
-        retrying = True
-        while retrying:
+        tries = 0
+        while tries <= MAX_RETRIES:
             try:
                 submitting_accession_numbers = (
                     await self.get_submitting_accession_number_list(node_name)
                 )
-                retrying = False
+                break
             except Exception as e:
                 print(
-                    f"Can not query peregine with {node_name}. Detail {e}. Retrying..."
+                    f"Cannot query peregine with {node_name} (try #{tries}). Retrying... Details:\n  {e}."
                 )
+                if tries == MAX_RETRIES:
+                    raise e
+                tries += 1
 
         for accession_number in submitting_accession_numbers:
             submitter_id = format_submitter_id(
@@ -373,10 +483,6 @@ class NCBI(base.BaseETL):
             run_taxonomy_submitter_id = format_submitter_id(
                 "virus_sequence_run_taxonomy", {"accession_number": accession_number}
             )
-
-            # contig_taxonomy_submitter_id = format_submitter_id(
-            #     "virus_sequence_contig_taxonomy", {"accession_number": accession_number}
-            # )
 
             if node_name == "virus_sequence_contig":
                 submitted_json = {
@@ -430,7 +536,6 @@ class NCBI(base.BaseETL):
                     "data_format": "json",
                     "data_category": "Kmer-based Taxonomy Analysis of Contigs",
                 }
-
             else:
                 raise Exception(f"ERROR: {node_name} does not exist")
 
@@ -439,7 +544,7 @@ class NCBI(base.BaseETL):
 
             print(f"Get indexd record of {filename}")
 
-            retrying = True
+            retrying = True  # TODO MAX_RETRIES
             while retrying:
                 try:
                     (
@@ -453,7 +558,7 @@ class NCBI(base.BaseETL):
                     retrying = False
                 except Exception as e:
                     print(
-                        f"ERROR: Fail to query indexd for {filename}. Detail {e}. Retrying..."
+                        f"ERROR: Fail to query indexd for {filename}. Details:\n  {e}. Retrying..."
                     )
                     await asyncio.sleep(5)
 
@@ -470,7 +575,7 @@ class NCBI(base.BaseETL):
                     except Exception as e:
                         tries += 1
                         print(
-                            f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying..."
+                            f"ERROR: Fail to update indexd for {filename}. Details:\n  {e}. Retrying..."
                         )
                         await asyncio.sleep(5)
 
@@ -480,70 +585,46 @@ class NCBI(base.BaseETL):
             submitted_json["file_name"] = file_name
 
             self.submitting_data[node_name].append(submitted_json)
+
         return submitting_accession_numbers
-
-    # async def get_submitting_accession_number_list_for_run_taxonomy(self):
-    #     """get submitting number list for run_taxonomy file"""
-
-    #     node_name = "virus_sequence_run_taxonomy"
-    #     submitting_accession_numbers = set()
-    #     existed_accession_numbers = await self.data_file.get_existed_accession_numbers(
-    #         node_name
-    #     )
-
-    #     s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
-    #     s3_object = s3.Object(self.data_file.bucket, self.data_file.nodes[node_name][0])
-    #     file_path = f"{DATA_PATH}/virus_sequence_run_taxonomy.gz"
-    #     s3_object.download_file(file_path)
-
-    #     n_lines = 0
-    #     with gzip.open(file_path, "rb") as f:
-    #         while True:
-    #             bline = f.readline()
-    #             if not bline:
-    #                 break
-    #             n_lines += 1
-    #             if n_lines % 10000 == 0:
-    #                 print(f"Finish process row {n_lines} of file {node_name}")
-    #             line = bline.decode("UTF-8")
-    #             r1 = re.findall("[SDE]RR\d+", line)
-    #             if len(r1) == 0:
-    #                 continue
-    #             read_accession_number = r1[0]
-    #             if (
-    #                 f"{node_name}_{read_accession_number}"
-    #                 not in existed_accession_numbers
-    #             ):
-    #                 submitting_accession_numbers.add(read_accession_number)
-    #     return list(submitting_accession_numbers)
 
     async def get_submitting_accession_number_list(self, node_name):
         """get list of accession numbers to submit for this node
         (accession numbers that don't exist yet in the graph data)"""
 
         submitting_accession_numbers = set()
-        existed_accession_numbers = await self.data_file.get_existed_accession_numbers(
-            node_name
+        existing_accession_numbers = (
+            await self.data_file.get_existing_accession_numbers(node_name)
+        )
+        print(
+            f"[{node_name}] {len(existing_accession_numbers)} existing accession numbers"
         )
 
         s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
-        s3_object = s3.Object(self.data_file.bucket, self.data_file.nodes[node_name][0])
+        key = self.data_file.nodes[node_name][0]
+        s3_object = s3.Object(self.data_file.bucket, key)
         line_stream = codecs.getreader("utf-8")
         n_lines = 0
+        print(f"[{node_name}] Reading file 's3://{self.data_file.bucket}/{key}'...")
         for line in line_stream(s3_object.get()["Body"]):
             r1 = re.findall("[SDE]RR\d+", line)
             n_lines += 1
-            if n_lines % 10000 == 0:
-                print(f"Finish process row {n_lines} of file {node_name}")
+            if n_lines % 100000 == 0:
+                print(f"[{node_name}] Processed {n_lines} rows")
             if len(r1) == 0:
                 continue
             read_accession_number = r1[0]
+            if RESUBMIT_ALL_METADATA:
+                self.all_accession_numbers.add(read_accession_number)
             if (
                 f"{node_name}_{read_accession_number}".lower()
-                not in existed_accession_numbers
+                not in existing_accession_numbers
             ):
                 submitting_accession_numbers.add(read_accession_number)
 
+        print(
+            f"[{node_name}] {len(submitting_accession_numbers)} new accession numbers to submit"
+        )
         return list(submitting_accession_numbers)
 
     def _get_response_from_big_query(self, accession_numbers):
@@ -587,13 +668,14 @@ class NCBI(base.BaseETL):
             "datastore_region": ["gs.US", "ncbi.public", "s3.us-east-1"],
         }]
         """
-
+        print("Getting data from BigQuery...")
         assert accession_numbers != [], "accession_numbers is empty"
 
         start = 0
         offset = 100
         client = bigquery.Client()
         while start < len(accession_numbers):
+            print(f"  {start} / {len(accession_numbers)}")
             end = min(start + offset, len(accession_numbers))
             stm = 'SELECT * FROM `nih-sra-datastore`.sra.metadata where consent = "public"'
 
@@ -614,19 +696,19 @@ class NCBI(base.BaseETL):
         """
         Parse the big query response and get indexd record
 
-        Store in `self.submitting_data["virus_sequence"]` and
+        Store in `self.submitting_data["virus_genome"]` and
         `self.submitting_data["sample"]` the data to submit.
 
         Return True if success
 
         """
 
-        accession_number = response["acc"]
+        sra_accession_number = response["acc"]
 
         sample = {}
-        virus_sequence = {}
+        virus_genome = {}
 
-        sample["submitter_id"] = f"sample_{accession_number}"
+        sample["submitter_id"] = f"sample_sra_{sra_accession_number}"
         sample["projects"] = [{"code": self.project_code}]
 
         for field in [
@@ -639,17 +721,16 @@ class NCBI(base.BaseETL):
             "country_region",
             "continent",
         ]:
-            if field in SPECIAL_MAP_FIELDS:
-                old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
+            if field in SRA_SPECIAL_MAP_FIELDS:
+                old_name, handler = SRA_SPECIAL_MAP_FIELDS[field]
                 sample[field] = handler(response.get(old_name))
             elif field in response:
                 sample[field] = str(response.get(field))
 
-        virus_sequence["submitter_id"] = f"virus_sequence_{accession_number}"
+        virus_genome["submitter_id"] = f"virus_genome_{sra_accession_number}"
         for field in [
             "assay_type",
             "avgspotlen",
-            "bytes",
             "center_name",
             "consent",
             "datastore_provider",
@@ -672,70 +753,138 @@ class NCBI(base.BaseETL):
             "mbases",
             "mbytes",
             "platform",
-            "sra_accession_sam",
             "sra_study",
             "title_sam",
             "release_date",
             "data_format",
             "librarylayout",
         ]:
-            if field in SPECIAL_MAP_FIELDS:
-                old_name, dtype, handler = SPECIAL_MAP_FIELDS[field]
-                virus_sequence[field] = handler(response.get(old_name))
+            if field in SRA_SPECIAL_MAP_FIELDS:
+                old_name, handler = SRA_SPECIAL_MAP_FIELDS[field]
+                virus_genome[field] = handler(response.get(old_name))
             elif field in response:
-                virus_sequence[field] = str(response.get(field))
+                virus_genome[field] = str(response.get(field))
 
-        virus_sequence["samples"] = [{"submitter_id": sample["submitter_id"]}]
-        virus_sequence["data_category"] = "Nucleotide"
-        virus_sequence["data_type"] = "Sequence"
-        virus_sequence["file_name"] = self.accession_number_filename_map[
-            accession_number
-        ]
+        virus_genome["samples"] = [{"submitter_id": sample["submitter_id"]}]
+        virus_genome["data_category"] = "Nucleotide"
+        virus_genome["data_type"] = "Sequence"
 
-        virus_sequence["data_format"] = get_file_extension(virus_sequence["file_name"])
-        filename = virus_sequence["file_name"]
-
-        retrying = True
-        while retrying:
-            try:
-                (
-                    did,
-                    rev,
-                    md5sum,
-                    filesize,
-                    file_name,
-                    authz,
-                ) = await self.file_helper.async_find_by_name(filename=filename)
-                retrying = False
-            except Exception as e:
-                print(
-                    f"ERROR: Fail to get indexd for {filename}. Detail {e}. Retrying..."
-                )
-                await asyncio.sleep(5)
-
-        if not did:
-            print(
-                f"file {filename} does not exist in the index, rerun NCBI_MANIFEST ETL"
-            )
-            return False
-
-        if not authz:
-            retries = 0
-            while retries < MAX_RETRIES:
+        for guid in self.accession_number_to_guids_map[sra_accession_number]:
+            retrying = True  # TODO MAX_RETRIES
+            record = None
+            while retrying:
                 try:
-                    await self.file_helper.async_update_authz(did=did, rev=rev)
-                    break
+                    record = await self.file_helper.async_get_indexd_record(guid)
+                    retrying = False
                 except Exception as e:
                     print(
-                        f"ERROR: Fail to update indexd for {filename}. Detail {e}. Retrying..."
+                        f"ERROR: Fail to get indexd record for {guid}. Details:\n  {e}. Retrying..."
                     )
-                    retries += 1
                     await asyncio.sleep(5)
 
-        virus_sequence["file_size"] = filesize
-        virus_sequence["md5sum"] = md5sum
-        virus_sequence["object_id"] = did
+            if not record:
+                print(
+                    f"ERROR: file {guid} does not exist in indexd, rerun NCBI_MANIFEST ETL"
+                )
+                return False
 
-        self.submitting_data["virus_sequence"].append(virus_sequence)
-        self.submitting_data["sample"].append(sample)
+            this_virus_genome = virus_genome.copy()
+            this_virus_genome["file_name"] = record["file_name"]
+            this_virus_genome["data_format"] = get_file_extension(record["file_name"])
+
+            if not record["authz"]:
+                retries = 0
+                while retries < MAX_RETRIES:
+                    try:
+                        await self.file_helper.async_update_authz(
+                            did=guid, rev=record["rev"]
+                        )
+                        break
+                    except Exception as e:
+                        print(
+                            f"ERROR: Fail to update indexd record for {guid}. Details:\n  {e}. Retrying..."
+                        )
+                        retries += 1
+                        await asyncio.sleep(5)
+
+            this_virus_genome["file_size"] = record["size"]
+            this_virus_genome["md5sum"] = record.get("hashes", {}).get("md5")
+            this_virus_genome["object_id"] = guid
+
+            self.submitting_data["virus_genome"].append(this_virus_genome)
+        self.submitting_data["sample"][sra_accession_number] = sample
         return True
+
+    def process_genbank_manifest(self):
+        # TODO read from s3
+        with open(
+            "/Users/paulineribeyre/Downloads/NCBI-Virus-Metadata-covid19-only.csv", "r"
+        ) as f:
+            # TODO error handling / retries
+            # TODO refactor duplicated code for 2 manifests into a function?
+            reader = csv.DictReader(f, delimiter=",", quotechar='"')
+            for row in reader:
+                gb_sample, gb_virus_sequence = self.genbank_row_to_gen3_records(row)
+                self.submitting_data["virus_sequence"].append(gb_virus_sequence)
+                sra_sample = self.get_sra_sample_to_update(gb_sample)
+                id = f"genbank_{gb_sample['genbank_accession']}"
+                if sra_sample:
+                    self.submitting_data["sample"][id] = self.merge_sra_and_genbank_samples(sra_sample, gb_sample)
+                else:
+                    self.submitting_data["sample"][id] = gb_sample
+
+    def genbank_row_to_gen3_records(self, row):
+        records = {
+            "sample": {},
+            "virus_sequence": {},
+        }
+        for genbank_prop, genbank_value in row.items():
+            if genbank_prop not in GENBANK_TO_GEN3_MAPPING or not genbank_value:
+                continue
+            mappings = GENBANK_TO_GEN3_MAPPING[genbank_prop]
+            if not isinstance(mappings, list):
+                mappings = [mappings]
+            for mapping in mappings:
+                gen3_value = (
+                    mapping["transform"](genbank_value)
+                    if "transform" in mapping
+                    else genbank_value
+                )
+                records[mapping["node"]][mapping["prop"]] = gen3_value
+
+        # add link
+        records["virus_sequence"]["samples"] = [
+            {"submitter_id": records["sample"]["submitter_id"]}
+        ]
+
+        return records["sample"], records["virus_sequence"]
+
+    def get_sra_sample_to_update(self, sample):
+        sra_accession = sample.get("sra_accession")
+        if not sra_accession:
+            return
+
+        sample_to_update = None
+        if sra_accession in self.submitting_data["sample"]:
+            sample_to_update = self.submitting_data["sample"][sra_accession]
+        else:
+            query_string = f"""{{
+                sample (project_id: "{self.program_name}-{self.project_code}", sra_accession: "{sra_accession}") {{
+                    submitter_id
+                }}
+            }}"""
+            samples = self.metadata_helper.query_peregrine(query_string)["data"]["sample"]
+            if len(samples > 1):
+                raise Exception(f"Found 2 samples with sra_accession='{sra_accession}'")
+            elif len(samples == 1):
+                sample_to_update = samples[0]
+        return sample_to_update
+
+    def merge_sra_and_genbank_samples(self, sra_sample, genbank_sample):
+        # overwrite SRA metadata with GenBank metadata
+        sample = dict(sra_sample, **genbank_sample)
+        # update submitter_id. The current value is:
+        # `sample_genbank_<genbank accession>`, and we want:
+        # `sample_genbank_<genbank accession>_sra_<sra_accession>`
+        sample["submitter_id"] += f"_sra_{genbank_sample['sra_accession']}"
+        return sample

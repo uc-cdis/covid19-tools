@@ -179,7 +179,7 @@ class CTP(base.BaseETL):
                     races[(row[0], row[1], row[2])] = row[3:]
                 except Exception as e:
                     print(
-                        f"Error processing race row: {row}.\nSkipping row. Detail: {e}"
+                        f"Error processing race row: {row}.\nSkipping row. Details:\n  {e}"
                     )
         return races, headers
 

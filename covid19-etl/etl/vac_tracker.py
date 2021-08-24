@@ -62,7 +62,7 @@ class VAC_TRACKER(base.BaseETL):
                     clinical_trial = self.parse_node(node)
                     self.clinical_trials.append(clinical_trial)
             except ValueError as e:
-                print(f"ERROR: value error. Detail {e}")
+                print(f"ERROR: value error. Details:\n  {e}")
 
     def parse_node(self, node):
         """

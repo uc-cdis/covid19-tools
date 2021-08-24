@@ -29,7 +29,7 @@ class AsyncFileHelper:
         session = AsyncFileHelper.get_session()
         async with session.get(url) as r:
             if r.status == 200:
-                return r.json()
+                return await r.json()
             elif r.status == 404:
                 return None
             else:
@@ -53,7 +53,7 @@ class AsyncFileHelper:
                         break
                 did = record["did"]
                 rev = record["rev"]
-                md5sum = record.get("hashes", {}).get("md5", "")
+                md5sum = record.get("hashes", {}).get("md5")
                 size = record["size"]
                 authz = record["authz"]
                 filename = record["file_name"]
