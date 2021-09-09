@@ -21,11 +21,14 @@ from etl.ncbi_file import NCBI_FILE
 
 DATA_PATH = os.path.dirname(os.path.abspath(__file__))
 
+CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+
 FILE_EXTENSIONS = ["json", "tsv", "gb", "fastqsanger", "fasta", "fastq", "hmmer", "bam"]
 
 FILE_EXTENSION_MAPPING = {"fq": "fastq", "fa": "fasta"}
 
-MAX_RETRIES = 3
+MAX_RETRIES = 4
+SLEEP_SECONDS = 15
 
 RESUBMIT_ALL_METADATA = False
 
@@ -225,18 +228,6 @@ def read_ncbi_sra_manifest(accession_number_to_guids_map):
             accession_number_to_guids_map[accession_number].append(guid)
         if i % 10000 == 0 and i != 0:
             print(f"Processed {i} rows")
-    # TODO remove
-    # with open("/Users/paulineribeyre/Downloads/Manifest_small.tsv") as f:
-    #     for i, line in enumerate(f.readlines()):
-    #         words = line.split("\t")
-    #         guid = words[0]
-    #         url = words[5]
-    #         r1 = re.findall("[SDE]RR\d+", url)
-    #         if len(r1) >= 1:
-    #             accession_number = r1[0]
-    #             accession_number_to_guids_map[accession_number].append(guid)
-    #         if i % 10000 == 0 and i != 0:
-    #             print(f"Processed {i} rows")
 
 
 class NCBI(base.BaseETL):
@@ -291,10 +282,11 @@ class NCBI(base.BaseETL):
             }
         )
 
-        read_ncbi_sra_manifest(self.accession_number_to_guids_map)
-
     def files_to_submissions(self):
         start = time.strftime("%X")
+
+        read_ncbi_sra_manifest(self.accession_number_to_guids_map)
+
         loop = asyncio.get_event_loop()
         tasks = []
 
@@ -415,7 +407,7 @@ class NCBI(base.BaseETL):
                     trying = False
                 except Exception as e:
                     print(
-                        f"Cannot get indexd record of {filename}. Details:\n  {e}. Retrying..."
+                        f"Cannot get indexd record of {filename}. Retrying... Details:\n  {e}"
                     )
 
             assert (
@@ -429,10 +421,12 @@ class NCBI(base.BaseETL):
                         await self.file_helper.async_update_authz(did=did, rev=rev)
                         break
                     except Exception as e:
-                        tries += 1
                         print(
-                            f"Cannot update indexd for {did}. Details:\n  {e}. Retrying..."
+                            f"Cannot update indexd for {did}. Retrying... Details:\n  {e}"
                         )
+                        if tries == MAX_RETRIES:
+                            raise e
+                        tries += 1
 
             submitted_json["file_size"] = filesize
             submitted_json["md5sum"] = md5sum
@@ -553,9 +547,9 @@ class NCBI(base.BaseETL):
                     retrying = False
                 except Exception as e:
                     print(
-                        f"ERROR: Fail to query indexd for {filename}. Details:\n  {e}. Retrying..."
+                        f"ERROR: Fail to query indexd for {filename}. Retrying... Details:\n  {e}"
                     )
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(SLEEP_SECONDS)
 
             assert (
                 did
@@ -568,11 +562,13 @@ class NCBI(base.BaseETL):
                         await self.file_helper.async_update_authz(did=did, rev=rev)
                         break
                     except Exception as e:
-                        tries += 1
                         print(
-                            f"ERROR: Fail to update indexd for {filename}. Details:\n  {e}. Retrying..."
+                            f"ERROR: Fail to update indexd for {filename}. Retrying... Details:\n  {e}"
                         )
-                        await asyncio.sleep(5)
+                        if tries == MAX_RETRIES:
+                            raise e
+                        tries += 1
+                        await asyncio.sleep(SLEEP_SECONDS)
 
             submitted_json["file_size"] = filesize
             submitted_json["md5sum"] = md5sum
@@ -773,9 +769,9 @@ class NCBI(base.BaseETL):
                     retrying = False
                 except Exception as e:
                     print(
-                        f"ERROR: Fail to get indexd record for {guid}. Details:\n  {e}. Retrying..."
+                        f"ERROR: Fail to get indexd record for {guid}. Retrying... Details:\n  {e}"
                     )
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(SLEEP_SECONDS)
 
             if not record:
                 print(
@@ -788,8 +784,8 @@ class NCBI(base.BaseETL):
             this_virus_genome["data_format"] = get_file_extension(record["file_name"])
 
             if not record["authz"]:
-                retries = 0
-                while retries < MAX_RETRIES:
+                tries = 0
+                while tries < MAX_RETRIES:
                     try:
                         await self.file_helper.async_update_authz(
                             did=guid, rev=record["rev"]
@@ -797,10 +793,12 @@ class NCBI(base.BaseETL):
                         break
                     except Exception as e:
                         print(
-                            f"ERROR: Fail to update indexd record for {guid}. Details:\n  {e}. Retrying..."
+                            f"ERROR: Fail to update indexd record for {guid}. Retrying... Details:\n  {e}"
                         )
-                        retries += 1
-                        await asyncio.sleep(5)
+                        if tries == MAX_RETRIES:
+                            raise e
+                        tries += 1
+                        await asyncio.sleep(SLEEP_SECONDS)
 
             this_virus_genome["file_size"] = record["size"]
             this_virus_genome["md5sum"] = record.get("hashes", {}).get("md5")
@@ -811,23 +809,46 @@ class NCBI(base.BaseETL):
         return True
 
     def process_genbank_manifest(self):
-        # TODO read from s3
-        with open(
-            "/Users/paulineribeyre/Downloads/NCBI-Virus-Metadata-covid19-only.csv", "r"
-        ) as f:
-            # TODO error handling / retries
-            # TODO refactor duplicated code for 2 manifests into a function?
-            reader = csv.DictReader(f, delimiter=",", quotechar='"')
-            for row in reader:
-                gb_sample, gb_virus_sequence = self.genbank_row_to_gen3_records(row)
-                self.submitting_data["virus_sequence"].append(gb_virus_sequence)
-                sra_sample = self.get_sra_sample_to_update(gb_sample)
-                id = f"genbank_{gb_sample['genbank_accession']}"
-                if sra_sample:
-                    sample = self.merge_sra_and_genbank_samples(sra_sample, gb_sample)
-                    self.submitting_data["sample"][id] = sample
-                else:
-                    self.submitting_data["sample"][id] = gb_sample
+        genbank_s3_bucket = "sra-pub-sars-cov2-metadata-us-east-1"
+        genbank_manifest = "genbank/csv/NCBI-Virus-Metadata.csv"
+        covid_species = "Severe acute respiratory syndrome-related coronavirus"
+        print(
+            f"Selecting covid19 data from GenBank manifest 's3://{genbank_s3_bucket}/{genbank_manifest}'..."
+        )
+
+        s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
+        s3_object = s3.Object(genbank_s3_bucket, genbank_manifest)
+        line_stream = codecs.getreader("utf-8")
+
+        tries = 0
+        while tries < MAX_RETRIES:
+            try:
+                input = line_stream(s3_object.get()["Body"])
+                reader = csv.DictReader(input, delimiter=",", quotechar='"')
+
+                for i, row in enumerate(reader):
+                    if i % 10000 == 0 and i != 0:
+                        print(f"Processed {i} rows")
+                    # TODO compare i to last processed row to skip existing data
+                    if row["Species"] != covid_species:
+                        # we don't care about turnips. skip non-covid data
+                        continue
+                    gb_sample, gb_virus_sequence = self.genbank_row_to_gen3_records(row)
+                    self.submitting_data["virus_sequence"].append(gb_virus_sequence)
+                    sra_sample = self.get_sra_sample_to_update(gb_sample)
+                    id = f"genbank_{gb_sample['genbank_accession']}"
+                    if sra_sample:
+                        sample = self.merge_sra_and_genbank_samples(
+                            sra_sample, gb_sample
+                        )
+                        self.submitting_data["sample"][id] = sample
+                    else:
+                        self.submitting_data["sample"][id] = gb_sample
+            except Exception as e:
+                print(f"Unable to read GenBank manifest. Retrying... Details:\n  {e}")
+                if tries == MAX_RETRIES:
+                    raise e
+                tries += 1
 
     def genbank_row_to_gen3_records(self, row):
         records = {
@@ -871,9 +892,9 @@ class NCBI(base.BaseETL):
             }}"""
             res = self.metadata_helper.query_peregrine(query_string)
             samples = res["data"]["sample"]
-            if len(samples > 1):
+            if len(samples) > 1:
                 raise Exception(f"Found 2 samples with sra_accession='{sra_accession}'")
-            elif len(samples == 1):
+            elif len(samples) == 1:
                 sample_to_update = samples[0]
         return sample_to_update
 

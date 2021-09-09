@@ -18,6 +18,7 @@ from utils.metadata_helper import MetadataHelper
 
 
 MAX_RETRIES = 4
+SLEEP_SECONDS = 15
 
 
 def validate_sra_value_format(row_num, field_name, value):
@@ -71,7 +72,7 @@ class NCBI_MANIFEST(base.BaseETL):
         validated_data = []
         for i, field_name in enumerate(headers):
             if field_name == "authz":
-                value = f"/programs/{self.program_name}/project/{self.project_code}"
+                value = f"/programs/{self.program_name}/projects/{self.project_code}"
             else:
                 value = validate_sra_value_format(row_num, field_name, row[i].strip())
             if field_name == "size":
@@ -107,9 +108,9 @@ class NCBI_MANIFEST(base.BaseETL):
                 print(
                     f"Failed to stream 's3://{sra_s3_bucket}/sra_manifest' (try #{tries}). Retrying... Details:\n  {e}"
                 )
-                time.sleep(30)
                 if tries == MAX_RETRIES:
                     raise e
+                time.sleep(SLEEP_SECONDS)
                 tries += 1
                 last_row_num = row_num
 
@@ -141,8 +142,8 @@ class NCBI_MANIFEST(base.BaseETL):
             self.last_submitted_guid = response["data"]["project"][0][
                 "last_submission_identifier"
             ]
-        except Exception as ex:
-            print(f"Error getting 'last_submission_identifier'. Details:\n  {ex}")
+        except Exception as e:
+            print(f"Error getting 'last_submission_identifier'. Details:\n  {e}")
             self.last_submitted_guid = None
         print(
             f"Last submitted GUID ('last_submission_identifier'): {self.last_submitted_guid}"
@@ -164,9 +165,9 @@ class NCBI_MANIFEST(base.BaseETL):
                 not self.last_submitted_guid  # no data was ever submitted yet
                 or seen_last_submitted_guid  # this data is not already indexed
             ):
-                retries = 0
+                tries = 0
                 file_is_indexed = False
-                while retries <= MAX_RETRIES:
+                while tries <= MAX_RETRIES:
                     try:
                         file_is_indexed = (
                             await self.file_helper.async_indexd_record_exists(guid)
@@ -174,20 +175,20 @@ class NCBI_MANIFEST(base.BaseETL):
                         break
                     except Exception as e:
                         print(
-                            f"ERROR: Fail to query indexd for {guid} (try #{retries}). Retrying... Details:\n  {e}"
+                            f"ERROR: Fail to query indexd for {guid} (try #{tries}). Retrying... Details:\n  {e}"
                         )
-                        if retries == MAX_RETRIES:
+                        if tries == MAX_RETRIES:
                             failed = True
-                        retries += 1
-                        await asyncio.sleep(5)
+                        tries += 1
+                        await asyncio.sleep(SLEEP_SECONDS)
 
                 if file_is_indexed:
                     print(f"{filename} ({guid}) is already indexed")
                     continue
 
                 print(f"Indexing {filename} ({guid}) (release date: {release_date})")
-                retries = 0
-                while retries <= MAX_RETRIES:
+                tries = 0
+                while tries <= MAX_RETRIES:
                     try:
                         await self.file_helper.async_index_record(
                             guid, size, filename, url, authz, md5
@@ -195,12 +196,12 @@ class NCBI_MANIFEST(base.BaseETL):
                         break
                     except Exception as e:
                         print(
-                            f"ERROR: Fail to create new indexd record for {guid} (try #{retries}). Retrying... Details:\n  {e}"
+                            f"ERROR: Fail to create new indexd record for {guid} (try #{tries}). Retrying... Details:\n  {e}"
                         )
-                        if retries == MAX_RETRIES:
+                        if tries == MAX_RETRIES:
                             failed = True
-                        retries += 1
-                        await asyncio.sleep(5)
+                        tries += 1
+                        await asyncio.sleep(SLEEP_SECONDS5)
 
             if failed:
                 # stop processing the manifest, but don't exit because we

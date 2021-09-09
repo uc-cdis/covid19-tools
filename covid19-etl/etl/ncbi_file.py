@@ -17,12 +17,11 @@ import codecs
 
 
 DATA_PATH = os.path.dirname(os.path.abspath(__file__))
-MAX_RETRIES = 5
+MAX_RETRIES = 4
+SLEEP_SECONDS = 15
 
 
 class NCBI_FILE(base.BaseETL):
-    """Class for handle NCBI data file"""
-
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
 
@@ -200,7 +199,7 @@ class NCBI_FILE(base.BaseETL):
                             # close the file
                             if f:
                                 f.close()
-                            await asyncio.sleep(10)
+                            await asyncio.sleep(SLEEP_SECONDS)
                 except Exception as e:
                     print(f"ERROR: Cannot download {key}. Details:\n  {e}")
                     raise
@@ -213,6 +212,8 @@ class NCBI_FILE(base.BaseETL):
                 break
             except Exception as e:
                 print(f"Cannot stream {key} from s3. Retrying...")
+                if tries == MAX_RETRIES:
+                    raise e
                 tries += 1
         return accession_numbers
 
@@ -293,22 +294,22 @@ class NCBI_FILE(base.BaseETL):
                 retrying = False
             except Exception as e:
                 print(
-                    f"ERROR: Fail to query indexd for {filename}. Details:\n  {e}. Retrying..."
+                    f"ERROR: Fail to query indexd for {filename}. Retrying... Details:\n  {e}"
                 )
-                await asyncio.sleep(5)
+                await asyncio.sleep(SLEEP_SECONDS)
 
         if not did:
             retrying = True
             while retrying:
                 try:
                     guid = await self.file_helper.async_upload_file(filepath)
-                    print(f"file {filepath.name} uploaded with guid: {guid}")
+                    print(f"file {filepath.name} uploaded at {guid}")
                     retrying = False
                 except Exception as e:
                     print(
-                        f"ERROR: Fail to upload file {filepath}. Details:\n  {e}. Retrying..."
+                        f"ERROR: Fail to upload file {filepath}. Retrying... Details:\n  {e}"
                     )
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(SLEEP_SECONDS)
         else:
-            print(f"file {filepath.name} exists in indexd... skipping...")
+            print(f"{filepath.name} is already indexed")
         os.remove(filepath)
