@@ -245,10 +245,7 @@ class NCBI(base.BaseETL):
 
         self.program_name = "open"
         self.project_code = "ncbi"
-        # self.accession_number_to_guids_map = defaultdict(list)
-        self.accession_number_to_guids_map = {  # TODO remove
-            "SRR11915907": ['dg.63D5/b5973b46-da51-3f16-a8e8-ea230828ccfb', 'dg.63D5/c9f73638-1bfb-34bb-985d-7572df991eda']
-        }
+        self.accession_number_to_guids_map = defaultdict(list)
         self.all_accession_numbers = set()
 
         self.metadata_helper = MetadataHelper(
@@ -272,15 +269,19 @@ class NCBI(base.BaseETL):
         )
 
         self.submitting_data = {
+            # from from SRA and GenBank data:
             "sample": {},  # { <sra accession>: <sample record> }
+            # from SRA data:
             "virus_genome": [],
             "core_metadata_collection": [],
-            "virus_sequence_run_taxonomy": [],  # TODO update node names
-            "virus_sequence_contig": [],
+            "virus_genome_run_taxonomy": [],
+            "virus_genome_contig": [],
             "virus_sequence_blastn": [],
-            "virus_sequence_contig_taxonomy": [],
+            "virus_genome_contig_taxonomy": [],
             "virus_sequence_peptide": [],
             "virus_sequence_hmm_search": [],
+            # from GenBank data:
+            "virus_sequence": [],
         }
 
         self.submitting_data["core_metadata_collection"].append(
@@ -290,22 +291,20 @@ class NCBI(base.BaseETL):
             }
         )
 
-        # TODO enable
-        # read_ncbi_sra_manifest(self.accession_number_to_guids_map)
+        read_ncbi_sra_manifest(self.accession_number_to_guids_map)
 
     def files_to_submissions(self):
         start = time.strftime("%X")
         loop = asyncio.get_event_loop()
         tasks = []
 
-        # TODO enable
-        # for node_name, _ in self.data_file.nodes.items():
-        #     if node_name == "virus_sequence_run_taxonomy":
-        #         continue
-        #     else:
-        #         tasks.append(
-        #             asyncio.ensure_future(self.files_to_node_submissions(node_name))
-        #         )
+        for node_name, _ in self.data_file.nodes.items():
+            if node_name == "virus_genome_run_taxonomy":
+                continue
+            else:
+                tasks.append(
+                    asyncio.ensure_future(self.files_to_node_submissions(node_name))
+                )
 
         try:
             results = loop.run_until_complete(asyncio.gather(*tasks))
@@ -316,7 +315,7 @@ class NCBI(base.BaseETL):
             )
             loop.run_until_complete(
                 asyncio.gather(
-                    self.files_to_virus_sequence_run_taxonomy_submission(
+                    self.files_to_virus_genome_run_taxonomy_submission(
                         submitting_accession_numbers
                     )
                 )
@@ -347,32 +346,27 @@ class NCBI(base.BaseETL):
             for _record in records:
                 record = {"type": node}
                 record.update(_record)
-                print(record) # TODO submit, below
-            #     self.metadata_helper.add_record_to_submit(record)
-            # self.metadata_helper.batch_submit_records()
+                self.metadata_helper.add_record_to_submit(record)
+            self.metadata_helper.batch_submit_records()
 
         end = time.strftime("%X")
         print(f"Submitting time: From {start} to {end}")
 
-    async def files_to_virus_sequence_run_taxonomy_submission(
+    async def files_to_virus_genome_run_taxonomy_submission(
         self, submitting_accession_numbers
     ):
-        """get submitting data for virus_sequence_run_taxonomy node
+        """get submitting data for virus_genome_run_taxonomy node
 
         Same concept as `files_to_node_submissions`, but also parse `sample`
         and `virus_genome` data from BigQuery, and link
-        `virus_sequence_run_taxonomy` nodes to `virus_genome` nodes."""
+        `virus_genome_run_taxonomy` nodes to `virus_genome` nodes."""
 
         if not submitting_accession_numbers:
             return
 
-        # bigquery_records = self._get_response_from_big_query(
-        #     submitting_accession_numbers
-        # ) # TODO enable and remove below
-        import datetime as dt
-        bigquery_records = [
-            {'acc': 'SRR11915907', 'assay_type': 'AMPLICON', 'center_name': 'THE PETER DOHERTY INSTITUTE FOR INFECTION AND IMMUNITY', 'consent': 'public', 'experiment': 'SRX8462384', 'sample_name': 'hCoV-19/Australia/VIC1747/2020', 'instrument': 'NextSeq 500', 'librarylayout': 'PAIRED', 'libraryselection': 'PCR', 'librarysource': 'VIRAL RNA', 'platform': 'ILLUMINA', 'sample_acc': 'SRS6763611', 'biosample': 'SAMN15087277', 'organism': 'Severe acute respiratory syndrome coronavirus 2', 'sra_study': 'SRP253798', 'releasedate': dt.datetime(2020, 6, 3, 0, 0), 'bioproject': 'PRJNA613958', 'mbytes': 33, 'loaddate': None, 'avgspotlen': 289, 'mbases': 81, 'insertsize': None, 'library_name': 'VIC1747_illumina', 'biosamplemodel_sam': ['Pathogen.cl'], 'collection_date_sam': dt.date(2020, 5, 24), 'geo_loc_name_country_calc': 'Australia', 'geo_loc_name_country_continent_calc': 'Oceania', 'geo_loc_name_sam': ['Australia: Victoria'], 'ena_first_public_run': [], 'ena_last_update_run': [], 'sample_name_sam': [], 'datastore_filetype': ['fastq', 'sra'], 'datastore_provider': ['gs', 'ncbi', 's3'], 'datastore_region': ['gs.US', 'ncbi.public', 's3.us-east-1'], 'attributes': [{'k': 'bases', 'v': '81931242'}, {'k': 'bytes', 'v': '35181440'}, {'k': 'collected_by_sam', 'v': 'Victorian Infectious Diseases Reference Laboratory (VIDRL)'}, {'k': 'collection_date_sam', 'v': '2020-05-24'}, {'k': 'host_age_sam', 'v': '56'}, {'k': 'host_disease_sam', 'v': 'COVID-19'}, {'k': 'host_sam', 'v': 'Homo sapiens'}, {'k': 'host_sex_sam', 'v': 'female'}, {'k': 'isolate_sam', 'v': 'SARS-CoV-2/human/AUS/VIC1747/2020'}, {'k': 'isolation_source_sam_ss_dpl262', 'v': 'missing'}, {'k': 'lat_lon_sam', 'v': 'missing'}, {'k': 'passage_history_sam_s_dpl312', 'v': 'Original'}, {'k': 'primary_search', 'v': '15087277'}, {'k': 'primary_search', 'v': '613958'}, {'k': 'primary_search', 'v': 'CORONAVIRIDAE'}, {'k': 'primary_search', 'v': 'PRJEB39908'}, {'k': 'primary_search', 'v': 'PRJNA613958'}, {'k': 'primary_search', 'v': 'SAMN15087277'}, {'k': 'primary_search', 'v': 'SRP253798'}, {'k': 'primary_search', 'v': 'SRR11915907'}, {'k': 'primary_search', 'v': 'SRS6763611'}, {'k': 'primary_search', 'v': 'SRX8462384'}, {'k': 'primary_search', 'v': 'VIC1747_R1.fq.gz'}, {'k': 'primary_search', 'v': 'VIC1747_illumina'}, {'k': 'primary_search', 'v': 'hCoV-19/Australia/VIC1747/2020'}], 'jattr': '{"bases": 81931242, "bytes": 35181440, "collected_by_sam": ["Victorian Infectious Diseases Reference Laboratory (VIDRL)"], "collection_date_sam": ["2020-05-24"], "host_age_sam": ["56"], "host_disease_sam": ["COVID-19"], "host_sam": ["Homo sapiens"], "host_sex_sam": ["female"], "isolate_sam": ["SARS-CoV-2/human/AUS/VIC1747/2020"], "isolation_source_sam_ss_dpl262": ["missing"], "lat_lon_sam": ["missing"], "passage_history_sam_s_dpl312": "Original", "primary_search": "15087277"}'}
-        ]
+        bigquery_records = self._get_response_from_big_query(
+            submitting_accession_numbers
+        )
 
         # Keep track of accession numbers with a link to a virus_genome node
         accession_number_set = set()
@@ -384,13 +378,14 @@ class NCBI(base.BaseETL):
                 if success:
                     accession_number_set.add(accession_number)
 
-        cmc_submitter_id = self.submitting_data["core_metadata_collection"][0]["submitter_id"]
+        cmc = self.submitting_data["core_metadata_collection"][0]
+        cmc_submitter_id = cmc["submitter_id"]
         for accession_number in submitting_accession_numbers:
-            virus_sequence_run_taxonomy_submitter_id = format_submitter_id(
-                "virus_sequence_run_taxonomy", {"accession_number": accession_number}
+            virus_genome_run_taxonomy_submitter_id = format_submitter_id(
+                "virus_genome_run_taxonomy", {"accession_number": accession_number}
             )
             submitted_json = {
-                "submitter_id": virus_sequence_run_taxonomy_submitter_id,
+                "submitter_id": virus_genome_run_taxonomy_submitter_id,
                 "core_metadata_collections": [{"submitter_id": cmc_submitter_id}],
                 "accession_number": accession_number,
                 "data_type": "Virus Sequence Run Taxonomy Analysis",
@@ -404,7 +399,7 @@ class NCBI(base.BaseETL):
                     {"submitter_id": f"virus_genome_{accession_number}"}
                 ]
 
-            filename = f"virus_sequence_run_taxonomy_{accession_number}.csv"
+            filename = f"virus_genome_run_taxonomy_{accession_number}.csv"
             print(f"Get indexd info for '{filename}'")
             trying = True
             while trying:
@@ -444,7 +439,7 @@ class NCBI(base.BaseETL):
             submitted_json["object_id"] = did
             submitted_json["file_name"] = file_name
 
-            self.submitting_data["virus_sequence_run_taxonomy"].append(submitted_json)
+            self.submitting_data["virus_genome_run_taxonomy"].append(submitted_json)
 
     async def files_to_node_submissions(self, node_name):
         """Get submitting data for the node
@@ -475,20 +470,20 @@ class NCBI(base.BaseETL):
             cmc_submitter_id = format_submitter_id("cmc_ncbi_covid19", {})
 
             contig_submitter_id = format_submitter_id(
-                "virus_sequence_contig", {"accession_number": accession_number}
+                "virus_genome_contig", {"accession_number": accession_number}
             )
             peptide_submitter_id = format_submitter_id(
                 "virus_sequence_peptide", {"accession_number": accession_number}
             )
             run_taxonomy_submitter_id = format_submitter_id(
-                "virus_sequence_run_taxonomy", {"accession_number": accession_number}
+                "virus_genome_run_taxonomy", {"accession_number": accession_number}
             )
 
-            if node_name == "virus_sequence_contig":
+            if node_name == "virus_genome_contig":
                 submitted_json = {
                     "submitter_id": submitter_id,
                     "core_metadata_collections": [{"submitter_id": cmc_submitter_id}],
-                    "virus_sequences_run_taxonomies": [
+                    "virus_genomes_run_taxonomies": [
                         {"submitter_id": run_taxonomy_submitter_id}
                     ],
                     "accession_number": accession_number,
@@ -500,7 +495,7 @@ class NCBI(base.BaseETL):
                 submitted_json = {
                     "submitter_id": submitter_id,
                     "core_metadata_collections": [{"submitter_id": cmc_submitter_id}],
-                    "virus_sequence_contigs": [{"submitter_id": contig_submitter_id}],
+                    "virus_genome_contigs": [{"submitter_id": contig_submitter_id}],
                     "accession_number": accession_number,
                     "data_type": "Virus Sequence Blastn",
                     "data_format": "tsv",
@@ -510,7 +505,7 @@ class NCBI(base.BaseETL):
                 submitted_json = {
                     "submitter_id": submitter_id,
                     "core_metadata_collections": [{"submitter_id": cmc_submitter_id}],
-                    "virus_sequence_contigs": [{"submitter_id": contig_submitter_id}],
+                    "virus_genome_contigs": [{"submitter_id": contig_submitter_id}],
                     "accession_number": accession_number,
                     "data_type": "Peptides Annotation Using VIGOR3",
                     "data_format": "json",
@@ -526,11 +521,11 @@ class NCBI(base.BaseETL):
                     "data_format": "json",
                     "data_category": "HMMER Scab of Contigs",
                 }
-            elif node_name == "virus_sequence_contig_taxonomy":
+            elif node_name == "virus_genome_contig_taxonomy":
                 submitted_json = {
                     "submitter_id": submitter_id,
                     "core_metadata_collections": [{"submitter_id": cmc_submitter_id}],
-                    "virus_sequence_contigs": [{"submitter_id": contig_submitter_id}],
+                    "virus_genome_contigs": [{"submitter_id": contig_submitter_id}],
                     "accession_number": accession_number,
                     "data_type": "Contig Taxonomy",
                     "data_format": "json",
@@ -829,7 +824,8 @@ class NCBI(base.BaseETL):
                 sra_sample = self.get_sra_sample_to_update(gb_sample)
                 id = f"genbank_{gb_sample['genbank_accession']}"
                 if sra_sample:
-                    self.submitting_data["sample"][id] = self.merge_sra_and_genbank_samples(sra_sample, gb_sample)
+                    sample = self.merge_sra_and_genbank_samples(sra_sample, gb_sample)
+                    self.submitting_data["sample"][id] = sample
                 else:
                     self.submitting_data["sample"][id] = gb_sample
 
@@ -873,7 +869,8 @@ class NCBI(base.BaseETL):
                     submitter_id
                 }}
             }}"""
-            samples = self.metadata_helper.query_peregrine(query_string)["data"]["sample"]
+            res = self.metadata_helper.query_peregrine(query_string)
+            samples = res["data"]["sample"]
             if len(samples > 1):
                 raise Exception(f"Found 2 samples with sra_accession='{sra_accession}'")
             elif len(samples == 1):

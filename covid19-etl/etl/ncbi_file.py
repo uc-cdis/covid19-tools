@@ -47,15 +47,15 @@ class NCBI_FILE(base.BaseETL):
         # Note: in .json files, each row is a valid JSON object, but the file
         # is not
         self.nodes = {
-            "virus_sequence_contig": ["contigs/contigs.json"],
+            "virus_genome_contig": ["contigs/contigs.json"],
             "virus_sequence_peptide": ["peptides/peptides.json"],
-            "virus_sequence_contig_taxonomy": ["taxonomy/taxonomy.json"],
+            "virus_genome_contig_taxonomy": ["taxonomy/taxonomy.json"],
             "virus_sequence_blastn": [
                 "blastn/blastn.tsv",
                 "acc\tqacc\tstaxid\tsacc\tslen\tlength\tbitscore\tscore\tpident\tsskingdom\tevalue\tssciname\n",
             ],
             "virus_sequence_hmm_search": ["hmmsearch_notc/hmmsearch_notc.json"],
-            "virus_sequence_run_taxonomy": [
+            "virus_genome_run_taxonomy": [
                 # contains a CSV file
                 "sra_taxonomy/coronaviridae_07_31_2020_000000000000.gz"
             ],
@@ -68,7 +68,7 @@ class NCBI_FILE(base.BaseETL):
         loop = asyncio.get_event_loop()
         tasks = []
         for node_name, value in self.nodes.items():
-            if node_name == "virus_sequence_run_taxonomy":
+            if node_name == "virus_genome_run_taxonomy":
                 # files for this node are indexed differently (unzip first)
                 continue
             key = value[0]
@@ -84,7 +84,7 @@ class NCBI_FILE(base.BaseETL):
         try:
             results = loop.run_until_complete(asyncio.gather(*tasks))
             loop.run_until_complete(
-                asyncio.gather(self.index_virus_sequence_run_taxonomy_file(results[0]))
+                asyncio.gather(self.index_virus_genome_run_taxonomy_file(results[0]))
             )
         finally:
             try:
@@ -97,7 +97,7 @@ class NCBI_FILE(base.BaseETL):
         end = time.strftime("%X")
         print(f"Running time: From {start} to {end}")
 
-    async def index_virus_sequence_run_taxonomy_file(self, accession_numbers):
+    async def index_virus_genome_run_taxonomy_file(self, accession_numbers):
         """
         Chop the index virus sequence run taxonomy file into multiple smaller files
         by accession number and index them.
@@ -107,8 +107,8 @@ class NCBI_FILE(base.BaseETL):
         """
 
         s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
-        s3_object = s3.Object(self.bucket, self.nodes["virus_sequence_run_taxonomy"][0])
-        file_path = f"{DATA_PATH}/virus_sequence_run_taxonomy.gz"
+        s3_object = s3.Object(self.bucket, self.nodes["virus_genome_run_taxonomy"][0])
+        file_path = f"{DATA_PATH}/virus_genome_run_taxonomy.gz"
         s3_object.download_file(file_path)
 
         results = {}
@@ -132,9 +132,7 @@ class NCBI_FILE(base.BaseETL):
                 line = f.readline()
 
         for accession_number, rows in results.items():
-            file_path = (
-                f"{DATA_PATH}/virus_sequence_run_taxonomy_{accession_number}.csv"
-            )
+            file_path = f"{DATA_PATH}/virus_genome_run_taxonomy_{accession_number}.csv"
             async with aiof.open(file_path, "w") as out:
                 await out.write(header)
                 for row in rows:
