@@ -158,7 +158,7 @@ class NCBI_FILE(base.BaseETL):
 
         line_stream = codecs.getreader("utf-8")
         tries = 0
-        while tries < MAX_RETRIES:
+        while tries <= MAX_RETRIES:
             try:
                 # Setup s3 connection for data streaming
                 s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))

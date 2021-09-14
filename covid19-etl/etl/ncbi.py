@@ -18,6 +18,7 @@ from utils.async_file_helper import AsyncFileHelper
 from utils.format_helper import format_submitter_id
 from utils.metadata_helper import MetadataHelper
 from etl.ncbi_file import NCBI_FILE
+from etl.ncbi_manifest import NCBI_MANIFEST
 
 DATA_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -209,27 +210,6 @@ GENBANK_TO_GEN3_MAPPING = {
 }
 
 
-def read_ncbi_sra_manifest(accession_number_to_guids_map):
-    """read the manifest"""
-    sra_s3_bucket = "sra-pub-sars-cov2"
-    sra_manifest = "sra-src/Manifest"
-    print(f"Reading SRA manifest 's3://{sra_s3_bucket}/{sra_manifest}'...")
-    s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
-    s3_object = s3.Object(sra_s3_bucket, sra_manifest)
-    line_stream = codecs.getreader("utf-8")
-    for i, line in enumerate(line_stream(s3_object.get()["Body"])):
-        # TODO csv
-        words = line.split("\t")
-        guid = words[0]
-        url = words[5]
-        r1 = re.findall("[SDE]RR\d+", url)
-        if len(r1) >= 1:
-            accession_number = r1[0]
-            accession_number_to_guids_map[accession_number].append(guid)
-        if i % 10000 == 0 and i != 0:
-            print(f"Processed {i} rows")
-
-
 class NCBI(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         super().__init__(base_url, access_token, s3_bucket)
@@ -253,7 +233,13 @@ class NCBI(base.BaseETL):
             access_token=access_token,
         )
 
-        self.data_file = NCBI_FILE(
+        self.ncbi_file_module = NCBI_FILE(
+            base_url=self.base_url,
+            s3_bucket=self.project_code,
+            access_token=access_token,
+        )
+
+        self.ncbi_manifest_module = NCBI_MANIFEST(
             base_url=self.base_url,
             s3_bucket=self.project_code,
             access_token=access_token,
@@ -282,15 +268,30 @@ class NCBI(base.BaseETL):
             }
         )
 
+    def process_sra_manifest(self, accession_number_to_guids_map):
+        for (
+            guid,
+            _,
+            _,
+            _,
+            _,
+            url,
+            _,
+        ) in self.ncbi_manifest_module.read_ncbi_sra_manifest():
+            r1 = re.findall("[SDE]RR\d+", url)
+            if len(r1) >= 1:
+                accession_number = r1[0]
+                accession_number_to_guids_map[accession_number].append(guid)
+
     def files_to_submissions(self):
         start = time.strftime("%X")
 
-        read_ncbi_sra_manifest(self.accession_number_to_guids_map)
+        self.process_sra_manifest(self.accession_number_to_guids_map)
 
         loop = asyncio.get_event_loop()
         tasks = []
 
-        for node_name, _ in self.data_file.nodes.items():
+        for node_name, _ in self.ncbi_file_module.nodes.items():
             if node_name == "virus_genome_run_taxonomy":
                 continue
             else:
@@ -392,7 +393,7 @@ class NCBI(base.BaseETL):
                 ]
 
             filename = f"virus_genome_run_taxonomy_{accession_number}.csv"
-            print(f"Get indexd info for '{filename}'")
+            print(f"Get indexd record for {filename}")
             trying = True
             while trying:
                 try:
@@ -410,13 +411,11 @@ class NCBI(base.BaseETL):
                         f"Cannot get indexd record of {filename}. Retrying... Details:\n  {e}"
                     )
 
-            assert (
-                did
-            ), f"file '{filename}' does not exist in indexd, rerun NCBI_FILE ETL"
+            assert did, f"file {filename} does not exist in indexd, rerun NCBI_FILE ETL"
 
             if not authz:
                 tries = 0
-                while tries < MAX_RETRIES:
+                while tries <= MAX_RETRIES:
                     try:
                         await self.file_helper.async_update_authz(did=did, rev=rev)
                         break
@@ -528,13 +527,14 @@ class NCBI(base.BaseETL):
             else:
                 raise Exception(f"ERROR: {node_name} does not exist")
 
-            ext = re.search("\.(.*)$", self.data_file.nodes[node_name][0]).group(1)
+            key = self.ncbi_file_module.nodes[node_name][0]
+            ext = re.search("\.(.*)$", key).group(1)
             filename = f"{node_name}_{accession_number}.{ext}"
 
-            print(f"Get indexd record of {filename}")
+            print(f"Get indexd record for {filename}")
 
-            retrying = True  # TODO MAX_RETRIES
-            while retrying:
+            tries = 0
+            while tries <= MAX_RETRIES:
                 try:
                     (
                         did,
@@ -544,11 +544,14 @@ class NCBI(base.BaseETL):
                         file_name,
                         authz,
                     ) = await self.file_helper.async_find_by_name(filename=filename)
-                    retrying = False
+                    break
                 except Exception as e:
                     print(
                         f"ERROR: Fail to query indexd for {filename}. Retrying... Details:\n  {e}"
                     )
+                    if tries == MAX_RETRIES:
+                        raise e
+                    tries += 1
                     await asyncio.sleep(SLEEP_SECONDS)
 
             assert (
@@ -557,7 +560,7 @@ class NCBI(base.BaseETL):
 
             if not authz:
                 tries = 0
-                while tries < MAX_RETRIES:
+                while tries <= MAX_RETRIES:
                     try:
                         await self.file_helper.async_update_authz(did=did, rev=rev)
                         break
@@ -585,18 +588,20 @@ class NCBI(base.BaseETL):
 
         submitting_accession_numbers = set()
         existing_accession_numbers = (
-            await self.data_file.get_existing_accession_numbers(node_name)
+            await self.ncbi_file_module.get_existing_accession_numbers(node_name)
         )
         print(
             f"[{node_name}] {len(existing_accession_numbers)} existing accession numbers"
         )
 
         s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
-        key = self.data_file.nodes[node_name][0]
-        s3_object = s3.Object(self.data_file.bucket, key)
+        key = self.ncbi_file_module.nodes[node_name][0]
+        s3_object = s3.Object(self.ncbi_file_module.bucket, key)
         line_stream = codecs.getreader("utf-8")
         n_lines = 0
-        print(f"[{node_name}] Reading file 's3://{self.data_file.bucket}/{key}'...")
+        print(
+            f"[{node_name}] Reading file 's3://{self.ncbi_file_module.bucket}/{key}'..."
+        )
         for line in line_stream(s3_object.get()["Body"]):
             r1 = re.findall("[SDE]RR\d+", line)
             n_lines += 1
@@ -761,16 +766,19 @@ class NCBI(base.BaseETL):
         virus_genome["data_type"] = "Sequence"
 
         for guid in self.accession_number_to_guids_map[sra_accession_number]:
-            retrying = True  # TODO MAX_RETRIES
             record = None
-            while retrying:
+            tries = 0
+            while tries <= MAX_RETRIES:
                 try:
                     record = await self.file_helper.async_get_indexd_record(guid)
-                    retrying = False
+                    break
                 except Exception as e:
                     print(
                         f"ERROR: Fail to get indexd record for {guid}. Retrying... Details:\n  {e}"
                     )
+                    if tries == MAX_RETRIES:
+                        raise e
+                    tries += 1
                     await asyncio.sleep(SLEEP_SECONDS)
 
             if not record:
@@ -785,7 +793,7 @@ class NCBI(base.BaseETL):
 
             if not record["authz"]:
                 tries = 0
-                while tries < MAX_RETRIES:
+                while tries <= MAX_RETRIES:
                     try:
                         await self.file_helper.async_update_authz(
                             did=guid, rev=record["rev"]
@@ -821,7 +829,7 @@ class NCBI(base.BaseETL):
         line_stream = codecs.getreader("utf-8")
 
         tries = 0
-        while tries < MAX_RETRIES:
+        while tries <= MAX_RETRIES:
             try:
                 input = line_stream(s3_object.get()["Body"])
                 reader = csv.DictReader(input, delimiter=",", quotechar='"')
@@ -844,6 +852,7 @@ class NCBI(base.BaseETL):
                         self.submitting_data["sample"][id] = sample
                     else:
                         self.submitting_data["sample"][id] = gb_sample
+                break
             except Exception as e:
                 print(f"Unable to read GenBank manifest. Retrying... Details:\n  {e}")
                 if tries == MAX_RETRIES:
