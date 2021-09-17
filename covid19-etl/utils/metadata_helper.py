@@ -100,7 +100,7 @@ class MetadataHelper:
         }"""
         variables = {"filter": {"=": {"project_id": self.project_id}}}
         query_res = self.query_guppy(query_string, variables)
-        if "data" in query_res and "location" in query_res["data"]:
+        if "data" not in query_res or "location" not in query_res["data"]:
             raise Exception(
                 "Did not receive any data from Guppy. Is the token expired?"
             )
