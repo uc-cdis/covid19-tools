@@ -1,9 +1,11 @@
 from aiohttp import ClientSession
 import datetime
-import json
-from math import ceil
-from time import sleep
 from dateutil.parser import parse
+import json
+import jwt
+from math import ceil
+import time
+import os
 
 import requests
 
@@ -19,11 +21,29 @@ class MetadataHelper:
         self.base_url = base_url
         self.program_name = program_name
         self.project_code = project_code
+        self.access_token = access_token
 
-        self.headers = {"Authorization": "bearer " + access_token}
         self.project_id = "{}-{}".format(self.program_name, self.project_code)
 
         self.records_to_submit = []
+
+    def get_headers(self):
+        # for running ETLs locally: if an API key was provided, and the
+        # current token is expired, get a new one
+        if "API_KEY" in os.environ:
+            payload = jwt.decode(self.access_token, options={"verify_signature": False})
+            if payload["exp"] < time.time():
+                with open(os.environ["API_KEY"], "r") as f:
+                    creds = json.load(f)
+                resp = requests.post(
+                    self.base_url + "/user/credentials/api/access_token", json=creds
+                )
+                if resp.status_code != 200:
+                    print(f"Unable to refresh access token. Details:\n{resp.text}")
+                    raise Exception(resp.reason)
+                self.access_token = resp.json()["access_token"]
+        headers = {"Authorization": "bearer " + self.access_token}
+        return headers
 
     def get_existing_data_jhu(self):
         """
@@ -132,12 +152,12 @@ class MetadataHelper:
                     "{}/api/v0/submission/{}/{}".format(
                         self.base_url, self.program_name, self.project_code
                     ),
-                    headers=self.headers,
+                    headers=self.get_headers(),
                     data=json.dumps(records),
                 )
                 if response.status_code != 200:
                     tries += 1
-                    sleep(5)
+                    time.sleep(5)
                 else:
                     print("Submission progress: {}/{}".format(i + 1, n_batches))
                     break
@@ -155,7 +175,7 @@ class MetadataHelper:
         response = requests.post(
             url,
             json={"query": query_string, "variables": None},
-            headers=self.headers,
+            headers=self.get_headers(),
         )
         try:
             response.raise_for_status()
@@ -189,14 +209,14 @@ class MetadataHelper:
                         raise
                     return response
 
-        return await _post_request(self.headers, query_string)
+        return await _post_request(self.get_headers(), query_string)
 
     def query_guppy(self, query_string, variables=None):
         url = f"{self.base_url}/guppy/graphql"
         response = requests.post(
             url,
             json={"query": query_string, "variables": variables},
-            headers=self.headers,
+            headers=self.get_headers(),
         )
         try:
             response.raise_for_status()
@@ -222,7 +242,7 @@ class MetadataHelper:
         response = requests.post(
             url,
             json=body,
-            headers=self.headers,
+            headers=self.get_headers(),
         )
         try:
             response.raise_for_status()
@@ -254,7 +274,7 @@ class MetadataHelper:
 
     def update_last_submission(self, last_submission_date_time):
         headers = {"content-type": "application/json"}
-        headers["Authorization"] = self.headers["Authorization"]
+        headers["Authorization"] = self.get_headers()["Authorization"]
         record = {
             "code": self.project_code,
             "dbgap_accession_number": self.project_code,
@@ -310,7 +330,7 @@ class MetadataHelper:
                             break
                         output = requests.delete(
                             "{}/{}".format(api_url, ",".join(uuids_to_delete)),
-                            headers=self.headers,
+                            headers=self.get_headers(),
                         )
                         try:
                             output.raise_for_status()

@@ -14,11 +14,13 @@ In the root of the covid19-tools repo:
 ```
 pip install -r covid19-etl-requirements.txt
 export ACCESS_TOKEN=<access token>
+export API_KEY=<path to API key>
 JOB_NAME=<name of the ETL to run> S3_BUCKET=<bucket> python covid19-etl/main.py
 ```
 - `JOB_NAME` is required
 - `ACCESS_TOKEN` is required. If the ETL you are running does not need an access token, use a fake value
 - `S3_BUCKET` is optional, but ETLs that upload files to S3 need it
+- `API_KEY` is optional. Provide the path to an API key to automatically renew expired access tokens.
 
 ## Adding a new ETL
 
