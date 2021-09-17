@@ -226,8 +226,14 @@ class NCBI_FILE(base.BaseETL):
         Returns:
             list(str): list of accession numbers
         """
-
-        query_string = "{ " + node_name + " (first:0) { submitter_id } }"
+        project_id = self.program_name + "-" + self.project_code
+        query_string = (
+            "{ "
+            + node_name
+            + ' (first:0, project_id:"'
+            + project_id
+            + '") { submitter_id } }'
+        )
         response = await self.metadata_helper.async_query_peregrine(query_string)
         records = response["data"][node_name]
         return set([record["submitter_id"].lower() for record in records])
