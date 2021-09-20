@@ -345,6 +345,9 @@ class NCBI(base.BaseETL):
         )
 
         for node, records in self.submitting_data.items():
+            if node == "virus_sequence":
+                # TODO remove - temporarily not submitting those
+                continue
             print(f"Submitting {node} data: {len(records)} records")
             if isinstance(records, dict):  # samples are in a dict
                 records = records.values()
