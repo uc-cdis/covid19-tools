@@ -263,13 +263,6 @@ class NCBI(base.BaseETL):
             "virus_sequence": [],
         }
 
-        self.submitting_data["core_metadata_collection"].append(
-            {
-                "submitter_id": "cmc_ncbi_covid19",
-                "projects": [{"code": self.project_code}],
-            }
-        )
-
     def process_sra_manifest(self, accession_number_to_guids_map):
         for (
             guid,
@@ -290,10 +283,11 @@ class NCBI(base.BaseETL):
 
         project_last_submission = self.metadata_helper.get_project_last_submission()
         try:
-            self.last_submission = json.loads(project_last_submission)
-        except:
+            if project_last_submission:
+                self.last_submission = json.loads(project_last_submission)
+        except Exception as e:
             print(
-                f"Unable to parse JSON from `last_submission_identifier`: {project_last_submission}"
+                f"Unable to parse JSON from `last_submission_identifier`: {project_last_submission}. Details:\n  {e}"
             )
             # will use init value of {}
 
@@ -342,6 +336,13 @@ class NCBI(base.BaseETL):
 
     def submit_metadata(self):
         start = time.strftime("%X")
+
+        self.submitting_data["core_metadata_collection"].append(
+            {
+                "submitter_id": "cmc_ncbi_covid19",
+                "projects": [{"code": self.project_code}],
+            }
+        )
 
         for node, records in self.submitting_data.items():
             print(f"Submitting {node} data: {len(records)} records")
@@ -398,7 +399,7 @@ class NCBI(base.BaseETL):
                 "submitter_id": virus_genome_run_taxonomy_submitter_id,
                 "core_metadata_collections": [{"submitter_id": cmc_submitter_id}],
                 "accession_number": accession_number,
-                "data_type": "Virus Sequence Run Taxonomy Analysis",
+                "data_type": "Virus Genome Run Taxonomy Analysis",
                 "data_format": "json",
                 "data_category": "Kmer-based Taxonomy Analysis",
             }
@@ -497,7 +498,7 @@ class NCBI(base.BaseETL):
                         {"submitter_id": run_taxonomy_submitter_id}
                     ],
                     "accession_number": accession_number,
-                    "data_type": "Virus Sequence Contig",
+                    "data_type": "Virus Genome Contig",
                     "data_format": "json",
                     "data_category": "Nucleotide Contig",
                 }
@@ -931,7 +932,7 @@ class NCBI(base.BaseETL):
                     res = self.metadata_helper.query_peregrine(query_string)
                     break
                 except Exception as e:
-                    print("Failed to query Peregrine; retrying.")
+                    print(f"Failed to query Peregrine; retrying. Details:\n  {e}")
                     if tries == MAX_RETRIES:
                         raise e
                     tries += 1
@@ -946,8 +947,8 @@ class NCBI(base.BaseETL):
     def merge_sra_and_genbank_samples(self, sra_sample, genbank_sample):
         # overwrite SRA metadata with GenBank metadata
         sample = dict(sra_sample, **genbank_sample)
-        # update submitter_id. The current value is:
-        # `sample_genbank_<genbank accession>`, and we want:
-        # `sample_genbank_<genbank accession>_sra_<sra_accession>`
-        sample["submitter_id"] += f"_sra_{genbank_sample['sra_accession']}"
+        # update submitter_id. We need to keep the SRA submitter_id, or we
+        # would have to delete and resubmit samples and their children nodes
+        # to update the submitter_id
+        sample["submitter_id"] = sra_sample["submitter_id"]
         return sample

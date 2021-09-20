@@ -8,7 +8,7 @@ import os
 
 import requests
 
-MAX_RETRIES = 5
+MAX_RETRIES = 3
 
 
 class MetadataHelper:
@@ -38,7 +38,7 @@ class MetadataHelper:
                     self.base_url + "/user/credentials/api/access_token", json=creds
                 )
                 if resp.status_code != 200:
-                    print(f"Unable to refresh access token. Details:\n{resp.text}")
+                    print(f"Unable to refresh access token. Details:\n  {resp.text}")
                     raise Exception(resp.reason)
                 self.access_token = resp.json()["access_token"]
         headers = {"Authorization": "bearer " + self.access_token}

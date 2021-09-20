@@ -141,10 +141,11 @@ class NCBI_MANIFEST(base.BaseETL):
     async def process_sra_manifest(self):
         project_last_submission = self.metadata_helper.get_project_last_submission()
         try:
-            self.last_submission = json.loads(project_last_submission)
-        except:
+            if project_last_submission:
+                self.last_submission = json.loads(project_last_submission)
+        except Exception as e:
             print(
-                f"Unable to parse JSON from `last_submission_identifier`: {project_last_submission}"
+                f"Unable to parse JSON from `last_submission_identifier`: {project_last_submission}. Details:\n  {e}"
             )
             # will use init value of {}
         last_submitted_guid = self.last_submission.get("ncbi_manifest")
