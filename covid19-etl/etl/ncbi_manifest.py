@@ -50,7 +50,7 @@ class NCBI_MANIFEST(base.BaseETL):
         super().__init__(base_url, access_token, s3_bucket)
 
         self.program_name = "open"
-        self.project_code = "ncbi"
+        self.project_code = "NCBI"
         self.token = access_token
         self.last_submission = {}
 

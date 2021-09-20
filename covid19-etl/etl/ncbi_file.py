@@ -26,7 +26,7 @@ class NCBI_FILE(base.BaseETL):
         super().__init__(base_url, access_token, s3_bucket)
 
         self.program_name = "open"
-        self.project_code = "ncbi"
+        self.project_code = "NCBI"
 
         self.file_helper = AsyncFileHelper(
             base_url=self.base_url,

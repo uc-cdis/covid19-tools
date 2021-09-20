@@ -216,7 +216,7 @@ class NCBI(base.BaseETL):
         super().__init__(base_url, access_token, s3_bucket)
 
         self.program_name = "open"
-        self.project_code = "ncbi"
+        self.project_code = "NCBI"
         self.accession_number_to_guids_map = defaultdict(list)
         self.all_accession_numbers = set()
         self.last_submission = {}
@@ -855,7 +855,8 @@ class NCBI(base.BaseETL):
             reader = csv.DictReader(input, delimiter=",", quotechar='"')
 
             for i, row in enumerate(reader):
-                if i <= last_genbank_row:  # skip existing data
+                if last_genbank_row and i <= last_genbank_row:
+                    # skip existing data
                     continue
                 if i % 10000 == 0 and i != 0:
                     print(f"Processed {i} rows")
