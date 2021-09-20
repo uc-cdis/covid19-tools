@@ -859,7 +859,6 @@ class NCBI(base.BaseETL):
                     continue
                 if i % 10000 == 0 and i != 0:
                     print(f"Processed {i} rows")
-                    break
                 if row["Species"] != covid_species:
                     # we don't care about turnips. skip non-covid data
                     continue
@@ -920,7 +919,18 @@ class NCBI(base.BaseETL):
                     submitter_id
                 }}
             }}"""
-            res = self.metadata_helper.query_peregrine(query_string)
+
+            tries = 0
+            while tries <= MAX_RETRIES:
+                try:
+                    res = self.metadata_helper.query_peregrine(query_string)
+                    break
+                except Exception as e:
+                    print("Failed to query Peregrine; retrying.")
+                    if tries == MAX_RETRIES:
+                        raise e
+                    tries += 1
+
             samples = res["data"]["sample"]
             if len(samples) > 1:
                 raise Exception(f"Found 2 samples with sra_accession='{sra_accession}'")
