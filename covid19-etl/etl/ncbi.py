@@ -2,6 +2,7 @@ from collections import defaultdict
 import csv
 import os
 import asyncio
+import json
 import time
 import re
 from datetime import datetime
@@ -218,6 +219,7 @@ class NCBI(base.BaseETL):
         self.project_code = "ncbi"
         self.accession_number_to_guids_map = defaultdict(list)
         self.all_accession_numbers = set()
+        self.last_submission = {}
 
         self.metadata_helper = MetadataHelper(
             base_url=self.base_url,
@@ -286,6 +288,15 @@ class NCBI(base.BaseETL):
     def files_to_submissions(self):
         start = time.strftime("%X")
 
+        project_last_submission = self.metadata_helper.get_project_last_submission()
+        try:
+            self.last_submission = json.loads(project_last_submission)
+        except:
+            print(
+                f"Unable to parse JSON from `last_submission_identifier`: {project_last_submission}"
+            )
+            # will use init value of {}
+
         self.process_sra_manifest(self.accession_number_to_guids_map)
 
         loop = asyncio.get_event_loop()
@@ -341,6 +352,12 @@ class NCBI(base.BaseETL):
                 record.update(_record)
                 self.metadata_helper.add_record_to_submit(record)
             self.metadata_helper.batch_submit_records()
+
+        # update the project's `last_submission_identifier` so that next
+        # time we can skip processing the rows we just processed
+        self.metadata_helper.update_project_last_submission(
+            json.dumps(self.last_submission)
+        )
 
         end = time.strftime("%X")
         print(f"Submitting time: From {start} to {end}")
@@ -824,40 +841,44 @@ class NCBI(base.BaseETL):
             f"Selecting covid19 data from GenBank manifest 's3://{genbank_s3_bucket}/{genbank_manifest}'..."
         )
 
+        last_genbank_row = self.last_submission.get("ncbi", {}).get("genbank")
+        print(
+            f"Last processed GenBank row ('last_submission_identifier'): {last_genbank_row}"
+        )
+
         s3 = boto3.resource("s3", config=Config(signature_version=UNSIGNED))
         s3_object = s3.Object(genbank_s3_bucket, genbank_manifest)
         line_stream = codecs.getreader("utf-8")
 
-        tries = 0
-        while tries <= MAX_RETRIES:
-            try:
-                input = line_stream(s3_object.get()["Body"])
-                reader = csv.DictReader(input, delimiter=",", quotechar='"')
+        try:
+            input = line_stream(s3_object.get()["Body"])
+            reader = csv.DictReader(input, delimiter=",", quotechar='"')
 
-                for i, row in enumerate(reader):
-                    if i % 10000 == 0 and i != 0:
-                        print(f"Processed {i} rows")
-                    # TODO compare i to last processed row to skip existing data
-                    if row["Species"] != covid_species:
-                        # we don't care about turnips. skip non-covid data
-                        continue
-                    gb_sample, gb_virus_sequence = self.genbank_row_to_gen3_records(row)
-                    self.submitting_data["virus_sequence"].append(gb_virus_sequence)
-                    sra_sample = self.get_sra_sample_to_update(gb_sample)
-                    id = f"genbank_{gb_sample['genbank_accession']}"
-                    if sra_sample:
-                        sample = self.merge_sra_and_genbank_samples(
-                            sra_sample, gb_sample
-                        )
-                        self.submitting_data["sample"][id] = sample
-                    else:
-                        self.submitting_data["sample"][id] = gb_sample
-                break
-            except Exception as e:
-                print(f"Unable to read GenBank manifest. Retrying... Details:\n  {e}")
-                if tries == MAX_RETRIES:
-                    raise e
-                tries += 1
+            for i, row in enumerate(reader):
+                if i <= last_genbank_row:  # skip existing data
+                    continue
+                if i % 10000 == 0 and i != 0:
+                    print(f"Processed {i} rows")
+                    break
+                if row["Species"] != covid_species:
+                    # we don't care about turnips. skip non-covid data
+                    continue
+                gb_sample, gb_virus_sequence = self.genbank_row_to_gen3_records(row)
+                self.submitting_data["virus_sequence"].append(gb_virus_sequence)
+                sra_sample = self.get_sra_sample_to_update(gb_sample)
+                id = f"genbank_{gb_sample['genbank_accession']}"
+                if sra_sample:
+                    sample = self.merge_sra_and_genbank_samples(sra_sample, gb_sample)
+                    self.submitting_data["sample"][id] = sample
+                else:
+                    self.submitting_data["sample"][id] = gb_sample
+        except Exception as e:
+            print(f"Unable to read GenBank manifest. Details:\n  {e}")
+            i -= 1
+
+        if "ncbi" not in self.last_submission:
+            self.last_submission["ncbi"] = {}
+        self.last_submission["ncbi"]["genbank"] = i  # last successfully processed row
 
     def genbank_row_to_gen3_records(self, row):
         records = {

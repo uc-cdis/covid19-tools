@@ -52,7 +52,7 @@ class NCBI_MANIFEST(base.BaseETL):
         self.program_name = "open"
         self.project_code = "ncbi"
         self.token = access_token
-        self.last_submitted_guid = None
+        self.last_submission = {}
 
         self.file_helper = AsyncFileHelper(
             base_url=self.base_url,
@@ -128,25 +128,28 @@ class NCBI_MANIFEST(base.BaseETL):
                         loop.run_until_complete(asyncio.gather(future))
             finally:
                 loop.close()
+
+        # update the project's `last_submission_identifier` so that next
+        # time we can skip processing the rows we just processed
+        self.metadata_helper.update_project_last_submission(
+            json.dumps(self.last_submission)
+        )
+
         end = time.strftime("%X")
         print(f"Running time: From {start} to {end}")
 
     async def process_sra_manifest(self):
-        query_string = (
-            '{ project (first: 0, dbgap_accession_number: "'
-            + self.project_code
-            + '") { last_submission_identifier } }'
-        )
+        project_last_submission = self.metadata_helper.get_project_last_submission()
         try:
-            response = self.metadata_helper.query_peregrine(query_string)
-            self.last_submitted_guid = response["data"]["project"][0][
-                "last_submission_identifier"
-            ]
-        except Exception as e:
-            print(f"Error getting 'last_submission_identifier'. Details:\n  {e}")
-            self.last_submitted_guid = None
+            self.last_submission = json.loads(project_last_submission)
+        except:
+            print(
+                f"Unable to parse JSON from `last_submission_identifier`: {project_last_submission}"
+            )
+            # will use init value of {}
+        last_submitted_guid = self.last_submission.get("ncbi_manifest")
         print(
-            f"Last submitted GUID ('last_submission_identifier'): {self.last_submitted_guid}"
+            f"Last submitted GUID ('last_submission_identifier'): {last_submitted_guid}"
         )
 
         seen_last_submitted_guid = False
@@ -162,7 +165,7 @@ class NCBI_MANIFEST(base.BaseETL):
             release_date,
         ) in self.read_ncbi_sra_manifest():
             if (
-                not self.last_submitted_guid  # no data was ever submitted yet
+                not last_submitted_guid  # no data was ever submitted yet
                 or seen_last_submitted_guid  # this data is not already indexed
             ):
                 tries = 0
@@ -201,7 +204,7 @@ class NCBI_MANIFEST(base.BaseETL):
                         if tries == MAX_RETRIES:
                             failed = True
                         tries += 1
-                        await asyncio.sleep(SLEEP_SECONDS5)
+                        await asyncio.sleep(SLEEP_SECONDS)
 
             if failed:
                 # stop processing the manifest, but don't exit because we
@@ -211,30 +214,11 @@ class NCBI_MANIFEST(base.BaseETL):
             last_successful_guid = guid
 
             # found the last submitted data! start indexing on the next row
-            if guid == self.last_submitted_guid:
+            if guid == last_submitted_guid:
                 print("Found last submitted GUID!")
                 seen_last_submitted_guid = True
 
-        # update the project's `last_submission_identifier` so that next
-        # time we can skip processing the rows we just processed
-        print(
-            f"Updating project's 'last_submission_identifier' to '{last_successful_guid}'"
-        )
-        headers = {
-            "content-type": "application/json",
-            "Authorization": f"Bearer {self.access_token}",
-        }
-        record = {
-            "code": self.project_code,
-            "dbgap_accession_number": self.project_code,
-            "last_submission_identifier": last_successful_guid,
-        }
-        res = requests.put(
-            "{}/api/v0/submission/{}".format(self.base_url, self.program_name),
-            headers=headers,
-            data=json.dumps(record),
-        )
-        res.raise_for_status()
+        self.last_submission["ncbi_manifest"] = last_successful_guid
 
         if failed:
             raise Exception("Failed to process manifest")

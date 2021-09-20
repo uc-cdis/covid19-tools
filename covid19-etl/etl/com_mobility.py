@@ -147,7 +147,11 @@ class COM_MOBILITY(base.BaseETL):
             url (str): URL at which the CSV file is available
         """
 
-        self.last_submission_date_time = self.metadata_helper.get_last_submission()
+        self.last_submission_date_time = (
+            self.metadata_helper.get_project_last_submission()
+        )
+        if self.last_submission_date_time:
+            self.last_submission_date_time = parse(self.last_submission_date_time)
         the_lattest_data_datetime = None
 
         print("Getting data from {}".format(url))
@@ -270,6 +274,6 @@ class COM_MOBILITY(base.BaseETL):
             sc_record.update(sc)
             self.metadata_helper.add_record_to_submit(sc_record)
         self.metadata_helper.batch_submit_records()
-        self.metadata_helper.update_last_submission(
+        self.metadata_helper.update_project_last_submission(
             self.last_submission_date_time.strftime("%Y-%m-%d")
         )
