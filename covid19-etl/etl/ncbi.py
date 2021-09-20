@@ -291,6 +291,13 @@ class NCBI(base.BaseETL):
             )
             # will use init value of {}
 
+        self.submitting_data["core_metadata_collection"].append(
+            {
+                "submitter_id": "cmc_ncbi_covid19",
+                "projects": [{"code": self.project_code}],
+            }
+        )
+
         self.process_sra_manifest(self.accession_number_to_guids_map)
 
         loop = asyncio.get_event_loop()
@@ -336,13 +343,6 @@ class NCBI(base.BaseETL):
 
     def submit_metadata(self):
         start = time.strftime("%X")
-
-        self.submitting_data["core_metadata_collection"].append(
-            {
-                "submitter_id": "cmc_ncbi_covid19",
-                "projects": [{"code": self.project_code}],
-            }
-        )
 
         for node, records in self.submitting_data.items():
             if node == "virus_sequence":
