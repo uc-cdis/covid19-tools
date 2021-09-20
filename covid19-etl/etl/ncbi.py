@@ -859,6 +859,10 @@ class NCBI(base.BaseETL):
                     continue
                 if i % 10000 == 0 and i != 0:
                     print(f"Processed {i} rows")
+                if i % 1000000 == 0 and i != 0:
+                    # TODO remove this block - temporarily do not attempt to
+                    # process more than 1M rows at a time
+                    break
                 if row["Species"] != covid_species:
                     # we don't care about turnips. skip non-covid data
                     continue
