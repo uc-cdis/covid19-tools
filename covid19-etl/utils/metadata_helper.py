@@ -78,11 +78,13 @@ class MetadataHelper:
         Queries Guppy for the existing `location` data.
         Returns the latest submitted date as Python "datetime.date"
         """
-
-        latest_submitted_date = datetime.datetime.strptime(
-            self.get_str_latest_submitted_date_idph(), "%Y-%m-%d"
-        )
-        return latest_submitted_date.date()
+        str_latest_submitted_date = self.get_str_latest_submitted_date_idph()
+        if str_latest_submitted_date is not None:
+            latest_submitted_date = datetime.datetime.strptime(
+                str_latest_submitted_date, "%Y-%m-%d"
+            )
+            return latest_submitted_date.date()
+        return None
 
     def get_str_latest_submitted_date_idph(self):
         print("Getting the latest summary_clinical date from Guppy...")
@@ -98,8 +100,14 @@ class MetadataHelper:
         }"""
         variables = {"filter": {"=": {"project_id": self.project_id}}}
         query_res = self.query_guppy(query_string, variables)
-        loc = query_res["data"]["location"][0]
-        return loc["date"]
+        if "data" not in query_res or "location" not in query_res["data"]:
+            raise Exception(
+                f"Did not receive any data from Guppy. Query result for the query - {query_string} with variables - {variables} is \n\t {query_res}"
+            )
+        loc = query_res["data"]["location"]
+        if (len(loc)) > 0:
+            return loc[0]["date"]
+        return None
 
     def add_record_to_submit(self, record):
         self.records_to_submit.append(record)
