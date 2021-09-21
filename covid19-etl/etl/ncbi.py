@@ -783,8 +783,8 @@ class NCBI(base.BaseETL):
                 virus_genome[field] = str(response.get(field))
 
         virus_genome["samples"] = [{"submitter_id": sample["submitter_id"]}]
-        virus_genome["data_category"] = "Nucleotide"
-        virus_genome["data_type"] = "Sequence"
+        virus_genome["data_category"] = "Nucleotide Sequence"
+        virus_genome["data_type"] = "Raw reads"
 
         for guid in self.accession_number_to_guids_map[sra_accession_number]:
             record = None
