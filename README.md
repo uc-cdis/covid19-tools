@@ -7,8 +7,9 @@
 | [COV-79][cov-79] | IDPH Zipcode data| ([JSON][idph-zipcode-json]) | Scheduled |
 | [COV-273][cov-273] | IDPH Facility data | [here][idph-facility] ([JSON][idph-facility-json]) | Scheduled |
 | ~~[COV-345][cov-345]~~ | ~~IDPH Hospital data~~ | ~~[here][idph-hospital] ([JSON][idph-hospital-json])~~ | ~~Scheduled~~ |
-| [COV-720](https://occ-data.atlassian.net/browse/COV-720) | IDPH Vaccine | [here](http://www.dph.illinois.gov/content/covid-19-vaccine-administration-data) | scheduled|
-| [COV-925](https://occ-data.atlassian.net/browse/COV-925) | IDPH Vaccine to S3 | IDPH Vaccine data | scheduled|
+| [COV-1014][cov-1014] | IDPH Regional ICU Capacity | [here][idph-regional-icu-cap] ([JSON][idph-regional-icu-cap-json]) | Scheduled |
+| [COV-720][cov-720] | IDPH Vaccine | [here][covid-19-vaccine-administration-data] | scheduled|
+| [COV-925][cov-925] | IDPH Vaccine to S3 | IDPH Vaccine data | scheduled|
 | [COV-18][cov-18] | nCOV2019 | [here][ncov2019] | One-time |
 | ~~[COV-34][cov-34]~~, ~~[COV-454][cov-454]~~ | ~~CTP~~ | ~~[here][ctp]~~ and ~~[here][race]~~ | ~~Scheduled~~ |
 | [COV-97][cov-97] | DS4C | [Kaggle][ds4c] | One-time |
@@ -24,9 +25,9 @@
 | [COV-450][cov-422] | VAC-TRACKER | [here][vac-tracker] | scheduled |
 | [COV-453][cov-453] | CHESTX-RAY8 | [here][chestxray8] | One-time |
 | [COV-521][cov-521] | ATLAS | [here][atlas] | One-time |
-| [COV-465][cov-465] | NCBI-FILE | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
-| [COV-482][cov-482] | NCBI-MANIFEST | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
-| [COV-465][cov-465] | NCBI | [bucket](https://github.com/uc-cdis/covid19-tools#ncbi) | scheduled|
+| [COV-465][cov-465] | NCBI-FILE | [bucket][ncbi-bucket] | scheduled|
+| [COV-482][cov-482] | NCBI-MANIFEST | [bucket][ncbi-bucket] | scheduled|
+| [COV-465][cov-465] | NCBI | [bucket][ncbi-bucket] | scheduled|
 | [COV-532][cov-532] | COM-MOBILITY | [here](com-mobility) | scheduled|
 
 
@@ -43,21 +44,11 @@ And add the following:
 USER=<username with submission access>
 S3_BUCKET=<name of bucket to upload data to>
 
- 0   6   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=jhu bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
- 0   6   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=jhu_to_s3 bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/logs/covid19-etl-jhu_to_s3-cronjob.log 2>&1
-30   6   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=jhu_country_codes bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/logs/covid19-etl-jhu_country_codes-cronjob.log 2>&1
- 0  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-10  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph_zipcode bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-20  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph_facility bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-30  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph_hospital bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/logs/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-30  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=idph_hospital_utilization bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/logs/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-40  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ctp bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-50  20   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=owid2 bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-0  21   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=chi_nbhd bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-0  21   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ncbi_file bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-10  21   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ncbi_manifest bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
-30  22   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=ncbi bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no codiv19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
- 0 */3   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/etl-cronjob.sh ]; then bash $HOME/cloud-automation/files/scripts/etl-cronjob.sh; else echo "no etl-cronjob.sh"; fi) > $HOME/etl-cronjob.log 2>&1
+# Sample format for a new job is as follows. Please create a new job for an etl in the same format and make sure it's execution does not overlap with any other jobs ( Just to avoid causing overload )
+
+ 0   6   *   *   *    (if [ -f $HOME/cloud-automation/files/scripts/covid19-etl-job.sh ]; then JOB_NAME=jhu bash $HOME/cloud-automation/files/scripts/covid19-etl-job.sh; else echo "no covid19-etl-job.sh"; fi) > $HOME/covid19-etl-$JOB_NAME-cronjob.log 2>&1
+
+
 ```
 
 *Note*: The time in adminVM is in UTC.
@@ -149,6 +140,9 @@ covid19-tools
 [idph-facility-json]: https://dph.illinois.gov/sitefiles/COVIDLTC.json?nocache=1
 [idph-hospital]: http://www.dph.illinois.gov/covid19/hospitalization-utilization
 [idph-hospital-json]: https://dph.illinois.gov/sitefiles/COVIDHospitalRegions.json
+[idph-regional-icu-cap]: http://www.dph.illinois.gov/covid19/hospitalization-utilization
+[idph-regional-icu-cap-json]: https://idph.illinois.gov/DPHPublicInformation/api/COVIDExport/GetHospitalizationResultsRegion
+[covid-19-vaccine-administration-data]: http://www.dph.illinois.gov/content/covid-19-vaccine-administration-data
 [ds4c]: https://www.kaggle.com/kimjihoo/coronavirusdataset#PatientInfo.csv
 [dsci]: https://www.kaggle.com/ardisragen/indonesia-coronavirus-cases
 [dsfsi]: https://github.com/dsfsi/covid19africa/tree/master/data/line_lists
@@ -164,6 +158,7 @@ covid19-tools
 [stoplight]: https://covidstoplight.org/api/v0/location/US
 [atlas]: https://opportunityinsights.org/data/?geographic_level=0&topic=0&paper_id=1652#resource-listing
 [com-mobility]: https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv
+[ncbi-bucket]: https://github.com/uc-cdis/covid19-tools#ncbi
 [cov-12]: https://occ-data.atlassian.net/browse/COV-12
 [cov-18]: https://occ-data.atlassian.net/browse/COV-18
 [cov-24]: https://occ-data.atlassian.net/browse/COV-24
@@ -188,3 +183,6 @@ covid19-tools
 [cov-482]: https://occ-data.atlassian.net/browse/COV-482
 [cov-454]: https://occ-data.atlassian.net/browse/COV-454
 [cov-532]: https://occ-data.atlassian.net/browse/COV-532
+[cov-720]: https://occ-data.atlassian.net/browse/COV-720
+[cov-925]: https://occ-data.atlassian.net/browse/COV-925
+[cov-1014]: https://occ-data.atlassian.net/browse/COV-1014
