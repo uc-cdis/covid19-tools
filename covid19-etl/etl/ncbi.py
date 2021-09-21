@@ -907,7 +907,8 @@ class NCBI(base.BaseETL):
                 )
                 records[mapping["node"]][mapping["prop"]] = gen3_value
 
-        # add link
+        # add links
+        records["sample"]["projects"] = [{"code": self.project_code}]
         records["virus_sequence"]["samples"] = [
             {"submitter_id": records["sample"]["submitter_id"]}
         ]
