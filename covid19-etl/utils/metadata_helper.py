@@ -102,11 +102,11 @@ class MetadataHelper:
         query_res = self.query_guppy(query_string, variables)
         if "data" not in query_res or "location" not in query_res["data"]:
             raise Exception(
-                "Did not receive any data from Guppy. Is the token expired?"
+                f"Did not receive any data from Guppy. Query result for the query - {query_string} with variables - {variables} is \n\t {query_res}"
             )
         loc = query_res["data"]["location"]
         if (len(loc)) > 0:
-            return loc["date"]
+            return loc[0]["date"]
         return None
 
     def add_record_to_submit(self, record):

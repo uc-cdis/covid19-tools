@@ -84,8 +84,6 @@ class IDPH_REGIONAL_ICU_CAPACITY(base.BaseETL):
             "summary_location",
             {
                 "project": "idph_regional_icu_capacity",
-                "country": self.country,
-                "state": self.state,
                 "region": region,
             },
         )
