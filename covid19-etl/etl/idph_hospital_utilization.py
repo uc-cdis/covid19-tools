@@ -83,15 +83,21 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
                 "summary_location",
                 {
                     "project": "idph_hospital_utilization",
-                    "country": self.country,
-                    "state": self.state,
                 },
             )
+            summary_location = {
+                "country_region": self.country,
+                "submitter_id": summary_location_submitter_id,
+                "projects": [{"code": self.project_code}],
+                "province_state": self.state,
+            }
+
             for utilization in data:
                 summary_clinical = self.parse_historical(
                     summary_location_submitter_id, utilization
                 )
 
+                self.summary_locations.append(summary_location)
                 self.summary_clinicals.append(summary_clinical)
 
     def parse_historical(self, summary_location_submitter_id, utilization):
