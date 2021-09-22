@@ -357,11 +357,13 @@ class NCBI(base.BaseETL):
                 self.metadata_helper.add_record_to_submit(record)
             self.metadata_helper.batch_submit_records()
 
-        # update the project's `last_submission_identifier` so that next
-        # time we can skip processing the rows we just processed
-        self.metadata_helper.update_project_last_submission(
-            json.dumps(self.last_submission)
-        )
+            if node == "sample":
+                # after submitting the samples, update the project's
+                # `last_submission_identifier` so that next time we can
+                # skip processing the rows we just processed
+                self.metadata_helper.update_project_last_submission(
+                    json.dumps(self.last_submission)
+                )
 
         end = time.strftime("%X")
         print(f"Submitting time: From {start} to {end}")
