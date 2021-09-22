@@ -106,7 +106,7 @@ class MetadataHelper:
             )
         loc = query_res["data"]["location"]
         if (len(loc)) > 0:
-            return loc[0]["date"]
+            return loc[0]["date"].split("T")[0]
         return None
 
     def add_record_to_submit(self, record):
