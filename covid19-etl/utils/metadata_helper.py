@@ -161,8 +161,9 @@ class MetadataHelper:
                     print("Submission progress: {}/{}".format(i + 1, n_batches))
                     break
             if tries == MAX_RETRIES:
+                print(records)
                 raise Exception(
-                    "Unable to submit to Sheepdog: {}\n{}".format(
+                    "Unable to submit to Sheepdog: code {}. Details:\n  {}".format(
                         response.status_code, response.text
                     )
                 )
