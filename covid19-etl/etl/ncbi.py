@@ -249,10 +249,10 @@ class NCBI(base.BaseETL):
 
         self.submitting_data = {
             # from from SRA and GenBank data:
-            "sample": {},  # { <sra accession>: <sample record> }
+            "sample": {},  # { <sra accession>: <record> }
             # from SRA data:
-            "virus_genome": [],
-            "core_metadata_collection": [],
+            "virus_genome": defaultdict(list),  # { <sra accession>: [ <records> ] }
+            "core_metadata_collection": [],  # [ <records ]
             "virus_genome_run_taxonomy": [],
             "virus_genome_contig": [],
             "virus_sequence_blastn": [],
@@ -305,6 +305,7 @@ class NCBI(base.BaseETL):
 
         for node_name, _ in self.ncbi_file_module.nodes.items():
             if node_name == "virus_genome_run_taxonomy":
+                # submitted in `files_to_virus_genome_run_taxonomy_submission`
                 continue
             else:
                 tasks.append(
@@ -348,9 +349,11 @@ class NCBI(base.BaseETL):
             if node == "virus_sequence":
                 # TODO remove - temporarily not submitting those
                 continue
-            print(f"Submitting {node} data: {len(records)} records")
-            if isinstance(records, dict):  # samples are in a dict
+            if node == "sample":
                 records = records.values()
+            if node == "virus_genome":
+                records = [r for sublist in records.values() for r in sublist]
+            print(f"Submitting {node} data: {len(records)} records")
             for _record in records:
                 record = {"type": node}
                 record.update(_record)
@@ -409,10 +412,11 @@ class NCBI(base.BaseETL):
                 "data_category": "Kmer-based Taxonomy Analysis",
             }
 
-            # Add link to virus sequence node
+            # Add link to virus genome records
             if accession_number in accession_number_set:
                 submitted_json["virus_genomes"] = [
-                    {"submitter_id": f"virus_genome_{accession_number}"}
+                    {"submitter_id": record["submitter_id"]}
+                    for record in self.submitting_data["virus_genome"][accession_number]
                 ]
 
             filename = f"virus_genome_run_taxonomy_{accession_number}.csv"
@@ -577,9 +581,7 @@ class NCBI(base.BaseETL):
                     tries += 1
                     await asyncio.sleep(SLEEP_SECONDS)
 
-            assert (
-                did
-            ), f"file {filename} does not exist in the index, rerun NCBI_FILE ETL"
+            assert did, f"file {filename} does not exist in indexd, rerun NCBI_FILE ETL"
 
             if not authz:
                 tries = 0
@@ -746,7 +748,6 @@ class NCBI(base.BaseETL):
             elif field in response:
                 sample[field] = str(response.get(field))
 
-        virus_genome["submitter_id"] = f"virus_genome_{sra_accession_number}"
         for field in [
             "assay_type",
             "avgspotlen",
@@ -811,6 +812,9 @@ class NCBI(base.BaseETL):
                 return False
 
             this_virus_genome = virus_genome.copy()
+            this_virus_genome[
+                "submitter_id"
+            ] = f"virus_genome_{sra_accession_number}_{record['file_name']}"
             this_virus_genome["file_name"] = record["file_name"]
             this_virus_genome["data_format"] = get_file_extension(record["file_name"])
 
@@ -835,7 +839,9 @@ class NCBI(base.BaseETL):
             this_virus_genome["md5sum"] = record.get("hashes", {}).get("md5")
             this_virus_genome["object_id"] = guid
 
-            self.submitting_data["virus_genome"].append(this_virus_genome)
+            self.submitting_data["virus_genome"][sra_accession_number].append(
+                this_virus_genome
+            )
         self.submitting_data["sample"][sra_accession_number] = sample
         return True
 
