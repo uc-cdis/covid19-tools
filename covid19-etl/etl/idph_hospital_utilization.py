@@ -118,13 +118,15 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
             "VentilatorInUseNonCOVID": "ventilator_in_use_non_covid",
             "VentilatorInUseCOVID": "ventilator_in_use_covid",
         }
-        date = remove_time_from_date_time(utilization["ReportDate"])
+        utilization["ReportDate"] = remove_time_from_date_time(
+            utilization["ReportDate"]
+        )
 
         summary_clinical_submitter_id = derived_submitter_id(
             summary_location_submitter_id,
             "summary_location",
             "summary_clinical",
-            {"date": date},
+            {"date": utilization["ReportDate"]},
         )
 
         summary_clinical = {
