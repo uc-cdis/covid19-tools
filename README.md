@@ -7,7 +7,8 @@
 | [COV-79][cov-79] | IDPH Zipcode data| ([JSON][idph-zipcode-json]) | Scheduled |
 | [COV-273][cov-273] | IDPH Facility data | [here][idph-facility] ([JSON][idph-facility-json]) | Scheduled |
 | ~~[COV-345][cov-345]~~ | ~~IDPH Hospital data~~ | ~~[here][idph-hospital] ([JSON][idph-hospital-json])~~ | ~~Scheduled~~ |
-| [COV-1014][cov-1014] | IDPH Regional ICU Capacity | [here][idph-regional-icu-cap] ([JSON][idph-regional-icu-cap-json]) | Scheduled |
+| [COV-1014][cov-1014] | IDPH Regional ICU Capacity | [here][idph-hospital] ([JSON][idph-regional-icu-cap-json]) | Scheduled |
+| [COV-1019][cov-1019] | IDPH Hospital Utilization | [here][idph-hospital] ([JSON][idph-hospital-utilization-json]) | Scheduled |
 | [COV-720][cov-720] | IDPH Vaccine | [here][covid-19-vaccine-administration-data] | scheduled|
 | [COV-925][cov-925] | IDPH Vaccine to S3 | IDPH Vaccine data | scheduled|
 | [COV-18][cov-18] | nCOV2019 | [here][ncov2019] | One-time |
@@ -140,8 +141,8 @@ covid19-tools
 [idph-facility-json]: https://dph.illinois.gov/sitefiles/COVIDLTC.json?nocache=1
 [idph-hospital]: http://www.dph.illinois.gov/covid19/hospitalization-utilization
 [idph-hospital-json]: https://dph.illinois.gov/sitefiles/COVIDHospitalRegions.json
-[idph-regional-icu-cap]: http://www.dph.illinois.gov/covid19/hospitalization-utilization
 [idph-regional-icu-cap-json]: https://idph.illinois.gov/DPHPublicInformation/api/COVIDExport/GetHospitalizationResultsRegion
+[idph-hospital-utilization-json]: https://idph.illinois.gov/DPHPublicInformation/api/COVIDExport/GetHospitalUtilizationResults
 [covid-19-vaccine-administration-data]: http://www.dph.illinois.gov/content/covid-19-vaccine-administration-data
 [ds4c]: https://www.kaggle.com/kimjihoo/coronavirusdataset#PatientInfo.csv
 [dsci]: https://www.kaggle.com/ardisragen/indonesia-coronavirus-cases
@@ -186,3 +187,4 @@ covid19-tools
 [cov-720]: https://occ-data.atlassian.net/browse/COV-720
 [cov-925]: https://occ-data.atlassian.net/browse/COV-925
 [cov-1014]: https://occ-data.atlassian.net/browse/COV-1014
+[cov-1019]: https://occ-data.atlassian.net/browse/COV-1019
