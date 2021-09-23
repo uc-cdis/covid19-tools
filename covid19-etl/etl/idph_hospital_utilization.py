@@ -9,6 +9,7 @@ from utils.format_helper import (
     format_submitter_id,
     remove_time_from_date_time,
     idph_last_reported_date,
+    get_date_from_str,
 )
 from utils.metadata_helper import MetadataHelper
 
@@ -94,11 +95,12 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
             self.summary_locations.append(summary_location)
 
             for utilization in data:
-                summary_clinical = self.parse_historical(
-                    summary_location_submitter_id, utilization
-                )
+                if get_date_from_str(utilization["ReportDate"]) > latest_submitted_date:
+                    summary_clinical = self.parse_historical(
+                        summary_location_submitter_id, utilization
+                    )
 
-                self.summary_clinicals.append(summary_clinical)
+                    self.summary_clinicals.append(summary_clinical)
 
     def parse_historical(self, summary_location_submitter_id, utilization):
         utilization_mapping = {
