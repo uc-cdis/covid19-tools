@@ -131,6 +131,7 @@ class MetadataHelper:
             return [location["submitter_id"] for location in location_list]
         return None
 
+
     def add_record_to_submit(self, record):
         self.records_to_submit.append(record)
 
