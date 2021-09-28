@@ -67,6 +67,7 @@ class IDPH_REGIONAL_ICU_CAPACITY(base.BaseETL):
         with closing(self.get(url, stream=True)) as r:
             data = r.json()
             date = self.etlJobDate
+
             summary_locations_in_guppy = (
                 self.metadata_helper.get_existing_summary_locations_idph()
             )
@@ -75,6 +76,7 @@ class IDPH_REGIONAL_ICU_CAPACITY(base.BaseETL):
                 self.summary_clinicals.append(summary_clinical)
                 if summary_location["submitter_id"] not in summary_locations_in_guppy:
                     self.summary_locations.append(summary_location)
+
 
     def parse_region(self, date, hospital_region):
         """
