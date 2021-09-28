@@ -76,7 +76,7 @@ class MetadataHelper:
     def get_latest_submitted_date_idph(self):
         """
         Queries Guppy for the existing `location` data.
-        Returns the latest submitted date as Python "datetime.date"
+        Returns the latest submitted date as Python "datetime.date" in "%Y-%m-%d" format
         """
         str_latest_submitted_date = self.get_str_latest_submitted_date_idph()
         if str_latest_submitted_date is not None:
@@ -106,7 +106,7 @@ class MetadataHelper:
             )
         loc = query_res["data"]["location"]
         if (len(loc)) > 0:
-            return loc[0]["date"]
+            return loc[0]["date"].split("T")[0]
         return None
 
     def add_record_to_submit(self, record):
