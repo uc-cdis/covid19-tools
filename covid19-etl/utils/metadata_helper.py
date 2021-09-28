@@ -110,7 +110,7 @@ class MetadataHelper:
         return None
 
     def get_existing_summary_locations_idph(self):
-        print("Getting the latest summary_clinical date from Guppy...")
+        print("Getting current summary_location records from Guppy...")
         query_string = """query ($filter: JSON) {
             location (
                 filter: $filter,
