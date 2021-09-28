@@ -71,12 +71,12 @@ class IDPH_REGIONAL_ICU_CAPACITY(base.BaseETL):
             summary_locations_in_guppy = (
                 self.metadata_helper.get_existing_summary_locations_idph()
             )
+
             for region in data:
                 (summary_location, summary_clinical) = self.parse_region(date, region)
                 self.summary_clinicals.append(summary_clinical)
                 if summary_location["submitter_id"] not in summary_locations_in_guppy:
                     self.summary_locations.append(summary_location)
-
 
     def parse_region(self, date, hospital_region):
         """
