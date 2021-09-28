@@ -83,7 +83,7 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
             summary_location_submitter_id = format_submitter_id(
                 "summary_location",
                 {
-                    "project": "idph_hospital_utilization",
+                    "project": self.project_code,
                 },
             )
             summary_location = {
