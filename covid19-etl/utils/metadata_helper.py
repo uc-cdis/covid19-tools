@@ -109,29 +109,6 @@ class MetadataHelper:
             return loc[0]["date"]
         return None
 
-    def get_existing_summary_locations_idph(self):
-        print("Getting current summary_location records from Guppy...")
-        query_string = """query ($filter: JSON) {
-            location (
-                filter: $filter,
-                first: 10000,
-                accessibility: accessible
-            ) {
-                submitter_id
-            }
-        }"""
-        variables = {"filter": {"=": {"project_id": self.project_id}}}
-        query_res = self.query_guppy(query_string, variables)
-        if "data" not in query_res or "location" not in query_res["data"]:
-            raise Exception(
-                f"Did not receive any data from Guppy. Query result for the query - {query_string} with variables - {variables} is \n\t {query_res}"
-            )
-
-        location_list = query_res["data"]["location"]
-        if (len(location_list)) > 0:
-            return [location["submitter_id"] for location in location_list]
-        return None
-
     def add_record_to_submit(self, record):
         self.records_to_submit.append(record)
 

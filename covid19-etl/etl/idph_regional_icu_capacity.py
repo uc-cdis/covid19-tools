@@ -68,9 +68,7 @@ class IDPH_REGIONAL_ICU_CAPACITY(base.BaseETL):
             data = r.json()
             date = self.etlJobDate
 
-            summary_locations_in_guppy = (
-                self.metadata_helper.get_existing_summary_locations_idph()
-            )
+            summary_locations_in_guppy = self.get_existing_summary_locations()
 
             for region in data:
                 (summary_location, summary_clinical) = self.parse_region(date, region)
@@ -120,6 +118,27 @@ class IDPH_REGIONAL_ICU_CAPACITY(base.BaseETL):
         }
 
         return summary_location, summary_clinical
+
+    def get_existing_summary_locations(self):
+        print("Getting current summary_location records from Guppy...")
+        query_string = """query ($filter: JSON) {
+            location (
+                filter: $filter,
+                first: 10000,
+                accessibility: accessible
+            ) {
+                submitter_id
+            }
+        }"""
+        variables = {"filter": {"=": {"project_id": self.project_id}}}
+        query_res = self.query_guppy(query_string, variables)
+        if "data" not in query_res or "location" not in query_res["data"]:
+            raise Exception(
+                f"Did not receive any data from Guppy. Query result for the query - {query_string} with variables - {variables} is \n\t {query_res}"
+            )
+
+        location_list = query_res["data"]["location"]
+        return [location["submitter_id"] for location in location_list]
 
     def submit_metadata(self):
         print("Submitting data...")
