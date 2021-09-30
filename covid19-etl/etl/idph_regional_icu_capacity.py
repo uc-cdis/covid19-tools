@@ -130,8 +130,9 @@ class IDPH_REGIONAL_ICU_CAPACITY(base.BaseETL):
                 submitter_id
             }
         }"""
-        variables = {"filter": {"=": {"project_id": self.project_id}}}
-        query_res = self.query_guppy(query_string, variables)
+        project_id = f"{self.program_name}-{self.project_code}"
+        variables = {"filter": {"=": {"project_id": project_id}}}
+        query_res = self.metadata_helper.query_guppy(query_string, variables)
         if "data" not in query_res or "location" not in query_res["data"]:
             raise Exception(
                 f"Did not receive any data from Guppy. Query result for the query - {query_string} with variables - {variables} is \n\t {query_res}"
