@@ -69,3 +69,25 @@ def remove_time_from_date_time(str_datetime):
     if len(datetime_parts) > 0:
         return datetime_parts[0]
     return str_datetime
+
+
+def idph_last_reported_date(utilization_records):
+    """
+    Fetches the "ReportDate" value from the last record of the utilization array
+
+    Args:
+        utilization_records (list) : List of all historical hospital utilization records
+
+    Returns:
+        str: last reported date of the data in "%Y-%m-%d" format
+    """
+    return remove_time_from_date_time(utilization_records[-1]["ReportDate"])
+
+
+def get_date_from_str(date_str):
+    """
+    Receives a date string in %Y-%m-%d format and returns a 'datetime.date' object
+    """
+    return datetime.datetime.strptime(
+        remove_time_from_date_time(date_str), "%Y-%m-%d"
+    ).date()
