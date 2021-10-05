@@ -95,7 +95,11 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
             self.summary_locations.append(summary_location)
 
             for utilization in data:
-                if get_date_from_str(utilization["ReportDate"]) > latest_submitted_date:
+                if (
+                    latest_submitted_date is None
+                    or get_date_from_str(utilization["ReportDate"])
+                    > latest_submitted_date
+                ):
                     summary_clinical = self.parse_historical(
                         summary_location_submitter_id, utilization
                     )
