@@ -32,7 +32,7 @@ class IDPH(base.BaseETL):
 
         self.county_dict = {}  # { <county name>: {"lat": int, "lon": int} }
 
-        self.summary_locations = []
+        self.summary_locations = {}  # { <submitter_id>: <record> }
         self.summary_clinicals = []
 
     def get_location_and_clinical_submitter_id(self, county, date):
@@ -107,6 +107,7 @@ class IDPH(base.BaseETL):
             county (str): county name
         """
         demographics = self.get_demographics(
+            # we need to start the day after `latest_submitted_date` but this is easier
             start_date=latest_submitted_date,
             end_date=datetime.date.today(),
             county=county,
@@ -121,19 +122,21 @@ class IDPH(base.BaseETL):
                 date = datetime.datetime.strptime(
                     data["ReportDate"], "%Y-%m-%dT%H:%M:%S"
                 )
-                date_str = datetime.datetime.strftime(date, "%Y-%m-%d")
+                date_str = date.strftime("%Y-%m-%d")
                 if not latest_submitted_date or date <= latest_submitted_date:
                     continue  # skip historical data we already have
 
                 summary_location, summary_clinical = self.parse_county_data_for_date(
-                    date, county, data
+                    date_str, county, data
                 )
                 summary_clinical = {
                     **summary_clinical,
                     **demographics[date_str],  # add demographics data
                 }
 
-                self.summary_locations.append(summary_location)
+                self.summary_locations[
+                    summary_location["submitter_id"]
+                ] = summary_location
                 self.summary_clinicals.append(summary_clinical)
 
     def parse_state_data(self, latest_submitted_date):
@@ -149,6 +152,7 @@ class IDPH(base.BaseETL):
         county = "Illinois"
 
         demographics = self.get_demographics(
+            # we need to start the day after `latest_submitted_date` but this is easier
             start_date=latest_submitted_date,
             end_date=datetime.date.today(),
             county=county,
@@ -160,18 +164,18 @@ class IDPH(base.BaseETL):
                 date = datetime.datetime.strptime(
                     illinois_data["testDate"], "%Y-%m-%dT%H:%M:%S"
                 )
-                date_str = datetime.datetime.strftime(date, "%Y-%m-%d")
+                date_str = date.strftime("%Y-%m-%d")
                 if not latest_submitted_date or date <= latest_submitted_date:
                     continue  # skip historical data we already have
 
                 (
                     summary_location_submitter_id,
                     summary_clinical_submitter_id,
-                ) = self.get_location_and_clinical_submitter_id(county, date)
+                ) = self.get_location_and_clinical_submitter_id(county, date_str)
 
                 summary_clinical = {
                     "submitter_id": summary_clinical_submitter_id,
-                    "date": date,
+                    "date": date_str,
                     "confirmed": illinois_data["confirmed_cases"],
                     "testing": illinois_data["total_tested"],
                     "deaths": illinois_data["deaths"],
@@ -183,12 +187,12 @@ class IDPH(base.BaseETL):
 
                 self.summary_clinicals.append(summary_clinical)
 
-    def parse_county_data_for_date(self, date, county, county_json):
+    def parse_county_data_for_date(self, date_str, county, county_json):
         """
         From county-level data, generate the data we can submit via Sheepdog
 
         Args:
-            date (date): date
+            date_str (str): date in "%Y-%m-%d" format
             county_json (dict): JSON for county statistics
 
         Returns:
@@ -197,7 +201,7 @@ class IDPH(base.BaseETL):
         (
             summary_location_submitter_id,
             summary_clinical_submitter_id,
-        ) = self.get_location_and_clinical_submitter_id(county, date)
+        ) = self.get_location_and_clinical_submitter_id(county, date_str)
 
         summary_location = {
             "submitter_id": summary_location_submitter_id,
@@ -211,7 +215,7 @@ class IDPH(base.BaseETL):
 
         summary_clinical = {
             "submitter_id": summary_clinical_submitter_id,
-            "date": date,
+            "date": date_str,
             "confirmed": county_json["CumulativeCases"],
             "testing": county_json["TotalTested"],
             "deaths": county_json["Deaths"],
@@ -221,8 +225,17 @@ class IDPH(base.BaseETL):
         return summary_location, summary_clinical
 
     def get_demographics(self, start_date, end_date, county):
-        start_date = datetime.datetime.strftime(start_date, "%Y-%m-%d")
-        end_date = datetime.datetime.strftime(end_date, "%Y-%m-%d")
+        """
+        Args:
+            start_date (datetime): first time to fetch demographics data for
+            end_date (datetime): last time to fetch demographics data for
+            county (str): county name
+
+        Returns:
+            (dict): demographics values to add to "summary_clinical" records
+        """
+        start_date = start_date.strftime("%Y-%m-%d")
+        end_date = end_date.strftime("%Y-%m-%d")
         demographics = {}
         for _type, (field, mapping) in fields_mapping.items():
             type_name = _type.capitalize()
@@ -235,7 +248,8 @@ class IDPH(base.BaseETL):
                     dst_field = mapping[item[field].strip()]
                     if not dst_field:
                         continue
-                    for key in ["count", "deaths", "tested"]:
+                    # don't get "deaths" because it's always 0
+                    for key in ["count", "tested"]:
                         if key in item:
                             count_field = f"{dst_field}_{key}"
                             if date not in demographics:
@@ -249,7 +263,7 @@ class IDPH(base.BaseETL):
         """
         print("Submitting data...")
         print("Submitting summary_location data")
-        for sl in self.summary_locations:
+        for sl in self.summary_locations.values():
             sl_record = {"type": "summary_location"}
             sl_record.update(sl)
             self.metadata_helper.add_record_to_submit(sl_record)
