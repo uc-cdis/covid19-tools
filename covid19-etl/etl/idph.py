@@ -123,7 +123,7 @@ class IDPH(base.BaseETL):
                     data["ReportDate"], "%Y-%m-%dT%H:%M:%S"
                 )
                 date_str = date.strftime("%Y-%m-%d")
-                if not latest_submitted_date or date <= latest_submitted_date:
+                if latest_submitted_date and date <= latest_submitted_date:
                     continue  # skip historical data we already have
 
                 summary_location, summary_clinical = self.parse_county_data_for_date(
@@ -165,7 +165,7 @@ class IDPH(base.BaseETL):
                     illinois_data["testDate"], "%Y-%m-%dT%H:%M:%S"
                 )
                 date_str = date.strftime("%Y-%m-%d")
-                if not latest_submitted_date or date <= latest_submitted_date:
+                if latest_submitted_date and date <= latest_submitted_date:
                     continue  # skip historical data we already have
 
                 (
