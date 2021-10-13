@@ -1,13 +1,13 @@
+from contextlib import closing
 import datetime
 import os
-from contextlib import closing
+import time
 
 from etl import base
 from utils.idph_helper import fields_mapping
 from utils.format_helper import (
     derived_submitter_id,
     format_submitter_id,
-    idph_get_date,
 )
 from utils.metadata_helper import MetadataHelper
 
@@ -30,8 +30,7 @@ class IDPH(base.BaseETL):
         self.country = "US"
         self.state = "IL"
 
-        self.county_dict = {}
-        self.il_counties()
+        self.county_dict = {}  # { <county name>: {"lat": int, "lon": int} }
 
         self.summary_locations = []
         self.summary_clinicals = []
@@ -51,7 +50,7 @@ class IDPH(base.BaseETL):
         )
         return summary_location_submitter_id, summary_clinical_submitter_id
 
-    def il_counties(self):
+    def parse_il_counties(self):
         with open(
             os.path.join(CURRENT_DIR, "data/IL_counties_central_coords_lat_long.tsv")
         ) as f:
@@ -66,92 +65,125 @@ class IDPH(base.BaseETL):
         """
         Reads JSON file and convert the data to Sheepdog records.
         """
+        start = time.time()
+
         latest_submitted_date = self.metadata_helper.get_latest_submitted_date_idph()
         today = datetime.date.today()
         if latest_submitted_date == today:
             print("Nothing to submit: today and latest submitted date are the same.")
             return
 
-        today_str = today.strftime("%Y%m%d")
-        print(f"Getting data for date: {today_str}")
+        print(
+            f"Latest submitted date: {latest_submitted_date}. Getting data for date: {today}"
+        )
 
-        # they changed the URL on April 1, 2020
-        if today > datetime.date(2020, 3, 31):
-            url = "http://www.dph.illinois.gov/sitefiles/COVIDTestResults.json"
-        else:
-            url = f"https://www.dph.illinois.gov/sites/default/files/COVID19/COVID19CountyResults{today_str}.json"
-        self.parse_file(latest_submitted_date, url)
+        self.parse_il_counties()
 
-    def parse_file(self, latest_submitted_date, url):
+        # convert date to datetime
+        latest_submitted_datetime = (
+            datetime.datetime(
+                latest_submitted_date.year,
+                latest_submitted_date.month,
+                latest_submitted_date.day,
+            )
+            if latest_submitted_date
+            else None
+        )
+
+        for county in self.county_dict:
+            self.parse_county_data(latest_submitted_datetime, county)
+
+        self.parse_state_data(latest_submitted_datetime)
+
+        print("Done in {} secs".format(int(time.time() - start)))
+
+    def parse_county_data(self, latest_submitted_date, county):
         """
         Converts a JSON files to data we can submit via Sheepdog. Stores the
         records to submit in `self.summary_locations` and `self.summary_clinicals`.
 
         Args:
-            latest_submitted_date (date): date for latest submitted date
-            url (str): URL at which the JSON file is available
+            latest_submitted_date (datetime): date for latest submitted date
+            county (str): county name
         """
-        print("Getting data from {}".format(url))
+        demographics = self.get_demographics(
+            start_date=latest_submitted_date,
+            end_date=datetime.date.today(),
+            county=county,
+        )
+
+        url = f"https://idph.illinois.gov/DPHPublicInformation/api/COVIDExport/GetCountyTestResultsTimeSeries?countyName={county}"
+        print("Getting county data from {}".format(url))
+
         with closing(self.get(url, stream=True)) as r:
-            data = r.json()
-            date = idph_get_date(data["LastUpdateDate"])
-
-            if latest_submitted_date and date == latest_submitted_date.strftime(
-                "%Y-%m-%d"
-            ):
-                print(
-                    "Nothing to submit: latest submitted date and date from data are the same."
+            daily_data = r.json()
+            for data in daily_data:
+                date = datetime.datetime.strptime(
+                    data["ReportDate"], "%Y-%m-%dT%H:%M:%S"
                 )
-                return
+                date_str = datetime.datetime.strftime(date, "%Y-%m-%d")
+                if not latest_submitted_date or date <= latest_submitted_date:
+                    continue  # skip historical data we already have
 
-            for county in data["characteristics_by_county"]["values"]:
-                demographic = data.get("demographics", None)
-                summary_location, summary_clinical = self.parse_county(
-                    date, county, demographic
+                summary_location, summary_clinical = self.parse_county_data_for_date(
+                    date, county, data
                 )
+                summary_clinical = {
+                    **summary_clinical,
+                    **demographics[date_str],  # add demographics data
+                }
 
                 self.summary_locations.append(summary_location)
                 self.summary_clinicals.append(summary_clinical)
 
-            for illinois_data in data["state_testing_results"]["values"]:
-                illinois_historic_data = self.parse_historical_data(illinois_data)
-                self.summary_clinicals.append(illinois_historic_data)
-
-    def parse_historical_data(self, illinois_data):
+    def parse_state_data(self, latest_submitted_date):
         """
         Parses historical state-level data. "summary_location" node is created
         from "characteristics_by_county" data.
 
         Args:
-            illinois_data (dict): data JSON with "testDate", "total_tested",
-                "confirmed_cases" and "deaths"
-
-        Returns:
-            dict: "summary_clinical" node for Sheepdog
+            latest_submitted_date (datetime): date for latest submitted date
         """
+        url = "https://idph.illinois.gov/DPHPublicInformation/api/COVIDExport/GetIllinoisCases"
+        print("Getting state data from {}".format(url))
         county = "Illinois"
 
-        date = datetime.datetime.strptime(
-            illinois_data["testDate"], "%m/%d/%Y"
-        ).strftime("%Y-%m-%d")
+        demographics = self.get_demographics(
+            start_date=latest_submitted_date,
+            end_date=datetime.date.today(),
+            county=county,
+        )
 
-        (
-            summary_location_submitter_id,
-            summary_clinical_submitter_id,
-        ) = self.get_location_and_clinical_submitter_id(county, date)
+        with closing(self.get(url, stream=True)) as r:
+            daily_data = r.json()
+            for illinois_data in daily_data:
+                date = datetime.datetime.strptime(
+                    illinois_data["testDate"], "%Y-%m-%dT%H:%M:%S"
+                )
+                date_str = datetime.datetime.strftime(date, "%Y-%m-%d")
+                if not latest_submitted_date or date <= latest_submitted_date:
+                    continue  # skip historical data we already have
 
-        summary_clinical = {
-            "submitter_id": summary_clinical_submitter_id,
-            "date": date,
-            "confirmed": illinois_data["confirmed_cases"],
-            "testing": illinois_data["total_tested"],
-            "deaths": illinois_data["deaths"],
-            "summary_locations": [{"submitter_id": summary_location_submitter_id}],
-        }
+                (
+                    summary_location_submitter_id,
+                    summary_clinical_submitter_id,
+                ) = self.get_location_and_clinical_submitter_id(county, date)
 
-        return summary_clinical
+                summary_clinical = {
+                    "submitter_id": summary_clinical_submitter_id,
+                    "date": date,
+                    "confirmed": illinois_data["confirmed_cases"],
+                    "testing": illinois_data["total_tested"],
+                    "deaths": illinois_data["deaths"],
+                    "summary_locations": [
+                        {"submitter_id": summary_location_submitter_id}
+                    ],
+                    **demographics[date_str],  # add demographics data
+                }
 
-    def parse_county(self, date, county_json, demographic):
+                self.summary_clinicals.append(summary_clinical)
+
+    def parse_county_data_for_date(self, date, county, county_json):
         """
         From county-level data, generate the data we can submit via Sheepdog
 
@@ -162,8 +194,6 @@ class IDPH(base.BaseETL):
         Returns:
             (dict, dict): "summary_location" and "summary_clinical" records
         """
-        county = county_json["County"]
-
         (
             summary_location_submitter_id,
             summary_clinical_submitter_id,
@@ -174,53 +204,44 @@ class IDPH(base.BaseETL):
             "country_region": self.country,
             "province_state": self.state,
             "projects": [{"code": self.project_code}],
+            "county": county,
+            "latitude": self.county_dict[county]["lat"],
+            "longitude": self.county_dict[county]["lon"],
         }
-
-        # the IDPH data use Illinois in "County" field for aggregated data
-        # in Gen3 it would equal to location with "province_state" equal to "IL" and no "County" field
-        if county != "Illinois":
-            summary_location["county"] = county
-
-        if county in self.county_dict:
-            summary_location["latitude"] = self.county_dict[county]["lat"]
-            summary_location["longitude"] = self.county_dict[county]["lon"]
-        else:
-            if county_json["lat"] != 0:
-                summary_location["latitude"] = str(county_json["lat"])
-            if county_json["lon"] != 0:
-                summary_location["longitude"] = str(county_json["lon"])
 
         summary_clinical = {
             "submitter_id": summary_clinical_submitter_id,
             "date": date,
-            "confirmed": county_json["confirmed_cases"],
-            "testing": county_json["total_tested"],
-            "deaths": county_json["deaths"],
+            "confirmed": county_json["CumulativeCases"],
+            "testing": county_json["TotalTested"],
+            "deaths": county_json["Deaths"],
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
 
-        if "negative" in county_json:
-            summary_clinical["negative"] = county_json["negative"]
-
-        if county == "Illinois" and demographic:
-            for k, v in fields_mapping.items():
-                field, mapping = v
-                demographic_group = demographic[k]
-
-                for item in demographic_group:
-                    dst_field = mapping[item[field]]
-                    if dst_field:
-                        if "count" in item:
-                            age_group_count_field = "{}_{}".format(
-                                mapping[item[field]], "count"
-                            )
-                            summary_clinical[age_group_count_field] = item["count"]
-                        if "tested" in item:
-                            age_group_tested_field = "{}_{}".format(
-                                mapping[item[field]], "tested"
-                            )
-                            summary_clinical[age_group_tested_field] = item["tested"]
         return summary_location, summary_clinical
+
+    def get_demographics(self, start_date, end_date, county):
+        start_date = datetime.datetime.strftime(start_date, "%Y-%m-%d")
+        end_date = datetime.datetime.strftime(end_date, "%Y-%m-%d")
+        demographics = {}
+        for _type, (field, mapping) in fields_mapping.items():
+            type_name = _type.capitalize()
+            url = f"https://idph.illinois.gov/DPHPublicInformation/api/COVIDExport/GetDemographics{type_name}?CountyName={county}&beginDate={start_date}&endDate={end_date}"
+            print("Getting demographics data from {}".format(url))
+            with closing(self.get(url, stream=True)) as r:
+                data = r.json()
+                for item in data:
+                    date = item["ReportDate"].split("T")[0]
+                    dst_field = mapping[item[field].strip()]
+                    if not dst_field:
+                        continue
+                    for key in ["count", "deaths", "tested"]:
+                        if key in item:
+                            count_field = f"{dst_field}_{key}"
+                            if date not in demographics:
+                                demographics[date] = {}
+                            demographics[date][count_field] = item[key]
+        return demographics
 
     def submit_metadata(self):
         """
