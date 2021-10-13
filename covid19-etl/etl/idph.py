@@ -74,7 +74,7 @@ class IDPH(base.BaseETL):
             return
 
         print(
-            f"Latest submitted date: {latest_submitted_date}. Getting data for date: {today}"
+            f"Latest submitted date: {latest_submitted_date}. Getting data until date: {today}"
         )
 
         self.parse_il_counties()
