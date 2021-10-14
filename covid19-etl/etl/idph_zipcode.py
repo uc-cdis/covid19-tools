@@ -26,7 +26,7 @@ class IDPH_ZIPCODE(base.BaseETL):
         self.country = "US"
         self.state = "IL"
 
-        self.summary_locations = []
+        self.summary_locations = {}  # { <submitter_id>: <record> }
         self.summary_clinicals = []
 
     def files_to_submissions(self):
@@ -64,7 +64,9 @@ class IDPH_ZIPCODE(base.BaseETL):
                     zipcode_values
                 )
 
-                self.summary_locations.append(summary_location)
+                self.summary_locations[
+                    summary_location["submitter_id"]
+                ] = summary_location
                 self.summary_clinicals.append(summary_clinical)
 
     def parse_zipcode(self, zipcode_values):
@@ -131,7 +133,7 @@ class IDPH_ZIPCODE(base.BaseETL):
         """
         print("Submitting data...")
         print("Submitting summary_location data")
-        for sl in self.summary_locations:
+        for sl in self.summary_locations.values():
             sl_record = {"type": "summary_location"}
             sl_record.update(sl)
             self.metadata_helper.add_record_to_submit(sl_record)
