@@ -104,7 +104,8 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
                     summary_clinical = self.parse_historical(
                         summary_location_submitter_id, utilization
                     )
-
+                    print(summary_clinical)
+                    print("-" * 10)
                     self.summary_clinicals.append(summary_clinical)
 
     def parse_historical(self, summary_location_submitter_id, utilization):
@@ -158,6 +159,5 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
         for sc in self.summary_clinicals:
             sc_record = {"type": "summary_clinical"}
             sc_record.update(sc)
-            print(sc)
             self.metadata_helper.add_record_to_submit(sc_record)
         self.metadata_helper.batch_submit_records()
