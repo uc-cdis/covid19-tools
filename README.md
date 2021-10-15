@@ -4,7 +4,7 @@
 | --- | --- | --- | --- |
 | [COV-24][cov-24] | John Hopkins Data | [here][jhu] | Scheduled |
 | [COV-12][cov-12] | IDPH County-level data | [here](https://dph.illinois.gov/covid19/data/data-portal/cases-tests-and-deaths-day.html), [here](https://dph.illinois.gov/covid19/data/data-portal/cases-tests-and-deaths-day1.html) and [here](https://dph.illinois.gov/covid19/data/data-portal/covid-19-county-historical-demographics.html) | Scheduled |
-| [COV-79][cov-79] | IDPH Zipcode data| ([JSON][idph-zipcode-json]) | Scheduled |
+| [COV-79][cov-79] | IDPH Zipcode data| [here](https://dph.illinois.gov/covid19/data/data-portal/zip-level-tests-and-cases.html) | Scheduled |
 | [COV-273][cov-273] | IDPH Facility data | [here][idph-facility] ([JSON][idph-facility-json]) | Scheduled |
 | ~~[COV-345][cov-345]~~ | ~~IDPH Hospital data~~ | ~~[here][idph-hospital] ([JSON][idph-hospital-json])~~ | ~~Scheduled~~ |
 | [COV-1014][cov-1014] | IDPH Regional ICU Capacity | [here][idph-hospital] ([JSON][idph-regional-icu-cap-json]) | Scheduled |
@@ -135,7 +135,6 @@ covid19-tools
 [chi-nbhd]: https://covid19neighborhoods.southsideweekly.com/
 [chi-nbhd-json]: https://covid19neighborhoods.southsideweekly.com/page-data/index/page-data.json
 [jhu]: https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series
-[idph-zipcode-json]: http://dph.illinois.gov/sitefiles/COVIDZip.json?nocache=1
 [idph-facility]: https://dph.illinois.gov/covid19/long-term-care-facility-outbreaks-covid-19
 [idph-facility-json]: https://dph.illinois.gov/sitefiles/COVIDLTC.json?nocache=1
 [idph-hospital]: http://www.dph.illinois.gov/covid19/hospitalization-utilization

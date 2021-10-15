@@ -288,14 +288,13 @@ class MetadataHelper:
 
         batch_size = 200
         verbose = True
-        project_id = f"{self.program_name}-{self.project_code}"
         for node in ordered_node_list:
             if verbose:
                 print(node, end="", flush=True)
             first_uuid = ""
             while True:
                 query_string = f"""{{
-                    {node} (first: {batch_size}, project_id: "{project_id}") {{
+                    {node} (first: {batch_size}, project_id: "{self.project_id}") {{
                         id
                     }}
                 }}"""
@@ -333,3 +332,26 @@ class MetadataHelper:
 
             if verbose:
                 print()
+
+    def get_existing_summary_locations(self):
+        print("Getting current 'location' records from Guppy...")
+        query_string = """query ($filter: JSON) {
+            location (
+                filter: $filter,
+                first: 10000,
+                accessibility: accessible
+            ) {
+                submitter_id
+            }
+        }"""
+
+        variables = {"filter": {"=": {"project_id": self.project_id}}}
+        query_res = self.query_guppy(query_string, variables)
+
+        if "data" not in query_res or "location" not in query_res["data"]:
+            raise Exception(
+                f"Did not receive any data from Guppy. Query result for the query - {query_string} with variables - {variables} is \n\t {query_res}"
+            )
+
+        location_list = query_res["data"]["location"]
+        return [location["submitter_id"] for location in location_list]
