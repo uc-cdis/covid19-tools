@@ -104,8 +104,6 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
                     summary_clinical = self.parse_historical(
                         summary_location_submitter_id, utilization
                     )
-                    print(summary_clinical)
-                    print("-" * 10)
                     self.summary_clinicals.append(summary_clinical)
 
     def parse_historical(self, summary_location_submitter_id, utilization):
@@ -153,11 +151,24 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
             sl_record = {"type": "summary_location"}
             sl_record.update(sl)
             self.metadata_helper.add_record_to_submit(sl_record)
-        self.metadata_helper.batch_submit_records()
-
+        try:
+            self.metadata_helper.batch_submit_records()
+        except Exception as err:
+            if "Entity is not unique" in err:
+                print(
+                    f"Couldn't submit the following records due to {err}\n {self.summary_locations}"
+                )
+            raise err
         print("Submitting summary_clinical data")
         for sc in self.summary_clinicals:
             sc_record = {"type": "summary_clinical"}
             sc_record.update(sc)
             self.metadata_helper.add_record_to_submit(sc_record)
-        self.metadata_helper.batch_submit_records()
+        try:
+            self.metadata_helper.batch_submit_records()
+        except Exception as err:
+            if "Entity is not unique" in err:
+                print(
+                    f"Couldn't submit the following records due to {err}\n {self.summary_clinicals}"
+                )
+            raise err
