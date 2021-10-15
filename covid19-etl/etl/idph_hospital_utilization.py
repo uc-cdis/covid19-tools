@@ -130,7 +130,7 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
             summary_location_submitter_id,
             "summary_location",
             "summary_clinical",
-            {"date": 'utilization["ReportDate"]'},
+            {"date": utilization["ReportDate"]},
         )
 
         summary_clinical = {
