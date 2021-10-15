@@ -55,6 +55,9 @@ class IDPH_ZIPCODE(base.BaseETL):
         Args:
             date_str (str): date in "%Y-%m-%d" format
         """
+        existing_summary_locations = (
+            self.metadata_helper.get_existing_summary_locations()
+        )
         url = f"https://idph.illinois.gov/DPHPublicInformation/api/COVIDExport/GetZip?reportDate={date_str}"
         print("Getting data from {}".format(url))
         with closing(self.get(url, stream=True)) as r:
@@ -64,9 +67,9 @@ class IDPH_ZIPCODE(base.BaseETL):
                     zipcode_values
                 )
 
-                self.summary_locations[
-                    summary_location["submitter_id"]
-                ] = summary_location
+                sl_id = summary_location["submitter_id"]
+                if sl_id not in existing_summary_locations:
+                    self.summary_locations[sl_id] = summary_location
                 self.summary_clinicals.append(summary_clinical)
 
     def parse_zipcode(self, zipcode_values):
