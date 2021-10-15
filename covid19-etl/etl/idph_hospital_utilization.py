@@ -167,7 +167,7 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
         try:
             self.metadata_helper.batch_submit_records()
         except Exception as err:
-            if "Entity is not unique" in err:
+            if "Entity is not unique" in str(err):
                 print(
                     f"Couldn't submit the following records due to {err}\n {self.summary_clinicals}"
                 )
