@@ -130,7 +130,7 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
             summary_location_submitter_id,
             "summary_location",
             "summary_clinical",
-            {"date": utilization["ReportDate"]},
+            {"date": 'utilization["ReportDate"]'},
         )
 
         summary_clinical = {
@@ -154,7 +154,7 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
         try:
             self.metadata_helper.batch_submit_records()
         except Exception as err:
-            if "Entity is not unique" in err:
+            if "Entity is not unique" in str(err):
                 print(
                     f"Couldn't submit the following records due to {err}\n {self.summary_locations}"
                 )
