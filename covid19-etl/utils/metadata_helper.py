@@ -151,6 +151,8 @@ class MetadataHelper:
                     print("Submission progress: {}/{}".format(i + 1, n_batches))
                     break
             if tries == MAX_RETRIES:
+                if "Entity is not unique" in response.text:
+                    print(f"Couldn't submit the following records:\n {records}")
                 raise Exception(
                     "Unable to submit to Sheepdog: {}\n{}".format(
                         response.status_code, response.text

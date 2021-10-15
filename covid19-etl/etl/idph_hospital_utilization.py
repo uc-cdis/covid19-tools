@@ -151,24 +151,11 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
             sl_record = {"type": "summary_location"}
             sl_record.update(sl)
             self.metadata_helper.add_record_to_submit(sl_record)
-        try:
-            self.metadata_helper.batch_submit_records()
-        except Exception as err:
-            if "Unable to submit to Sheepdog" in str(err):
-                print(
-                    f"Couldn't submit the following records due to {err}\n {self.summary_locations}"
-                )
-            raise err
+        self.metadata_helper.batch_submit_records()
+
         print("Submitting summary_clinical data")
         for sc in self.summary_clinicals:
             sc_record = {"type": "summary_clinical"}
             sc_record.update(sc)
             self.metadata_helper.add_record_to_submit(sc_record)
-        try:
-            self.metadata_helper.batch_submit_records()
-        except Exception as err:
-            if "Unable to submit to Sheepdog" in str(err):
-                print(
-                    f"Couldn't submit the following records due to {err}\n {self.summary_clinicals}"
-                )
-            raise err
+        self.metadata_helper.batch_submit_records()
