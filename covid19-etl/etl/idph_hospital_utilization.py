@@ -105,6 +105,7 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
                         summary_location_submitter_id, utilization
                     )
                     self.summary_clinicals.append(summary_clinical)
+                    self.summary_clinicals.append(summary_clinical)
 
     def parse_historical(self, summary_location_submitter_id, utilization):
         utilization_mapping = {
