@@ -48,6 +48,7 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
 
         today = datetime.date.today()
         latest_submitted_date = self.metadata_helper.get_latest_submitted_date_idph()
+        print(f"Latest submitted date from guppy is {str(latest_submitted_date)}")
         if latest_submitted_date == today:
             print("Nothing to submit: today and latest submitted date are the same.")
             return
@@ -103,7 +104,6 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
                     summary_clinical = self.parse_historical(
                         summary_location_submitter_id, utilization
                     )
-
                     self.summary_clinicals.append(summary_clinical)
 
     def parse_historical(self, summary_location_submitter_id, utilization):
