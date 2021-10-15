@@ -171,4 +171,5 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
                 print(
                     f"Couldn't submit the following records due to {err}\n {self.summary_clinicals}"
                 )
+            print(f"Printing err -- {str(err)}")
             raise err
