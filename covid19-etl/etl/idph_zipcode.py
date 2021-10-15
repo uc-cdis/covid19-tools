@@ -6,7 +6,6 @@ from utils.idph_helper import fields_mapping
 from utils.format_helper import (
     derived_submitter_id,
     format_submitter_id,
-    idph_get_date,
 )
 from utils.metadata_helper import MetadataHelper
 
@@ -27,7 +26,7 @@ class IDPH_ZIPCODE(base.BaseETL):
         self.country = "US"
         self.state = "IL"
 
-        self.summary_locations = []
+        self.summary_locations = {}  # { <submitter_id>: <record> }
         self.summary_clinicals = []
 
     def files_to_submissions(self):
@@ -41,45 +40,45 @@ class IDPH_ZIPCODE(base.BaseETL):
             print("Nothing to submit: today and latest submitted date are the same.")
             return
 
-        today_str = today.strftime("%Y%m%d")
-        print(f"Getting data for date: {today_str}")
-        url = "http://dph.illinois.gov/sitefiles/COVIDZip.json?nocache=1"
-        self.parse_file(latest_submitted_date, url)
+        print(
+            f"Latest submitted date: {latest_submitted_date}. Getting data until date: {today}"
+        )
+        for i in range(int((today - latest_submitted_date).days)):
+            date = latest_submitted_date + datetime.timedelta(i + 1)
+            self.parse_data(date.strftime("%Y-%m-%d"))
 
-    def parse_file(self, latest_submitted_date, url):
+    def parse_data(self, date_str):
         """
         Converts a JSON files to data we can submit via Sheepdog. Stores the
         records to submit in `self.summary_locations` and `self.summary_clinicals`.
 
         Args:
-            latest_submitted_date (date): date for latest submitted date
-            url (str): URL at which the JSON file is available
+            date_str (str): date in "%Y-%m-%d" format
         """
+        existing_summary_locations = (
+            self.metadata_helper.get_existing_summary_locations()
+        )
+        url = f"https://idph.illinois.gov/DPHPublicInformation/api/COVIDExport/GetZip?reportDate={date_str}"
         print("Getting data from {}".format(url))
         with closing(self.get(url, stream=True)) as r:
             data = r.json()
-            date = idph_get_date(data["LastUpdateDate"])
-
-            if latest_submitted_date and date == latest_submitted_date.strftime(
-                "%Y-%m-%d"
-            ):
-                print(
-                    "Nothing to submit: latest submitted date and date from data are the same."
-                )
-                return
-
-            for zipcode_values in data["zip_values"]:
+            for zipcode_values in data:
                 (summary_location, summary_clinical) = self.parse_zipcode(
-                    date, zipcode_values
+                    zipcode_values
                 )
 
-                self.summary_locations.append(summary_location)
+                sl_id = summary_location["submitter_id"]
+                if sl_id not in existing_summary_locations:
+                    self.summary_locations[sl_id] = summary_location
                 self.summary_clinicals.append(summary_clinical)
 
-    def parse_zipcode(self, date, zipcode_values):
+    def parse_zipcode(self, zipcode_values):
         """
         From county-level data, generate the data we can submit via Sheepdog
         """
+        date = datetime.datetime.strptime(
+            zipcode_values["reportDate"], "%Y-%m-%dT%H:%M:%S"
+        ).strftime("%Y-%m-%d")
         zipcode = zipcode_values["zip"]
 
         summary_location_submitter_id = format_submitter_id(
@@ -137,7 +136,7 @@ class IDPH_ZIPCODE(base.BaseETL):
         """
         print("Submitting data...")
         print("Submitting summary_location data")
-        for sl in self.summary_locations:
+        for sl in self.summary_locations.values():
             sl_record = {"type": "summary_location"}
             sl_record.update(sl)
             self.metadata_helper.add_record_to_submit(sl_record)
