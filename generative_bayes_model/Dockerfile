@@ -1,5 +1,5 @@
 #FROM rocker/verse:latest
-FROM jupyter-6.4.0-with-base-packages:latest
+FROM quay.io/cdis/jupyter-6.4.0-with-base-packages:latest
 USER root
 
 # suppress warnings due to non-interactive front end
