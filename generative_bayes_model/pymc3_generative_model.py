@@ -67,10 +67,6 @@ def _get_generation_time_interval():
 
 
 def _get_convolution_ready_gt(len_observed):
-    """Speeds up theano.scan by pre-computing the generation time interval
-    vector. Thank you to Junpeng Lao for this optimization.
-    Please see the outbreak simulation math here:
-    https://staff.math.su.se/hoehle/blog/2020/04/15/effectiveR0.html"""
     gt = _get_generation_time_interval()
     convolution_ready_gt = np.zeros((len_observed - 1, len_observed))
     for t in range(1, len_observed):
@@ -200,9 +196,6 @@ def conv(a, b, len_observed):
 
 
 def get_delay_distribution():
-    """Returns the empirical delay distribution between symptom onset and
-    confirmed positive case."""
-
     # The literature suggests roughly 5 days of incubation before becoming
     # having symptoms. See:
     # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7081172/
