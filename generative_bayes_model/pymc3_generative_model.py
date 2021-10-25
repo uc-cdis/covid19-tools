@@ -203,7 +203,8 @@ def get_delay_distribution():
 
     try:
         p_delay = pd.read_csv(
-            "/home/ubuntu/p_delay.csv", squeeze=True
+            "https://raw.githubusercontent.com/uc-cdis/covid19-tools/master/generative_bayes_model/p_delay.csv",
+            squeeze=True,
         )  # The delay distribution was calculated from the data in https://github.com/beoutbreakprepared/nCoV2019/tree/master/latest_data
     except FileNotFoundError:
         delays = get_delays_from_patient_data()
