@@ -1,15 +1,16 @@
 name: root
 channels:
-- conda-forge
+  - defaults
+  - conda-forge
 dependencies:
-- mkl
-- cxx-compiler
-- numpy
-- pandas
-- matplotlib
-- scipy
-- sklearn
-- seaborn
-- pip
-- pymc3
-- mkl-service
+  - mkl
+  - cxx-compiler
+  - numpy
+  - pandas
+  - matplotlib
+  - scipy
+  - sklearn
+  - seaborn
+  - pip
+  - pymc3
+  - mkl-service
