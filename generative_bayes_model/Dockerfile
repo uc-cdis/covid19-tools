@@ -1,4 +1,4 @@
-FROM jupyter/minimal-notebook
+FROM quay.io/cdis/jupyter_minimal-notebook:2021-10-25
 
 RUN conda update --yes conda && \
     conda install --quiet --yes ipython numpy pandas matplotlib scipy scikit-learn jupyterlab seaborn && \
