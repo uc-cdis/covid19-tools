@@ -5,3 +5,8 @@ RUN conda update --yes conda && \
     conda install --yes -c conda-forge arviz=0.11.0 pymc3 mkl-service && \
     fix-permissions $CONDA_DIR && \
     fix-permissions /home/$NB_USER
+
+COPY . /gbm
+WORKDIR /gbm
+
+CMD [ "python3", " /gbm/pymc3_generative_model.py" ]
