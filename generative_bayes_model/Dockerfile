@@ -9,4 +9,4 @@ RUN conda update --yes conda && \
 COPY . /gbm
 WORKDIR /gbm
 
-CMD [ "python3", " /gbm/pymc3_generative_model.py" ]
+CMD [ "python3", "pymc3_generative_model.py" ]
