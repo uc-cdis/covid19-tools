@@ -6,7 +6,8 @@ RUN conda update --yes conda && \
     fix-permissions $CONDA_DIR && \
     fix-permissions /home/$NB_USER
 
-COPY [--chown=jovyan:users] . /gbm
-RUN chmod -R 777 /gbm
-WORKDIR /gbm
+RUN mkdir $HOME/gbm
+COPY . $HOME/gbm/
+WORKDIR $HOME/gbm
+USER root
 CMD [ "python3", "pymc3_generative_model.py" ]
