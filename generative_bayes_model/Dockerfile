@@ -8,5 +8,4 @@ RUN conda update --yes conda && \
 
 COPY [--chown=jovyan:users] . /gbm
 WORKDIR /gbm
-USER root
 CMD [ "python3", "pymc3_generative_model.py" ]
