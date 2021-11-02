@@ -5,9 +5,8 @@ RUN conda update --yes conda && \
     conda install --yes -c conda-forge arviz=0.11.0 pymc3 mkl-service && \
     fix-permissions $CONDA_DIR && \
     fix-permissions /home/$NB_USER
-
 RUN mkdir $HOME/gbm
 COPY . $HOME/gbm/
 WORKDIR $HOME/gbm
 USER root
-CMD [ "python3", "pymc3_generative_model.py" ]
+CMD [ "bash" , "gbm-run-with-slack.sh" ]
