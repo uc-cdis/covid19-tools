@@ -5,3 +5,9 @@ RUN conda update --yes conda && \
     conda install --yes -c conda-forge arviz=0.11.0 pymc3 mkl-service && \
     fix-permissions $CONDA_DIR && \
     fix-permissions /home/$NB_USER
+RUN pip3 install awscli==1.18.*
+RUN mkdir $HOME/gbm
+COPY . $HOME/gbm/
+WORKDIR $HOME/gbm
+USER root
+CMD [ "bash" , "gbm-run-with-slack.sh" ]
