@@ -21,7 +21,7 @@ auth = Gen3Auth()
 
 ### "covid19_seir" notebook:
 
-In chicago-seir-forcast notebook, we construct an SEIR model for COVID-19 in Cook County, Illinois, using data sourced from Johns Hopkins University, but available within the Chicagoland COVID-19 Commons. We then perform an optimization of initial model parameter values and do simple validation. This notebook is intended to demonstrate real-life usage of data for epidemiological modeling and is not intended for rigorous scientific interpretation.
+In chicago-seir-forcast notebook, we construct a SEIR model for COVID-19 in Cook County, Illinois, using data sourced from Johns Hopkins University, but available within the Chicagoland COVID-19 Commons. We then perform an optimization of initial model parameter values and do simple validation. This notebook is intended to demonstrate real-life usage of data for epidemiological modeling and is not intended for rigorous scientific interpretation.
 
 ### "COVID-19-JHU_data_analysis_04072020" notebook:
 
@@ -42,7 +42,7 @@ In this R markdown, we track COVID-19 local (US) and global cases with active, c
 
 ### "COVID-19 Testing Over Time in the US" notebook:
 
-COVID-19 testing is very crucial to understand the spread of the pandemic. In this python notebook, we have focused our efforts on visualizing the COVID-19 testing data across the United States and U.S. Territories from the COVID Tracking Project. The animations will allow you to see how testing data has changed over time.
+COVID-19 testing is very crucial to understand the spread of the pandemic. In this python notebook, we have focused our efforts on visualizing the COVID-19 testing data from the COVID Tracking Project(CTP) across the United States and U.S. Territories from the COVID Tracking Project. The animations will allow you to see how testing data has changed over time.
 
 ### "nCoV-2019 Data Visualization" notebook:
 
@@ -54,14 +54,13 @@ In this notebook, we obtain the clinical data for multiple projects from the Chi
 
 ### "Visualize Statistical Summary Reports from Partnering Healthcare Providers" notebook:
 
-This notebook provides an example of how to visualize the status of COVID-19 and general patient information from multiple regional healthcare providers using the demo Statistical Summary Report data from 03/10/2020 to 11/10/2020.
+This notebook provides an example of how to visualize the status of COVID-19 and general patient information from multiple regional healthcare providers using the demo Statistical Summary Report(SSR) data from 03/10/2020 to 11/10/2020.
 
 ### "Google Mobility Data Visualization" notebook:
 
 In this notebook, we demonstrate how to query the google mobility data using the BigQuery API client python library, and visualize the mobility changes over time across the United States since February 2020.
 
-
-## "PFB_example" notebook:
+### "PFB_example" notebook:
 
 Once a PFB is loaded into the workspace, either by uploading a PFB file or by exporting a PFB from explorer, the data contained in the PFB may be examined by converting to tsv files. This notebook provides a tutorial on how to export data contained in a PFB for analysis into a workspace environment using the PyPFB library via the Gen3 CLI and directly in python.
 
@@ -72,3 +71,15 @@ This notebook provides a snapshot of publicly available data related to COVID-19
 ### "3D Coronavirus SARS-CoV-2 Protein Visualization" notebook:
 
 This notebook provides an example to manipulate coronavirus SARS-CoV-2 DNA sequence, amino acid sequence and use visualization tools to present the three-dimensional (3D) structure of SARS-CoV-2 protein structures interactively.
+
+### "Percentage ICU bed availability prediction in state of Illinois" notebook:
+
+The Delta variant of the coronavirus has been spreading rapidly throughout the US and the world. This variant is highly transmissible and more virulent. It's critical to prepare sufficient medical supplies to meet patients needs, such as ICU beds and ventilators. In this notebook, we construct an Hierarchical Bayesian Binomial Regression model, a Univariate/Multivariate LSTM model and a Univariate/Multivariate CNN-LSTM model forecasting the percentage of ICU bed availability for the next 14 days.
+
+### "COVID-19 X-ray images classification" notebook:
+
+Recent findings obtained using radiology imaging techniques suggest that such images contain salient information about the COVID-19 virus. Application of advanced artificial intelligence techniques coupled with radiological imaging can be helpful for the accurate detection of COVID-19. This notebook is a replication of the [DarkCovidNet model](https://pubmed.ncbi.nlm.nih.gov/32568675/) to classify radiological images as indicative of either "COVID-19" or "No Finding" to assist in the diagnosis if COVID-19.
+
+### "SEIR Forecast" notebook:
+
+In seir-forcast notebook, we demonstrate a SEIR model for COVID-19 in Cook County, Illinois, using data sourced from New York Times. We optimized parameters using reported cases and reported deaths in Cook County. This notebook is intended to demonstrate the usage of COVID-19 data for epidemiological modeling and is not intended for rigorous scientific interpretation.
