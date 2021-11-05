@@ -79,7 +79,3 @@ The Delta variant of the coronavirus has been spreading rapidly throughout the U
 ### "COVID-19 X-ray images classification" notebook:
 
 Recent findings obtained using radiology imaging techniques suggest that such images contain salient information about the COVID-19 virus. Application of advanced artificial intelligence techniques coupled with radiological imaging can be helpful for the accurate detection of COVID-19. This notebook is a replication of the [DarkCovidNet model](https://pubmed.ncbi.nlm.nih.gov/32568675/) to classify radiological images as indicative of either "COVID-19" or "No Finding" to assist in the diagnosis if COVID-19.
-
-### "SEIR Forecast" notebook:
-
-In seir-forcast notebook, we demonstrate a SEIR model for COVID-19 in Cook County, Illinois, using data sourced from New York Times. We optimized parameters using reported cases and reported deaths in Cook County. This notebook is intended to demonstrate the usage of COVID-19 data for epidemiological modeling and is not intended for rigorous scientific interpretation.
