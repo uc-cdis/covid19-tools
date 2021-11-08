@@ -180,7 +180,7 @@ with pm.Model() as model_r_t_infection_delay:
 
 with model_r_t_infection_delay:
     trace_r_t_infection_delay = pm.sample(
-        tune=1000, chains=4, cores=4, target_accept=0.9
+        tune=500, chains=4, cores=4, target_accept=0.9
     )
 
 
@@ -271,7 +271,7 @@ with pm.Model() as model_r_t_onset:
     prior_pred = pm.sample_prior_predictive()
 
 with model_r_t_onset:
-    trace_r_t_onset = pm.sample(tune=1000, chains=4, cores=4, target_accept=0.9)
+    trace_r_t_onset = pm.sample(tune=500, chains=4, cores=4, target_accept=0.9)
 
 start_date = daily_data.date[0]
 fig, ax = plt.subplots(figsize=(10, 6))
@@ -284,7 +284,7 @@ ax.set(
 )
 ax.axhline(1.0, c="k", lw=1, linestyle="--")
 fig.autofmt_xdate()
-fig.savefig("cook_county_rt.svg", dpi=300, bbox_inches="tight")
+fig.savefig("cook_county_rt.svg", dpi=100, bbox_inches="tight")
 
 with model_r_t_onset:
     post_pred_r_t_onset = pm.sample_posterior_predictive(trace_r_t_onset, samples=100)
@@ -314,7 +314,7 @@ with pm.Model() as model:
     y_logp = pm.Deterministic("y_logp", y_past.logpt)
 
 with model:
-    trace = pm.sample(200, tune=100, chains=1, target_accept=0.9, random_seed=42)
+    trace = pm.sample(200, tune=100, chains=1, target_accept=0.9, random_seed=42, cores=4)
 
 with model:
     y_future = pm.Poisson("y_future", mu=tt.exp(f[-F:]), shape=F)
