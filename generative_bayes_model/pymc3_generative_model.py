@@ -1,5 +1,6 @@
 import time
 import os
+
 t0 = time.time()
 import pymc3 as pm
 import arviz as az
@@ -284,7 +285,7 @@ ax.set(
 )
 ax.axhline(1.0, c="k", lw=1, linestyle="--")
 fig.autofmt_xdate()
-os.makedirs('results/17031/', exist_ok=True)
+os.makedirs("results/17031/", exist_ok=True)
 fig.savefig("results/17031/rt.svg", dpi=100, bbox_inches="tight")
 
 with model_r_t_onset:
@@ -315,7 +316,9 @@ with pm.Model() as model:
     y_logp = pm.Deterministic("y_logp", y_past.logpt)
 
 with model:
-    trace = pm.sample(200, tune=100, chains=1, target_accept=0.9, random_seed=42, cores=4)
+    trace = pm.sample(
+        200, tune=100, chains=1, target_accept=0.9, random_seed=42, cores=4
+    )
 
 with model:
     y_future = pm.Poisson("y_future", mu=tt.exp(f[-F:]), shape=F)
