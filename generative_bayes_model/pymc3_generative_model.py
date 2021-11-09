@@ -284,7 +284,7 @@ ax.set(
 )
 ax.axhline(1.0, c="k", lw=1, linestyle="--")
 fig.autofmt_xdate()
-os.makedirs('results/17031/', exist_ok=False)
+os.makedirs('results/17031/', exist_ok=True)
 fig.savefig("results/17031/rt.svg", dpi=100, bbox_inches="tight")
 
 with model_r_t_onset:
