@@ -8,7 +8,15 @@ fi
 echo "Running pymc3_generative_model..."
 python3 pymc3_generative_model.py;
 
+cd results
+
+# temporarily hardcode the contents of CountyCodeList.txt to only Cook, IL
+echo '"17031"' > CountyCodeList.txt
+
+echo "Will upload to S3 bucket:"
+find . -type f
+
 echo "Copying results to S3 bucket..."
 if [[ -n "$S3_BUCKET" ]]; then
-    aws s3 sync ./results/ $S3_BUCKET/generative_bayes_model/
+    aws s3 sync . $S3_BUCKET/generative_bayes_model/
 fi
