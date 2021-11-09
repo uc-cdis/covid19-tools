@@ -385,6 +385,7 @@ import numpy as np
 import pymc3 as pm
 import seaborn as sns
 from pandas import DataFrame
+import os
 
 plt.rcParams.update({"font.size": 14})
 seed = 42
@@ -434,6 +435,9 @@ def mediation_model(x, m, y):
 
     return model
 
+
+if not os.path.exists("results/17031"):
+    os.makedirs("results/17031")
 
 model = mediation_model(x, m, y)
 with model:
