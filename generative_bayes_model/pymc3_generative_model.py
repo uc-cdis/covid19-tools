@@ -284,7 +284,7 @@ ax.set(
 )
 ax.axhline(1.0, c="k", lw=1, linestyle="--")
 fig.autofmt_xdate()
-fig.savefig("cook_county_rt.svg", dpi=100, bbox_inches="tight")
+fig.savefig("results/17031/rt.svg", dpi=100, bbox_inches="tight")
 
 with model_r_t_onset:
     post_pred_r_t_onset = pm.sample_posterior_predictive(trace_r_t_onset, samples=100)
@@ -373,7 +373,7 @@ x_future = np.arange(1, F + 1)
 plt.fill_between(
     pd.date_range(start=daily_data.date[-1], periods=60, freq="D"), low, high, alpha=0.6
 )
-fig.savefig("cook_county_daily.svg", dpi=300, bbox_inches="tight")
+fig.savefig("results/17031/cases.svg", dpi=300, bbox_inches="tight")
 t1 = time.time()
 totaltime = (t1 - t0) / 3600
 # print("total run time is {:.4f}".format(totaltime))
