@@ -10,5 +10,5 @@ python3 pymc3_generative_model.py;
 
 echo "Copying results to S3 bucket..."
 if [[ -n "$S3_BUCKET" ]]; then
-    aws s3 sync . $S3_BUCKET/generative_bayes_model/ --exclude "*" --include "*.svg"
+    aws s3 sync ./results/ $S3_BUCKET/generative_bayes_model/
 fi
