@@ -322,7 +322,7 @@ with model:
 
 with model:
     y_future = pm.Poisson("y_future", mu=tt.exp(f[-F:]), shape=F)
-    forecasts = pm.sample_posterior_predictive(trace, vars=[y_future], random_seed=42)
+    forecasts = pm.sample_posterior_predictive(trace, var_names=[y_future], random_seed=42)
 
 samples = forecasts["y_future"]
 
