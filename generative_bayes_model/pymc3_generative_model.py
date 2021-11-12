@@ -23,7 +23,6 @@ import warnings
 
 warnings.simplefilter("ignore")
 # sampler_kwargs = {"chains":4, "cores":4, "return_inferencedata":True}
-sampler_kwargs = {"chains": 4, "cores": 4, "tune": 1000, "draws": 500}
 #%config InlineBackend.figure_format = 'svg'
 theano.config.gcc.cxxflags = "-Wno-c++11-narrowing"
 
@@ -181,7 +180,7 @@ with pm.Model() as model_r_t_infection_delay:
 
 with model_r_t_infection_delay:
     trace_r_t_infection_delay = pm.sample(
-        tune=500, chains=4, cores=4, target_accept=0.9
+        tune=500, chains=4, cores=8, target_accept=0.9
     )
 
 
@@ -272,7 +271,7 @@ with pm.Model() as model_r_t_onset:
     prior_pred = pm.sample_prior_predictive()
 
 with model_r_t_onset:
-    trace_r_t_onset = pm.sample(tune=500, chains=4, cores=4, target_accept=0.9)
+    trace_r_t_onset = pm.sample(tune=500, chains=4, cores=8, target_accept=0.9)
 
 start_date = daily_data.date[0]
 fig, ax = plt.subplots(figsize=(10, 6))
@@ -286,7 +285,7 @@ ax.set(
 ax.axhline(1.0, c="k", lw=1, linestyle="--")
 fig.autofmt_xdate()
 os.makedirs("results/17031/", exist_ok=True)
-fig.savefig("results/17031/rt.svg", dpi=100, bbox_inches="tight")
+fig.savefig("results/17031/rt.png", dpi=100, bbox_inches="tight")
 
 with model_r_t_onset:
     post_pred_r_t_onset = pm.sample_posterior_predictive(trace_r_t_onset, samples=100)
@@ -317,12 +316,12 @@ with pm.Model() as model:
 
 with model:
     trace = pm.sample(
-        200, tune=100, chains=1, target_accept=0.9, random_seed=42, cores=4
+        200, tune=100, chains=1, target_accept=0.9, random_seed=42, cores=8
     )
 
 with model:
     y_future = pm.Poisson("y_future", mu=tt.exp(f[-F:]), shape=F)
-    forecasts = pm.sample_posterior_predictive(trace, var_names=[y_future], random_seed=42)
+    forecasts = pm.sample_posterior_predictive(trace, vars=[y_future], random_seed=42)
 
 samples = forecasts["y_future"]
 
@@ -377,7 +376,7 @@ x_future = np.arange(1, F + 1)
 plt.fill_between(
     pd.date_range(start=daily_data.date[-1], periods=60, freq="D"), low, high, alpha=0.6
 )
-fig.savefig("results/17031/cases.svg", dpi=300, bbox_inches="tight")
+fig.savefig("results/17031/cases.png", dpi=100, bbox_inches="tight")
 t1 = time.time()
 totaltime = (t1 - t0) / 3600
 # print("total run time is {:.4f}".format(totaltime))
