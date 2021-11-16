@@ -47,7 +47,7 @@ pm.GaussianRandomWalk._random = _random
 
 
 def _get_generation_time_interval():
-    """Create a discrete P(Generation Interval)
+    """Create a discrete P (Generation Time Interval)
     Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7128842/"""
     import scipy.stats as sps
 
@@ -92,7 +92,8 @@ data_sum.insert(0, "days_since_100", range(len(data_sum)))
 daily_data.insert(0, "days_since_100", range(1, len(daily_data) + 1))
 update_date = str(data_sum.index[-1])
 daily_data["date"] = pd.to_datetime(daily_data.index)
-daily_data = daily_data.loc[daily_data["cases"] != 0]
+# Take past 9 month data as sampling data
+daily_data = daily_data[-270:]
 
 
 def average_missing_data(numbers):
@@ -134,6 +135,8 @@ def average_missing_data(numbers):
         if i + 2 == len(numbers) and numbers[i] == 0 and numbers[i + 1] == 0:
             numbers[i] = numbers[i - 1]
             numbers[i + 1] = numbers[i - 1]
+        if i + 2 == len(numbers) and numbers[i] != 0 and numbers[i + 1] == 0:
+            numbers[i + 1] = numbers[i]
 
     return numbers
 
@@ -180,7 +183,7 @@ with pm.Model() as model_r_t_infection_delay:
 
 with model_r_t_infection_delay:
     trace_r_t_infection_delay = pm.sample(
-        tune=500, chains=4, cores=8, target_accept=0.9
+        tune=500, chains=2, cores=8, target_accept=0.9
     )
 
 
@@ -271,7 +274,7 @@ with pm.Model() as model_r_t_onset:
     prior_pred = pm.sample_prior_predictive()
 
 with model_r_t_onset:
-    trace_r_t_onset = pm.sample(tune=500, chains=4, cores=8, target_accept=0.9)
+    trace_r_t_onset = pm.sample(tune=500, chains=2, cores=8, target_accept=0.9)
 
 start_date = daily_data.date[0]
 fig, ax = plt.subplots(figsize=(10, 6))
@@ -285,7 +288,7 @@ ax.set(
 ax.axhline(1.0, c="k", lw=1, linestyle="--")
 fig.autofmt_xdate()
 os.makedirs("results/17031/", exist_ok=True)
-fig.savefig("results/17031/rt.png", dpi=100, bbox_inches="tight")
+fig.savefig("results/17031/rt.svg", dpi=30, bbox_inches="tight")
 
 with model_r_t_onset:
     post_pred_r_t_onset = pm.sample_posterior_predictive(trace_r_t_onset, samples=100)
@@ -296,7 +299,7 @@ start_date = daily_data.date[0]
 
 y = daily_data["cases"].astype(float)
 T = len(y)
-F = 60
+F = 10
 t = np.arange(T + F)[:, None]
 
 with pm.Model() as model:
@@ -316,7 +319,7 @@ with pm.Model() as model:
 
 with model:
     trace = pm.sample(
-        200, tune=100, chains=1, target_accept=0.9, random_seed=42, cores=8
+        500, tune=800, chains=1, target_accept=0.95, random_seed=42, cores=8
     )
 
 with model:
@@ -332,8 +335,8 @@ median = np.zeros(F)
 
 for i in range(F):
     # low[i] = np.min(samples[:,i])
-    low[i] = np.percentile(samples[:, i], 5)
-    high[i] = np.percentile(samples[:, i], 95)
+    low[i] = np.percentile(samples[:, i], 30)
+    high[i] = np.percentile(samples[:, i], 90)
     # high[i] = np.max(samples[:,i])
     median[i] = np.percentile(samples[:, i], 50)
     mean[i] = np.mean(samples[:, i])
@@ -374,9 +377,9 @@ ax.yaxis.set_major_formatter(formatter)
 fig.autofmt_xdate()
 x_future = np.arange(1, F + 1)
 plt.fill_between(
-    pd.date_range(start=daily_data.date[-1], periods=60, freq="D"), low, high, alpha=0.6
+    pd.date_range(start=daily_data.date[-1], periods=10, freq="D"), low, high, alpha=0.6
 )
-fig.savefig("results/17031/cases.png", dpi=100, bbox_inches="tight")
+fig.savefig("results/17031/cases.svg", dpi=60, bbox_inches="tight")
 t1 = time.time()
 totaltime = (t1 - t0) / 3600
-# print("total run time is {:.4f}".format(totaltime))
+print("total run time is {:.4f}".format(totaltime))
