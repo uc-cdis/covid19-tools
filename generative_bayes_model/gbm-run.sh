@@ -11,7 +11,7 @@ python3 pymc3_generative_model.py;
 cd results
 
 # temporarily hardcode the contents of CountyCodeList.txt to only Cook, IL
-echo '"17031"' > CountyCodeList.txt
+echo '17031' > CountyCodeList.txt
 
 echo "Will upload to S3 bucket:"
 find . -type f
