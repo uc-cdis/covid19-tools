@@ -382,4 +382,4 @@ plt.fill_between(
 fig.savefig("results/17031/cases.svg", dpi=60, bbox_inches="tight")
 t1 = time.time()
 totaltime = (t1 - t0) / 3600
-print("total run time is {:.4f}".format(totaltime))
+print("total run time is {:.4f} hours".format(totaltime))
