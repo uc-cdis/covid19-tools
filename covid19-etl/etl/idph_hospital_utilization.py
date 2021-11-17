@@ -101,7 +101,7 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
                 if (
                     latest_submitted_date is None
                     or get_date_from_str(reported_date) > latest_submitted_date
-                ):  # TODO : Add logic to print the utilization records outside the loop if duplicates are found.
+                ):
                     if reported_date in processed_dates:
                         duplicate_records = True
                         print(f"Found duplicate record with date - {reported_date}")
