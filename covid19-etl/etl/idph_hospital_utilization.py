@@ -94,17 +94,25 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
                 "province_state": self.state,
             }
             self.summary_locations.append(summary_location)
-
+            processed_dates = set()
+            duplicate_records = False  # Added temporarily to identify an intermittent issue of duplicate records
             for utilization in data:
+                reported_date = utilization["ReportDate"]
                 if (
                     latest_submitted_date is None
-                    or get_date_from_str(utilization["ReportDate"])
-                    > latest_submitted_date
-                ):
+                    or get_date_from_str(reported_date) > latest_submitted_date
+                ):  # TODO : Add logic to print the utilization records outside the loop if duplicates are found.
+                    if reported_date in processed_dates:
+                        duplicate_records = True
+                        print(f"Found duplicate record with date - {reported_date}")
                     summary_clinical = self.parse_historical(
                         summary_location_submitter_id, utilization
                     )
                     self.summary_clinicals.append(summary_clinical)
+                    processed_dates.add(utilization["ReportDate"])
+
+            if duplicate_records:
+                print(data)
 
     def parse_historical(self, summary_location_submitter_id, utilization):
         utilization_mapping = {
