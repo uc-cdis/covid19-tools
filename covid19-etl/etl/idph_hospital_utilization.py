@@ -96,7 +96,7 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
             self.summary_locations.append(summary_location)
             processed_dates = set()
             duplicate_records = False  # Added temporarily to identify an intermittent issue of duplicate records
-            print(len(data["utilization"]))
+            print(len(data))
             for utilization in data:
                 reported_date = utilization["ReportDate"]
                 if (
