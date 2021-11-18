@@ -96,7 +96,6 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
             self.summary_locations.append(summary_location)
             processed_dates = set()
             duplicate_records = False  # Added temporarily to identify an intermittent issue of duplicate records
-            print(len(data))
             for utilization in data:
                 reported_date = utilization["ReportDate"]
                 if (
@@ -163,7 +162,7 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
         self.metadata_helper.batch_submit_records()
 
         print("Submitting summary_clinical data")
-        print(f"Length of summary_clinicals is {self.summary_clinicals}")
+        print(f"Length of summary_clinicals is {len(self.summary_clinicals)}")
         for sc in self.summary_clinicals:
             sc_record = {"type": "summary_clinical"}
             sc_record.update(sc)
