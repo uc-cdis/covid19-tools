@@ -96,15 +96,22 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
             self.summary_locations.append(summary_location)
             first_util_date = None
             for utilization in data:
+                reported_date = utilization["ReportDate"]
                 if (
                     latest_submitted_date is None
-                    or get_date_from_str(utilization["ReportDate"])
-                    > latest_submitted_date
+                    or get_date_from_str(reported_date) > latest_submitted_date
                 ):
+                    if reported_date in processed_dates:
+                        duplicate_records = True
+                        print(f"Found duplicate record with date - {reported_date}")
                     summary_clinical = self.parse_historical(
                         summary_location_submitter_id, utilization
                     )
                     self.summary_clinicals.append(summary_clinical)
+                    processed_dates.add(utilization["ReportDate"])
+
+            if duplicate_records:
+                print(data)
 
                 # There is a known bug in IDPH API where the data records are repeated
                 # Since the dates are always sorted, we break the loop
