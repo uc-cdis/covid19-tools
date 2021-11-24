@@ -98,7 +98,7 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
             for utilization in data:
                 # There is a known bug in IDPH API where the data records are repeated
                 # Since the dates are always sorted, we break the loop
-                # as soon as a repitition is noticed
+                # as soon as a repetition is noticed
                 if not first_util_date:
                     first_util_date = data[0]["ReportDate"]
                 elif first_util_date == utilization["ReportDate"]:
@@ -162,7 +162,6 @@ class IDPH_HOSPITAL_UTILIZATION(base.BaseETL):
         self.metadata_helper.batch_submit_records()
 
         print("Submitting summary_clinical data")
-        print(f"Length of summary_clinicals is {len(self.summary_clinicals)}")
         for sc in self.summary_clinicals:
             sc_record = {"type": "summary_clinical"}
             sc_record.update(sc)
