@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 if [[ -z "${S3_BUCKET-}" ]]; then
     echo "No S3 bucket provided (use env var S3_BUCKET)"
@@ -7,11 +8,6 @@ fi
 
 echo "Running pymc3_generative_model..."
 python3 pymc3_generative_model.py;
-
-if [ $? -ne 0 ]; then
-    echo "pymc3_generative_model FAILED!!"
-    exit 1
-fi
 
 cd results
 
