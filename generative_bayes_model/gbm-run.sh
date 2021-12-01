@@ -8,6 +8,11 @@ fi
 echo "Running pymc3_generative_model..."
 python3 pymc3_generative_model.py;
 
+if [ $? -ne 0 ]; then
+    echo "pymc3_generative_model FAILED!!"
+    exit 1
+fi
+
 cd results
 
 # temporarily hardcode the contents of CountyCodeList.txt to only Cook, IL
