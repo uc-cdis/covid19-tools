@@ -94,54 +94,26 @@ update_date = str(data_sum.index[-1])
 daily_data["date"] = pd.to_datetime(daily_data.index)
 # Take past 9 month data as sampling data
 daily_data = daily_data[-270:]
+window_size = 7
 
 
-def average_missing_data(numbers):
-    average_numbers = []
+def average_missing_data(numbers, window_size):
+    """JHU doesn't update the data during holidays and weekends.
+    And all the cases during the holidays and weekends will add up onto the next business day.
+    This function is to get the average case number for those days."""
 
-    for i in range(len(numbers) - 1):
-        if numbers[i] == 0 and numbers[i + 1] != 0:
-            numbers[i] = numbers[i + 1] / 2
-            numbers[i + 1] = numbers[i + 1] / 2
-        if (
-            i + 3 <= len(numbers)
-            and numbers[i] == 0
-            and numbers[i + 1] == 0
-            and numbers[i + 2] != 0
-        ):
-            numbers[i] = numbers[i + 2] / 3
-            numbers[i + 1] = numbers[i + 2] / 3
-            numbers[i + 2] = numbers[i + 2] / 3
-        if (
-            i + 3 < len(numbers)
-            and numbers[i] == 0
-            and numbers[i + 1] == 0
-            and numbers[i + 2] == 0
-            and numbers[i + 3] != 0
-        ):
-            numbers[i] = numbers[i + 3] / 4
-            numbers[i + 1] = numbers[i + 3] / 4
-            numbers[i + 2] = numbers[i + 3] / 4
-            numbers[i + 3] = numbers[i + 3] / 4
-        if (
-            i + 3 == len(numbers)
-            and numbers[i] == 0
-            and numbers[i + 1] == 0
-            and numbers[i + 2] == 0
-        ):
-            numbers[i] = numbers[i - 1]
-            numbers[i + 1] = numbers[i - 1]
-            numbers[i + 2] = numbers[i - 1]
-        if i + 2 == len(numbers) and numbers[i] == 0 and numbers[i + 1] == 0:
-            numbers[i] = numbers[i - 1]
-            numbers[i + 1] = numbers[i - 1]
-        if i + 2 == len(numbers) and numbers[i] != 0 and numbers[i + 1] == 0:
-            numbers[i + 1] = numbers[i]
+    i = 0
+    moving_averages = []
+    while i < len(numbers) - window_size + 1:
+        this_window = numbers[i : i + window_size]
+        window_average = sum(this_window) / window_size
+        moving_averages.append(window_average)
+        i += 1
 
-    return numbers
+    return moving_averages
 
 
-len_observed = len(daily_data)
+len_observed = len(daily_data[window_size // 2 : -window_size // 2 + 1])
 convolution_ready_gt = _get_convolution_ready_gt(len_observed)
 
 with pm.Model() as model_r_t_infection_delay:
@@ -225,7 +197,7 @@ def get_delay_distribution():
     return p_delay
 
 
-len_observed = len(daily_data)
+len_observed = len(daily_data[window_size // 2 : -window_size // 2 + 1])
 convolution_ready_gt = _get_convolution_ready_gt(len_observed)
 p_delay = get_delay_distribution()
 p_delay.iloc[:5] = 1e-5
@@ -278,7 +250,12 @@ with model_r_t_onset:
 
 start_date = daily_data.date[0]
 fig, ax = plt.subplots(figsize=(10, 6))
-plt.plot(daily_data.date, trace_r_t_onset["r_t"].T, color="0.5", alpha=0.05)
+plt.plot(
+    daily_data.date[window_size // 2 : -window_size // 2 + 1],
+    trace_r_t_onset["r_t"].T,
+    color="0.5",
+    alpha=0.05,
+)
 # plt.plot(pd.date_range(start=start_date, periods=len(daily_data.cases.values), freq='D'), trace_r_t_infection_delay['r_t'].T, color='r', alpha=0.1)
 ax.set(
     xlabel="Time",
@@ -293,13 +270,14 @@ fig.savefig("results/17031/rt.svg", dpi=30, bbox_inches="tight")
 with model_r_t_onset:
     post_pred_r_t_onset = pm.sample_posterior_predictive(trace_r_t_onset, samples=100)
 r2 = az.r2_score(
-    average_missing_data(daily_data.cases.values), post_pred_r_t_onset["obs"]
+    average_missing_data(daily_data.cases.values, window_size),
+    post_pred_r_t_onset["obs"],
 )[0]
 start_date = daily_data.date[0]
 
-y = daily_data["cases"].astype(float)
+y = average_missing_data(daily_data.cases.values, window_size)
 T = len(y)
-F = 10
+F = 15
 t = np.arange(T + F)[:, None]
 
 with pm.Model() as model:
@@ -335,17 +313,22 @@ median = np.zeros(F)
 
 for i in range(F):
     # low[i] = np.min(samples[:,i])
-    low[i] = np.percentile(samples[:, i], 30)
+    low[i] = np.percentile(samples[:, i], 10)
     high[i] = np.percentile(samples[:, i], 90)
     # high[i] = np.max(samples[:,i])
     median[i] = np.percentile(samples[:, i], 50)
     mean[i] = np.mean(samples[:, i])
 
 fig, ax = plt.subplots(figsize=(10, 6))
-ax.plot(daily_data.date, post_pred_r_t_onset["obs"].T, color="0.5", alpha=0.05)
 ax.plot(
-    daily_data.date,
-    average_missing_data(daily_data.cases.values),
+    daily_data.date[window_size // 2 : -window_size // 2 + 1],
+    post_pred_r_t_onset["obs"].T,
+    color="0.5",
+    alpha=0.05,
+)
+ax.plot(
+    daily_data.date[window_size // 2 : -window_size // 2 + 1],
+    average_missing_data(daily_data.cases.values, window_size),
     color="r",
     linewidth=1,
     markersize=5,
@@ -354,7 +337,7 @@ ax.plot(
 
 ax.set(xlabel="Time", ylabel="Daily confirmed cases", yscale="log")
 plt.suptitle(
-    "With Reported Data Since 03/18/2020 and Generative Model Predictions (R-squared = {:.4f})".format(
+    "With Reported Data Past 9 Months and Generative Model Predictions (R-squared = {:.4f})".format(
         r2
     ),
     fontsize=10,
@@ -366,18 +349,19 @@ ax.set_title(
     y=1.1,
 )
 
+# def thousands(x, pos):
+#     "The two args are the value and tick position"
+#     return "%1.0fK" % (x * 1e-3)
 
-def thousands(x, pos):
-    "The two args are the value and tick position"
-    return "%1.0fK" % (x * 1e-3)
-
-
-formatter = FuncFormatter(thousands)
-ax.yaxis.set_major_formatter(formatter)
+# formatter = FuncFormatter(thousands)
+# ax.yaxis.set_major_formatter(formatter)
 fig.autofmt_xdate()
 x_future = np.arange(1, F + 1)
 plt.fill_between(
-    pd.date_range(start=daily_data.date[-1], periods=10, freq="D"), low, high, alpha=0.6
+    pd.date_range(start=daily_data.date[-window_size // 2 + 1], periods=15, freq="D"),
+    low,
+    high,
+    alpha=0.6,
 )
 fig.savefig("results/17031/cases.svg", dpi=60, bbox_inches="tight")
 t1 = time.time()
