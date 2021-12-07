@@ -11,10 +11,13 @@ import theano
 import theano.tensor as tt
 from scipy import stats
 from sklearn.metrics import r2_score
+from itertools import groupby
 import pandas as pd
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
 from matplotlib.ticker import FuncFormatter
 
 plt.style.use("seaborn-whitegrid")
@@ -77,6 +80,16 @@ def _get_convolution_ready_gt(len_observed):
     return convolution_ready_gt
 
 
+def maximum_zeros_length(a):
+    """Count consecutive 0s and return the biggest number.
+    This number pls onw will be served as the window size."""
+    all_length = []
+    for i, g in groupby(a):
+        if i == 0:
+            all_length.append(len(list(g)))
+    return max(all_length)
+
+
 jh_data = pd.read_csv(
     "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
 )
@@ -93,8 +106,9 @@ daily_data.insert(0, "days_since_100", range(1, len(daily_data) + 1))
 update_date = str(data_sum.index[-1])
 daily_data["date"] = pd.to_datetime(daily_data.index)
 # Take past 9 month data as sampling data
-daily_data = daily_data[-270:]
-window_size = 7
+daily_data = daily_data[-180:]
+max_zero_length = maximum_zeros_length(daily_data.cases.values)
+window_size = max_zero_length + 2
 
 
 def average_missing_data(numbers, window_size):
@@ -150,7 +164,7 @@ with pm.Model() as model_r_t_infection_delay:
         "obs",
         pm.math.log(infections),
         eps,
-        observed=average_missing_data(daily_data.cases.values),
+        observed=average_missing_data(daily_data.cases.values, window_size),
     )
 
 with model_r_t_infection_delay:
@@ -171,6 +185,8 @@ def conv(a, b, len_observed):
 
 
 def get_delay_distribution():
+    """Returns the delay distribution between symptom onset
+    and confirmed case."""
     # The literature suggests roughly 5 days of incubation before becoming
     # having symptoms. See:
     # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7081172/
@@ -240,7 +256,7 @@ with pm.Model() as model_r_t_onset:
         "obs",
         pm.math.log(infections),
         eps,
-        observed=average_missing_data(daily_data.cases.values),
+        observed=average_missing_data(daily_data.cases.values, window_size),
     )
 
     prior_pred = pm.sample_prior_predictive()
@@ -337,7 +353,7 @@ ax.plot(
 
 ax.set(xlabel="Time", ylabel="Daily confirmed cases", yscale="log")
 plt.suptitle(
-    "With Reported Data Past 9 Months and Generative Model Predictions (R-squared = {:.4f})".format(
+    "With Reported Data From Past 6 Months and Generative Model Predictions (R-squared = {:.4f})".format(
         r2
     ),
     fontsize=10,
@@ -356,13 +372,42 @@ ax.set_title(
 # formatter = FuncFormatter(thousands)
 # ax.yaxis.set_major_formatter(formatter)
 fig.autofmt_xdate()
+legend_elements = [
+    Line2D([0], [0], color="red", lw=2, label="Reported cases"),
+    Line2D([0], [0], color="black", label="15-days forecast (median)", linestyle="--"),
+    Line2D([0], [0], color="orange", label="15-days forecast (mean)", linestyle="--"),
+    Patch(facecolor="silver", edgecolor="silver", label="Posterior predicted cases"),
+    Patch(
+        facecolor="lightskyblue",
+        edgecolor="lightskyblue",
+        label="15-days forecast (90% prediciton intervals)",
+    ),
+]
 x_future = np.arange(1, F + 1)
+ax.plot(
+    pd.date_range(start=daily_data.date[-window_size // 2], periods=15, freq="D"),
+    median,
+    color="black",
+    lw=1,
+    linestyle="--",
+)
+ax.plot(
+    pd.date_range(start=daily_data.date[-window_size // 2], periods=15, freq="D"),
+    mean,
+    color="orange",
+    lw=1,
+    linestyle="--",
+)
 plt.fill_between(
-    pd.date_range(start=daily_data.date[-window_size // 2 + 1], periods=15, freq="D"),
+    pd.date_range(start=daily_data.date[-window_size // 2], periods=15, freq="D"),
     low,
     high,
     alpha=0.6,
+    color="lightskyblue",
+    linewidth=0,
 )
+ax.legend(handles=legend_elements, loc="best", fontsize=9)
+ax.grid(False)
 fig.savefig("results/17031/cases.svg", dpi=60, bbox_inches="tight")
 t1 = time.time()
 totaltime = (t1 - t0) / 3600
