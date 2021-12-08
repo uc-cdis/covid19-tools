@@ -5,7 +5,7 @@
 -------------------
 ## Objectives
 
-We use the prediciton model to forecast the furure trend of the daily confirmed cases. It is important to establish a strong baseline of performance on the forecasting values. To this end, we need to relate the predicted values to the actual reported values. This python scripts implement the comparison between the predicted values and the true values. The users will have the flexibilities to choose the `start_date`, `end_date` and `prediction_window`, therefore the model performance could be evaluated with a suite of training and testing window sizes.
+We use the prediciton model to forecast the future trend of the daily confirmed cases. It is important to establish a strong baseline of performance on the forecasting values. To this end, we need to relate the predicted values to the actual reported values. This python scripts implement the comparison between the predicted values and the true values. The users will have the flexibilities to choose the `start_date`, `end_date` and `prediction_window`, therefore the model performance could be evaluated with a suite of training and testing window sizes.
 
 ## Usage of `model_evaluation.py`
 
