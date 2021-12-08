@@ -356,12 +356,12 @@ plt.suptitle(
     "With Reported Data From Past 6 Months and Generative Model Predictions (R-squared = {:.4f})".format(
         r2
     ),
-    fontsize=10,
+    fontsize=12,
     y=0.94,
 )
 ax.set_title(
     "Daily Confirmed Cases in Cook County as of {}".format(update_date),
-    size=14,
+    size=15,
     y=1.1,
 )
 
@@ -406,7 +406,7 @@ plt.fill_between(
     color="lightskyblue",
     linewidth=0,
 )
-ax.legend(handles=legend_elements, loc="best", fontsize=9)
+ax.legend(handles=legend_elements, loc="best", fontsize=12)
 ax.grid(False)
 fig.savefig("results/17031/cases.svg", dpi=60, bbox_inches="tight")
 t1 = time.time()
