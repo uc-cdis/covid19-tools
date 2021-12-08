@@ -4,7 +4,7 @@
 #### 12/08/2021
 -------------------
 
-$R_0$ ("R-naught") describes the reproduction factor of an epidemic disease, i.e. how many other people does one infected person pass the disease to. If this quantity is larger than 1 we have an epidemic on our hands, as is the case for COVID-19.
+*R<sub>0</sub>* ("R-naught") describes the reproduction factor of an epidemic disease, i.e. how many other people does one infected person pass the disease to. If this quantity is larger than 1 we have an epidemic on our hands, as is the case for COVID-19.
 
 R0 assumes, however, that there are no counter-measures being implemented to curb spread of the virus. Thus, the more critical measure to track is Re(t), i.e. the time-changing effective reproduction factor, i.e. on a given day t, how many people does one person infect.
 
@@ -30,11 +30,11 @@ Instead, the newly proposed model uses a simple generative logic to explain how 
 
 ## Model Design
 
-1. Primary infection: $$ y_t = y_{t-1} \cdot R_0 $$
+1. Primary infection: <img src="https://render.githubusercontent.com/render/math?math=y_t%20=%20y_{t-1}%20\cdot%20R_0">
 
-2. Time-varying reproduction rate: $$ y_t = y_{t-1} \cdot R_e(t) $$
+2. Time-varying reproduction rate: <img src="https://render.githubusercontent.com/render/math?math=y_t%20=%20y_{t-1}%20\cdot%20R_e(t)">
 
-3. Infection delay (generation time): $$ y_t = \sum_{i=1}^{M}y_{t-i} R_e(t-i) g_i  $$
+3. Infection delay (generation time): <img src="https://render.githubusercontent.com/render/math?math=y_t%20=%20\sum_{i=1}^{M}y_{t-i}%20R_e(t-i)%20g_i">
 
 4. Onset delay: Onset delay is defined as the delay between noticeable symptoms and reported as a positive case. To estimate onset delay distribution, we could use individual-level line list data from the [Open COVID-19 Data Working Group](https://github.com/beoutbreakprepared/nCoV2019/tree/master/latest_data ) which asked patients how long ago their symptoms started.
 
