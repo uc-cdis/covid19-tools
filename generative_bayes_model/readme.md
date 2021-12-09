@@ -55,7 +55,7 @@ Instead, the newly proposed model uses a simple generative logic to explain how 
         │   ├── model_evaluation.py       # Python scripts to evaluate model prediction power
         │   ├── images                    # Exprected output for model evaluation
         │   └── readme.md                 # How to use model_evaluation.py
-        ├── Dockerfile                    # Dockerfile for running generative model and model evaluation
+        ├── Dockerfile                    # Dockerfile for running generative model
         ├── images                        # Exprected outputs for generative model
         ├── p_delay.csv                   # Onset delay data between noticeable symptoms and reported as a positive case
         ├── gbm-run.sh                    # Runs the model script (pymc3_generative_model.py) and uploads the results to S3
