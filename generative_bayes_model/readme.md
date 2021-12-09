@@ -51,7 +51,7 @@ Instead, the newly proposed model uses a simple generative logic to explain how 
 
 ## Directory layout
         .
-        ├── model_evaluation               # Directory to evaluate the model prediction power
+        ├── model_evaluation              # Directory to evaluate the model prediction power
         │   ├── model_evaluation.py       # Python scripts to evaluate model prediction power
         │   ├── images                    # Exprected output for model evaluation
         │   └── readme.md                 # How to use model_evaluation.py
