@@ -6,11 +6,11 @@
 
 *R<sub>0</sub>* ("R-naught") describes the reproduction factor of an epidemic disease, i.e. how many other people does one infected person pass the disease to. If this quantity is larger than 1 we have an epidemic on our hands, as is the case for COVID-19.
 
-R0 assumes, however, that there are no counter-measures being implemented to curb spread of the virus. Thus, the more critical measure to track is Re(t), i.e. the time-changing effective reproduction factor, i.e. on a given day t, how many people does one person infect.
+*R<sub>0</sub>* assumes, however, that there are no counter-measures being implemented to curb spread of the virus. Thus, the more critical measure to track is Re(t), i.e. the time-changing effective reproduction factor, i.e. on a given day t, how many people does one person infect.
 
 As lockdowns and social distancing measures are put in place we expect this quantity to drop, ideally below the critical quantity of 1 because then, over time, the disease would just wimper out.
 
-Usually we'd extract Re(t) from something like a SIR (susceptible-infected-recovered) model or an SEIR (which adds an exposed term), which are classic epidemiological compartment models.
+Usually we'd extract *R<sub>e</sub>(t)* from something like a SIR (susceptible-infected-recovered) model or an SEIR (which adds an exposed term), which are classic epidemiological compartment models.
 
 SIR model is in fact what Chicagoland Pandemic Response Commons used in the beginning. However, SIR or SEIR models are also just approximations of the real thing and come with quite a few assumptions baked in. The current model is simpler and makes fewer assumptions. In addition, the SIR model is described as an ODE (Ordinary Differential Equations) which causes various technical problems. Solving the ODE is quite time-intensive and while closed-form approximations exist and are faster, we found that they are quite unreliable.
 
