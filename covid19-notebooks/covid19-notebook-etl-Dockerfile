@@ -18,7 +18,6 @@ COPY ./covid19-notebook-etl-requirements.txt /src/
 RUN pip3 install -r covid19-notebook-etl-requirements.txt
 
 # copy Python scripts/notebooks
-COPY ./generate_top10_plots.py /src/
 COPY ./IL_tab_charts.ipynb /src/
 
 COPY ./covid19-notebook-etl-run.sh ./covid19-notebook-etl-run-with-slack.sh /src/
