@@ -7,3 +7,4 @@ covid19-etl/.idea
 *.pytest_cache
 *.vscode
 .python-version
+covid19-notebooks/.venv/

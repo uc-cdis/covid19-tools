@@ -9,8 +9,6 @@ fi
 
 # run Python notebooks and push outputs to S3
 
-echo "Running top10 script..."
-python3 generate_top10_plots.py
 
 NOTEBOOKS=(
   IL_tab_charts.ipynb
@@ -25,7 +23,6 @@ for file in "${NOTEBOOKS[@]}"; do
 done
 
 echo "Copying to S3 bucket..."
-aws s3 cp top10.txt $S3_BUCKET/charts_data/top10.txt
 for file in IL_tab_charts*.svg; do
   aws s3 cp $file $S3_BUCKET/charts_data/
 done
