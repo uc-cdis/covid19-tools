@@ -1,6 +1,0 @@
-# DEPRECATED - update "covid19-notebook-etl-requirements.txt" instead.
-
-# also need pandas, matplotlib, numpy, scipy => installed in Dockfile
-# to avoid install issues
-
-jupyter==1.0.0
