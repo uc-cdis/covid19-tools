@@ -3,6 +3,8 @@ covid19-notebooks/html-notebooks/
 __pycache__/
 .idea
 covid19-etl/.idea
+covid19-etl/etl/time_series
+covid19-etl/etl/map_data
 *.ipynb_checkpoints
 *.pytest_cache
 *.vscode
