@@ -98,10 +98,11 @@ def test_jhu_to_s3():
     assert len(all_locations["county"]) == len(uploaded_locations["county"])
 
     # check that the ETL generated the expected data.
-    # we only check a few locations: AFG (use case without state/
-    # county data) and USA (use case with state/county data) countries, and IL
-    # state and a few counties (because IL is the only state whose data we
-    # currently display on the frontend)
+    # we only check a few locations: AFG (use case without state/county data),
+    # CAN (use case with state data, without county data) and USA (use case
+    # with state/county data) countries, and IL state and a few counties
+    # (because IL is the only state whose data we currently display on the
+    # frontend)
     for data_level in ["country", "state", "county"]:
         dir = os.path.join(DATA_DIR, "time_series", data_level)
         for file in os.listdir(dir):
