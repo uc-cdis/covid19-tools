@@ -7,13 +7,14 @@ from etl.jhu_to_s3 import JHU_TO_S3
 from utils.country_codes_utils import get_codes_dictionary, get_codes_for_country_name
 
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "jhu_to_s3_test_data")
+INPUT_DATA_DIR = os.path.join(os.path.dirname(__file__), "test_jhu_to_s3_input")
+OUTPUT_DATA_DIR = os.path.join(os.path.dirname(__file__), "test_jhu_to_s3_output")
 
 
 def get_test_etl():
     def mock_get(*args):
         url = args[0][0]
-        with open(os.path.join(DATA_DIR, os.path.basename(url))) as f:
+        with open(os.path.join(INPUT_DATA_DIR, os.path.basename(url))) as f:
             data = f.read()
 
         class MockResponse(object):
@@ -53,7 +54,7 @@ def test_jhu_to_s3():
         "time_series_covid19_confirmed_US.csv",
         "time_series_covid19_deaths_US.csv",
     ]:
-        with open(os.path.join(DATA_DIR, filename), "r") as f:
+        with open(os.path.join(INPUT_DATA_DIR, filename), "r") as f:
             reader = csv.DictReader(f, delimiter=",", quotechar='"')
             for row in reader:
                 country = None
@@ -104,7 +105,7 @@ def test_jhu_to_s3():
     # (because IL is the only state whose data we currently display on the
     # frontend)
     for data_level in ["country", "state", "county"]:
-        dir = os.path.join(DATA_DIR, "time_series", data_level)
+        dir = os.path.join(OUTPUT_DATA_DIR, "time_series", data_level)
         for file in os.listdir(dir):
             if not file.endswith(".json"):
                 continue
@@ -123,7 +124,7 @@ def test_jhu_to_s3():
         etl.submit_metadata()
 
     # check that the ETL generated and uploaded the expected data
-    dir = os.path.join(DATA_DIR, "map_data")
+    dir = os.path.join(OUTPUT_DATA_DIR, "map_data")
     for file in os.listdir(dir):
         if not file.endswith(".json"):
             continue
