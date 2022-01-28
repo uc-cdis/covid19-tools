@@ -321,7 +321,7 @@ with pm.Model() as model:
     # Step 3.2.8 run model, pm trains and predicts when calling this
     # -------------------------------------------------------------------------- #
     time_beg = time.time()
-    trace = pm.sample(draws=100, tune=200, chains=1)
+    trace = pm.sample(draws=500, tune=800, chains=2)
     print("Model run in {:.2f} s".format(time.time() - time_beg))
 
 # -------------------------------------------------------------------------------

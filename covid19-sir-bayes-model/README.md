@@ -12,48 +12,49 @@ We are interested in capturing the trend of evolving situation and providing pro
 
 ## Model and Methods
 ### 1. SIR (Susceptible-Infected-Recovered) Model
-In short, we assume that the disease spreads at rate $λ$ from an infected person $(I)$ to a susceptible person $(S)$ and that an infected person becomes a recovered person $(R)$ at rate $μ$, i.e.
+In short, we assume that the disease spreads at rate *λ* from an infected person *(I)* to a susceptible person *(S)* and that an infected person becomes a recovered person *(R)* at rate *μ*, i.e.
 
-$S+I→^λ I+I$
+*S + I → <sup>λ</sup> I + I*
 
-$I →^μ R$.
+
+*I → <sup>μ</sup> R*
 
 This well-established model for disease spreading can be described by the following set of (deterministic) ordinary differential equations [see, e.g., Wikipedia or recent works on the spread of covid-19]. Within a population of size $N$,
 
-$dS/dt=−λSI/N$
+<img src="https://render.githubusercontent.com/render/math?math=dS/dt=-%5Clambda SI/N">
 
-$dI/dt=λSI/N − μI $
+<img src="https://render.githubusercontent.com/render/math?math=dI/dt=%5Clambda SI/N -%5Cmu I">
 
-$dR/dt=μI$.
+<img src="https://render.githubusercontent.com/render/math?math=dR/dt=%5Cmu I">
 
-Because our data set is discrete in time ($Δt$=1 day), we solve the above differential equations with a discrete time step ($dI/dt≈ΔI/Δt$), such that
+Because our data set is discrete in time (*Δt*=1 day), we solve the above differential equations with a discrete time step (*dI/dt≈ΔI/Δt*), such that
 
-$S_t−S_{t−1}=−λΔtS_t/NI_{t−1}=:−I^{new}_t$
+<img src="https://render.githubusercontent.com/render/math?math=S_t - S_{t-1}=-%5Clambda %5Cdelta tS_t/NI_{t-1}=:-I^{new}_t">
 
-$R_t−R_t−1=μΔtI_{t−1}=:R^{new}_t$
+<img src="https://render.githubusercontent.com/render/math?math=R_t-R_t-1=%5Cmu %5Cdelta tI_{t-1}=:R^{new}_t">
 
-$I_t−I_{t−1}=(λS_{t-1}/N−μ)ΔtI_{t−1}=I^{new}_t−R^{new}_t$.
+<img src="https://render.githubusercontent.com/render/math?math=I_t-I_{t-1}=(%5Clambda S_{t-1}/N-%5Cmu )%5Cdelta tI_{t-1}=I^{new}_t-R^{new}_t">
 
 
-Importantly, $I_t$ models the number of all active, (currently) infected people, while $I^{new}_t$ is the number of new infections that is reported according to standard WHO convention. Furthermore, we explicitely include a reporting delay $D$ between new infections $I^{new}_t$ and reported cases when generating the forecast.
+Importantly, <img src="https://render.githubusercontent.com/render/math?math=I_t"> models the number of all active, (currently) infected people, while <img src="https://render.githubusercontent.com/render/math?math=I^{new}_t"> is the number of new infections that is reported according to standard WHO convention. Furthermore, we explicitely include a reporting delay <img src="https://render.githubusercontent.com/render/math?math=D"> between new infections <img src="https://render.githubusercontent.com/render/math?math=I^{new}_t"> and reported cases when generating the forecast.
 
 ### 2. Exponential growth during outbreak onset
 
-Note that in the onset phase, only a tiny fraction of the population is infected $(I)$ or recovered $(R)$, and thus $S≈N≫I$ such that $S/N≈1$. Therefore, the differential equation for the infected reduces to a simple linear equation, exhibiting an exponential growth
+Note that in the onset phase, only a tiny fraction of the population is infected *(I)* or recovered *(R)*, and thus *S≈N≫I* such that *S/N≈1*. Therefore, the differential equation for the infected reduces to a simple linear equation, exhibiting an exponential growth
 
-$dI/dt=(λ−μ)I$ solved by $I(t)=I(0) e^{(λ−μ)t}$.
+<img src="https://render.githubusercontent.com/render/math?math=dI/dt=(%5Clambda -%5Cmu )I"> solved by <img src="https://render.githubusercontent.com/render/math?math=I(t)=I(0) e^{(%5Clambda -%5Cmu )t}">.
 
 ### 3. Estimating model parameters
 
-We estimate the set of model parameters $θ$={$λ,μ,σ,I0$} using Bayesian inference with Markov-chain Monte-Carlo (MCMC). Our implementation relies on the python package pymc3 with NUTS (No-U-Turn Sampling).
+We estimate the set of model parameters *θ*={*λ,μ,σ,I0*} using Bayesian inference with Markov-chain Monte-Carlo (MCMC). Our implementation relies on the python package pymc3 with NUTS (No-U-Turn Sampling).
 
 The structure of our approach is the following:
 
-* **Choose random initial parameters and evolve according to model equations**. Initially, we choose paramters θ from prior distributions that we explicitly specify below. Then, time integration of the model equations generates a (fully deterministic) time series of new infected cases $I^{new}(θ)$={$I^{new}_t(θ)$} of the same length as the observed real-world data $I^{new}$={$I^{new}_t$}.
+* **Choose random initial parameters and evolve according to model equations**. Initially, we choose paramters θ from prior distributions that we explicitly specify below. Then, time integration of the model equations generates a (fully deterministic) time series of new infected cases <img src="https://render.githubusercontent.com/render/math?math=I^{new}(%5Ctheta)={I^{new}_t(%5Ctheta)}"> of the same length as the observed real-world data <img src="https://render.githubusercontent.com/render/math?math=I^{new}={I^{new}_t} ">.
 
-* **Recursively update the parameters using MCMC**. The drawing of new candidate parameters and the time integration is repeated in every MCMC step. The idea is to propose new parameters and to accept them in a way that overall reduces the deviation between the model outcome and the real-world data. We quantify the deviation between the model outcome Inewt(θ) and the real-world data I^newt for each step t of the time series with the local likelihood
+* **Recursively update the parameters using MCMC**. The drawing of new candidate parameters and the time integration is repeated in every MCMC step. The idea is to propose new parameters and to accept them in a way that overall reduces the deviation between the model outcome and the real-world data. We quantify the deviation between the model outcome <img src="https://render.githubusercontent.com/render/math?math=I^{new}_t(%5Ctheta)"> and the real-world data <img src="https://render.githubusercontent.com/render/math?math=I^{new}_t"> for each step t of the time series with the local likelihood.
 
-  $p(I^{new}_t ∣θ)∼StudentTν=4(mean=I^{new}_t(θ),width=σ\sqrt{I^{new}_t(θ)})$
+ <img src="https://render.githubusercontent.com/render/math?math=p(I^{new}_t |%5Ctheta )~StudentT%5Cnu =4(mean=I^{new}_t(%5Ctheta),width=%5Csigma \sqrt{I^{new}_t(%5Ctheta)})">
 
   We chose the Student’s t-distribution because it approaches a Gaussian distribution but features heavy tails, which make the MCMC more robust with respect to outliers [Lange et al, J. Am. Stat. Assoc, 1989]. The square-root width models the demographic noise of typical mean-field solutions for epidemic spreading [see, e.g., di Santo et al. (2017)].
 
