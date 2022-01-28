@@ -19,7 +19,7 @@ In short, we assume that the disease spreads at rate *λ* from an infected perso
 
 *I → <sup>μ</sup> R*
 
-This well-established model for disease spreading can be described by the following set of (deterministic) ordinary differential equations [see, e.g., Wikipedia or recent works on the spread of covid-19]. Within a population of size $N$,
+This well-established model for disease spreading can be described by the following set of (deterministic) ordinary differential equations [see, e.g., Wikipedia or recent works on the spread of covid-19]. Within a population of size *N*,
 
 <img src="https://render.githubusercontent.com/render/math?math=dS/dt=-%5Clambda SI/N">
 
