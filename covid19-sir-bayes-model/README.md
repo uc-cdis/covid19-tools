@@ -62,7 +62,7 @@ The structure of our approach is the following:
 
 * **Forecast using Monte Carlo samples**. For the forecast, we take all samples from the MCMC step and continue time integration according to different forecast scenarios explained below. Note that the overall procedure yields an ensemble of predictions — as opposed to a single prediction that would be solely based on one set of (previously optimized) parameters.
 
-## Results and Exprected Outputs
+## Results and Expected Outputs
 
 * Daily confirmed cases prediction (45-days forecast) in Cook County:
 
