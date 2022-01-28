@@ -20,9 +20,6 @@ confirmed_cases_url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19
 confirmed_cases = pd.read_csv(confirmed_cases_url)
 path_to_save = ""
 
-# data_begin = "11/23/21"
-# data_end = "1/23/22"
-
 num_days_to_predict = 45
 
 date_data_end = confirmed_cases.loc[
@@ -98,7 +95,6 @@ base = datetime.datetime.strptime("1/22/20", "%m/%d/%y").date() + datetime.timed
 date_list = [base + datetime.timedelta(days=x) for x in range(len(averaged_total))]
 
 index_begin = date_list.index(datetime.datetime.strptime(data_begin, "%m/%d/%y").date())
-# index_end = date_list.index(datetime.datetime.strptime(data_end, "%m/%d/%y").date()-datetime.timedelta(window_size // 2 +2))
 
 # ------------------------------------------------------------------------------ #
 # Step 3: model setup and training
@@ -110,6 +106,8 @@ index_begin = date_list.index(datetime.datetime.strptime(data_begin, "%m/%d/%y")
 # S_begin is susceptible at time 0, I_begin is the infacted at time 0, N is population
 # S_t is susceptible at time t, I_t is the infacted at time t
 # new_I_t is new infacted at time t
+
+
 def SIR_model(λ, μ, S_begin, I_begin, N):
     new_I_0 = tt.zeros_like(I_begin)
 
@@ -340,17 +338,6 @@ ax.plot(
     label="Reported daily confirmed cases (7-day moving average)",
     linewidth=1,
 )
-# legend_elements = [
-#     Line2D([0], [0], color="red", lw=2, label="Reported cases"),
-#     Line2D([0], [0], color="black", label="45-days forecast (median)", linestyle="--"),
-#     Patch(facecolor="silver", edgecolor="silver", label="Posterior predicted cases"),
-#     Patch(
-#         facecolor="lightskyblue",
-#         edgecolor="lightskyblue",
-#         label="45-days forecast (95% prediciton intervals)",
-#     ),
-# ]
-# ax.legend(handles=legend_elements, loc="upper left", fontsize=10)
 percentiles = (
     np.percentile(trace.new_I_past, q=5.0, axis=0),
     np.percentile(trace.new_I_past, q=95.0, axis=0),
@@ -440,7 +427,6 @@ fig.savefig("cook_county_daily_sir.svg", dpi=60, bbox_inches="tight")
 # Labels
 legends_lang = {
     "english": [
-        # bottom left
         "Reported confirmed cases",
         [
             "Uncontrolled spreading\n(median and 90% prediction intervals)",
@@ -474,7 +460,6 @@ cases_obs_to_plot = np.array(
         data_begin:data_end,
     ]
 )[0]
-# future plot data
 
 # Observe case future
 def return_obs_cases_future(trace):
@@ -512,8 +497,6 @@ for lang, legends_list in legends_lang.items():
         color="red",
         zorder=0,
     )
-    # time = np.arange(0, len(cases_obs_to_plot_future))
-    # ax.plot(time, cases_obs_to_plot_future, '.', markersize=5, color='tab:blue', zorder=5)
 
     for label, color, legend in zip(obs_cases_labels_local, colors, legends_list[1]):
         time = np.arange(0, num_days_to_predict)
