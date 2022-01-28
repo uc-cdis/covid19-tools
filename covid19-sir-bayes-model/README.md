@@ -46,7 +46,7 @@ Note that in the onset phase, only a tiny fraction of the population is infected
 
 ### 3. Estimating model parameters
 
-We estimate the set of model parameters *θ*={*λ,μ,σ,I0*} using Bayesian inference with Markov-chain Monte-Carlo (MCMC). Our implementation relies on the python package pymc3 with NUTS (No-U-Turn Sampling).
+We estimate the set of model parameters *θ*={*λ,μ,σ,I<sub>0</sub>*} using Bayesian inference with Markov-chain Monte-Carlo (MCMC). Our implementation relies on the python package pymc3 with NUTS (No-U-Turn Sampling).
 
 The structure of our approach is the following:
 
