@@ -18,6 +18,8 @@
         },
         # Date data was last updated
         "last_updated": "2020-04-20",
+        # Total number of vaccinated people
+        "total": 0
     }
 """
 
