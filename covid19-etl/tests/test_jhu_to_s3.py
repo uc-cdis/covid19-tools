@@ -81,11 +81,9 @@ def test_jhu_to_s3_global(clean_up):
                         if row.get(key):
                             all_locations["state"].add(row[key])
                             break
-                    for key in ["FIPS"]:
-                        if row.get(key):
-                            fips = str(int(float(row[key])))
-                            all_locations["county"].add(fips)
-                            break
+                    if row.get("FIPS"):
+                        fips = str(int(float(row["FIPS"])))
+                        all_locations["county"].add(fips)
 
     etl = get_test_etl(JHU_TO_S3_GLOBAL)
 
@@ -167,22 +165,12 @@ def test_jhu_to_s3_illinois(clean_up):
         with open(os.path.join(INPUT_DATA_DIR, filename), "r") as f:
             reader = csv.DictReader(f, delimiter=",", quotechar='"')
             for row in reader:
-                country = None
-                state = None
-                for key in ["Country/Region", "Country_Region"]:
-                    if row.get(key):
-                        country = row[key]
-                        break
-                for key in ["Province/State", "Province_State"]:
-                    if row.get(key):
-                        state = row[key]
-                        break
+                country = row.get("Country/Region", row.get("Country_Region"))
+                state = row.get("Province/State", row.get("Province_State"))
                 if country == "US" and state == "Illinois":
-                    for key in ["FIPS"]:
-                        if row.get(key):
-                            fips = str(int(float(row[key])))
-                            all_illinois_counties.add(fips)
-                            break
+                    if row.get("FIPS"):
+                        fips = str(int(float(row["FIPS"])))
+                        all_illinois_counties.add(fips)
 
     # run the ETL.
     # do not delete files after uploading, so we can check what's in them
