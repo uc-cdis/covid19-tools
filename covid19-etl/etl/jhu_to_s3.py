@@ -64,8 +64,6 @@ from etl import base
         },
         ...
     }
-    TODO: "confirmed" and "deaths" will be removed once the frontend is
-    updated to read "C" and "D".
 """
 
 
@@ -207,11 +205,6 @@ class JHU_TO_S3(base.BaseETL):
 
         # write time_series files
         for county_fips, data in self.county_by_date.items():
-            for date in data["by_date"]:
-                # for backwards compatibility. TODO remove this block once the
-                # frontend has been updated to read "C" and "D"
-                data["by_date"][date]["confirmed"] = data["by_date"][date]["C"]
-                data["by_date"][date]["deaths"] = data["by_date"][date]["D"]
             with open(
                 os.path.join(
                     CURRENT_DIR,
