@@ -11,13 +11,18 @@ RUN apt-get update && apt-get install -y \
 	python3-pandas \
 	python3-matplotlib \
 	python3-numpy \
-	python3-scipy
+	python3-scipy \
+	g++
 
 RUN pip3 install awscli==1.18.*
 COPY ./covid19-notebook-etl-requirements.txt /src/
 RUN pip3 install -r covid19-notebook-etl-requirements.txt
+RUN conda update --yes conda && \
+    conda install --quiet --yes ipython=7.29.0 scikit-learn=1.0.1 jupyterlab=3.2.3 aesara=2.3.5 pygpu=0.7.6  && \
+    conda install --yes -c conda-forge arviz=0.5.1 pymc3=3.8 mkl-service=2.4.0 sunode=0.2.1
 
 # copy Python scripts/notebooks
+COPY covid19-sir-bayes-model/sir_model.py /src/
 COPY ./IL_tab_charts.ipynb /src/
 
 COPY ./covid19-notebook-etl-run.sh ./covid19-notebook-etl-run-with-slack.sh /src/

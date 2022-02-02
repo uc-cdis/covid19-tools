@@ -419,7 +419,9 @@ plt.suptitle(
 )
 plt.yscale("log")
 fig.autofmt_xdate()
-fig.savefig("cook_county_daily_sir.svg", dpi=60, bbox_inches="tight")
+fig.savefig(
+    "IL_tab_charts_cumulative_logistic_last180days.svg", dpi=60, bbox_inches="tight"
+)
 
 # -------------------------------------------------------------------------------
 # Step 5 Plot Total confirm case
@@ -558,7 +560,9 @@ for lang, legends_list in legends_lang.items():
     plt.yscale("log")
     # fig.tight_layout()
     fig.autofmt_xdate()
-    fig.savefig("cook_county_total_sir.svg", dpi=60, bbox_inches="tight")
+    fig.savefig(
+        "IL_tab_charts_cumulative_logistic_last360.svg", dpi=60, bbox_inches="tight"
+    )
 
 print(
     "effective m: {:.3f} +- {:.3f}".format(

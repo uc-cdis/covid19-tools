@@ -9,7 +9,6 @@ fi
 
 # run Python notebooks and push outputs to S3
 
-
 NOTEBOOKS=(
   IL_tab_charts.ipynb
 )
@@ -21,6 +20,9 @@ for file in "${NOTEBOOKS[@]}"; do
   echo "Running notebook $file..."
   jupyter nbconvert --to notebook --inplace --execute "$file"
 done
+
+echo "Running SIR-based Bayesian model script..."
+python3 covid19-sir-bayes-model/sir_model.py
 
 echo "Copying to S3 bucket..."
 for file in IL_tab_charts*.svg; do
