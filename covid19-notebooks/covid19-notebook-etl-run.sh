@@ -22,7 +22,7 @@ for file in "${NOTEBOOKS[@]}"; do
 done
 
 echo "Running SIR-based Bayesian model script..."
-python3 covid19-sir-bayes-model/sir_model.py
+python3 sir_model.py
 
 echo "Copying to S3 bucket..."
 for file in IL_tab_charts*.svg; do

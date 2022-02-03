@@ -12,14 +12,36 @@ RUN apt-get update && apt-get install -y \
 	python3-matplotlib \
 	python3-numpy \
 	python3-scipy \
-	g++
+	g++ \
+	wget
 
-RUN pip3 install awscli==1.18.*
+# Install packages listed in covid19-notebook-etl-requirements.txt
 COPY ./covid19-notebook-etl-requirements.txt /src/
 RUN pip3 install -r covid19-notebook-etl-requirements.txt
-RUN conda update --yes conda && \
-    conda install --quiet --yes ipython=7.29.0 scikit-learn=1.0.1 jupyterlab=3.2.3 aesara=2.3.5 pygpu=0.7.6  && \
-    conda install --yes -c conda-forge arviz=0.5.1 pymc3=3.8 mkl-service=2.4.0 sunode=0.2.1
+
+# Install miniconda
+ENV CONDA_DIR $HOME/miniconda3
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
+    chmod +x ~/miniconda.sh && \
+    ~/miniconda.sh -b -p $CONDA_DIR && \
+    rm ~/miniconda.sh
+
+# Put conda in path
+ENV PATH=$CONDA_DIR/bin:$PATH
+
+# Make conda activate command available from /bin/bash --login shells
+RUN echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile
+
+# Make conda activate command available from /bin/bash --interative shells
+RUN conda init bash
+
+# Deploy conda environment
+COPY environment.yml .
+RUN conda env create -f environment.yml
+
+# Make RUN commands use the new environment
+RUN echo "conda activate bayesian_conda_env" >> ~/.bashrc
+SHELL ["/bin/bash", "--login", "-c"]
 
 # copy Python scripts/notebooks
 COPY covid19-sir-bayes-model/sir_model.py /src/
