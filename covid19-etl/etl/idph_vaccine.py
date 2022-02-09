@@ -45,6 +45,7 @@ class IDPH_VACCINE(IDPH):
             { <county name>: { <county properties> } }
         """
         response = self.get(ROOT_URL, headers={"content-type": "json"})
+        assert response, f"No data at {ROOT_URL}"
         json_response = json.loads(response.text)
         self.date = idph_get_date(json_response.get("lastUpdatedDate"))
         print(f"Dataset's last updated date: {self.date}")
@@ -167,16 +168,24 @@ class IDPH_VACCINE(IDPH):
         for i, county in enumerate(self.counties_inventory):
             if i % 10 == 0:
                 print(f"{i} / {len(self.counties_inventory)} counties")
+
             county_covid_response = self.get(
                 COUNTY_COVID_LINK_FORMAT.format(county),
                 headers={"content-type": "json"},
             )
+            assert (
+                county_covid_response
+            ), f"No data at {COUNTY_COVID_LINK_FORMAT.format(county)}"
             county_covid_data = json.loads(county_covid_response.text).get(
                 "CurrentVaccineAdministration"
             )
+
             county_demo_response = self.get(
                 COUNTY_DEMO_LINK_FORMAT.format(county), headers={"content-type": "json"}
             )
+            assert (
+                county_demo_response
+            ), f"No data at {COUNTY_DEMO_LINK_FORMAT.format(county)}"
             county_demo_data = json.loads(county_demo_response.text)
 
             (
@@ -250,6 +259,7 @@ class IDPH_VACCINE(IDPH):
         county_covid_response = self.get(
             TOTAL_VACCINE_LINK, headers={"content-type": "json"}
         )
+        assert county_covid_response, f"No data at {TOTAL_VACCINE_LINK}"
         state_total_data = json.loads(county_covid_response.text)
         total_vaccine_mapping = {
             "Total_Delivered": "vaccine_total_delivered_vaccine_doses",
