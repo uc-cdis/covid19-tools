@@ -31,7 +31,7 @@ date_data_begin = confirmed_cases.loc[
     (confirmed_cases["Province_State"] == "Illinois")
     & (confirmed_cases["Admin2"] == "Cook"),
     :,
-].columns[-60]
+].columns[-65]
 month, day, year = map(int, date_data_end.split("/"))
 
 data_begin = date_data_begin
@@ -503,7 +503,7 @@ for lang, legends_list in legends_lang.items():
     for label, color, legend in zip(obs_cases_labels_local, colors, legends_list[1]):
         time = np.arange(0, num_days_to_predict)
         cases = dict_obsc_cases[label]
-        cases = cases + cases_obs[0] * 0.95
+        cases = cases + cases_obs[0]
         # find median
         median = np.median(cases, axis=-1)
         percentiles = (
