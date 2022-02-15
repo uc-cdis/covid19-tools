@@ -165,7 +165,7 @@ with pm.Model() as model:
         "obs",
         nu=4,
         mu=new_I_past,
-        sigma=new_I_past ** 0.5 * σ_obs,
+        sigma=new_I_past**0.5 * σ_obs,
         observed=new_infections_obs,
     )
     # saves the variables for later retrieval

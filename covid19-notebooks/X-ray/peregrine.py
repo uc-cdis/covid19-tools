@@ -41,7 +41,7 @@ def _handle_access_token_response(resp, token_key):
 
 
 def query_api(query_txt, variables=None):
-    """ Request results for a specific query """
+    """Request results for a specific query"""
     if variables == None:
         query = {"query": query_txt}
     else:
@@ -67,7 +67,7 @@ def query_api(query_txt, variables=None):
 
 
 def get_images(project_id):
-    """ Get list of images for specific project"""
+    """Get list of images for specific project"""
 
     query_txt = (
         """{ imaging_file(project_id: "%s",first:0){ object_id, clinical_notes,file_name }}"""
@@ -88,7 +88,7 @@ def get_images(project_id):
 
 
 def get_observation_images(project_id):
-    """ Get list of images for specific project"""
+    """Get list of images for specific project"""
 
     query_txt = (
         """{ subject(project_id: "%s", first:0, with_path_to: {type: "observation", pneumonia_type: "COVID-19"}){imaging_files(first:0, data_category:"X-Ray Image"){ object_id,file_name }}}"""

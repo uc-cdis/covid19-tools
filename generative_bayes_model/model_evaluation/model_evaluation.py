@@ -134,7 +134,7 @@ def main():
 
         a = pm.HalfNormal("amplitude", sigma=2)
         l = pm.TruncatedNormal("time-scale", mu=10, sigma=2, lower=0)
-        cov_func = a ** 2 * pm.gp.cov.ExpQuad(input_dim=1, ls=l)
+        cov_func = a**2 * pm.gp.cov.ExpQuad(input_dim=1, ls=l)
 
         gp = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
 
