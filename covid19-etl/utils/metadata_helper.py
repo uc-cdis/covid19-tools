@@ -175,7 +175,7 @@ class MetadataHelper:
             raise
         try:
             return response.json()
-        except:
+        except Exception:
             print(f"Peregrine did not return JSON: {response.text}")
             raise
 
@@ -195,7 +195,7 @@ class MetadataHelper:
                         raise
                     try:
                         response = await response.json()
-                    except:
+                    except Exception:
                         print(f"Peregrine did not return JSON: {response.text}")
                         raise
                     return response
@@ -218,7 +218,7 @@ class MetadataHelper:
             raise
         try:
             return response.json()
-        except:
+        except Exception:
             print(f"Guppy did not return JSON: {response.status_code} {response.text}")
             raise
 
@@ -242,7 +242,7 @@ class MetadataHelper:
             raise
         try:
             return response.json()
-        except:
+        except Exception:
             print(f"Guppy did not return JSON: {response.status_code} {response.text}")
             raise
 
@@ -356,4 +356,7 @@ class MetadataHelper:
             )
 
         location_list = query_res["data"]["location"]
+        assert (
+            type(location_list) == list
+        ), f"Did not receive a list of locations from Guppy. Received: {query_res}"
         return [location["submitter_id"] for location in location_list]
