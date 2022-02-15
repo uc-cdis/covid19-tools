@@ -503,7 +503,7 @@ for lang, legends_list in legends_lang.items():
     for label, color, legend in zip(obs_cases_labels_local, colors, legends_list[1]):
         time = np.arange(0, num_days_to_predict)
         cases = dict_obsc_cases[label]
-        cases = cases + cases_obs[0]
+        cases = cases + cases_obs[0] * 0.95
         # find median
         median = np.median(cases, axis=-1)
         percentiles = (
@@ -536,7 +536,7 @@ for lang, legends_list in legends_lang.items():
         )
 
     ax.set_yscale("linear")
-    ax.legend(loc="upper left", fontsize=10)
+    ax.legend(loc="lower right", fontsize=10)
     ax.set_title(
         "Cumulative Confirmed Cases in Cook County as of {} to {}".format(
             data_begin, data_end

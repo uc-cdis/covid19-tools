@@ -15,10 +15,6 @@ RUN apt-get update && apt-get install -y \
 	g++ \
 	wget
 
-# Install packages listed in covid19-notebook-etl-requirements.txt
-COPY ./covid19-notebook-etl-requirements.txt /src/
-RUN pip3 install -r covid19-notebook-etl-requirements.txt
-
 # Install miniconda
 ENV CONDA_DIR $HOME/miniconda3
 RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
@@ -36,8 +32,8 @@ RUN echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile
 RUN conda init bash
 
 # Deploy conda environment
-COPY environment.yml .
-RUN conda env create -f environment.yml
+COPY covid19-notebook-etl-environment.yml .
+RUN conda env create -f covid19-notebook-etl-environment.yml
 
 # Make RUN commands use the new environment
 RUN echo "conda activate bayesian_conda_env" >> ~/.bashrc
