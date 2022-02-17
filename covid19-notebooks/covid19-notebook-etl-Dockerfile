@@ -15,9 +15,9 @@ RUN apt-get update && apt-get install -y \
 	g++ \
 	wget
 
-# Install miniconda
+# Install Mambaforge, a minimal installer for Conda specific to conda-forge
 ENV CONDA_DIR $HOME/miniconda3
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
+RUN wget --quiet https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh -O ~/miniconda.sh && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b -p $CONDA_DIR && \
     rm ~/miniconda.sh
@@ -30,7 +30,6 @@ RUN echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile
 
 # Make conda activate command available from /bin/bash --interative shells
 RUN conda init bash
-
 # Deploy conda environment
 COPY covid19-notebook-etl-environment.yml .
 RUN conda env create -f covid19-notebook-etl-environment.yml
