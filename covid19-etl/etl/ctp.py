@@ -325,7 +325,7 @@ class CTP(base.BaseETL):
             if value and value.lower() not in ["nan", "n/a"]:
                 try:
                     summary_clinical[k] = int(value.replace(",", ""))
-                except:
+                except Exception:
                     pass
 
         dataQualityGrade = row[self.header_to_column["dataQualityGrade"]]

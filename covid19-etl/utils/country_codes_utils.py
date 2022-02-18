@@ -29,6 +29,10 @@ ISO_CODES_MAPPING = {
         "iso2": "Summer Olympics 2020",
         "iso3": "Summer Olympics 2020",
     },
+    "Winter Olympics 2022": {
+        "iso2": "Winter Olympics 2022",
+        "iso3": "Winter Olympics 2022",
+    },
 }
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
