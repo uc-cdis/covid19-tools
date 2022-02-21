@@ -1,10 +1,19 @@
 # This is the Dockerfile for the "covid19-notebook-etl" job.
 
-FROM quay.io/cdis/debian:bullseye
+FROM quay.io/cdis/debian:bullseye AS build
 
 WORKDIR /src
 
-RUN apt-get update && apt-get install -y \
+# Install Mambaforge, a minimal installer for Conda specific to conda-forge
+ENV CONDA_DIR $HOME/miniconda3
+
+# Put conda in path
+ENV PATH=$CONDA_DIR/bin:$PATH
+
+# Deploy conda environment and clean
+COPY covid19-notebook-etl-environment.yml .
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
 	curl \
 	python3 \
 	python3-pip \
@@ -13,34 +22,27 @@ RUN apt-get update && apt-get install -y \
 	python3-numpy \
 	python3-scipy \
 	g++ \
-	wget
-
-# Install Mambaforge, a minimal installer for Conda specific to conda-forge
-ENV CONDA_DIR $HOME/miniconda3
-RUN wget --quiet https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh -O ~/miniconda.sh && \
+	wget && \
+	apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+	wget --quiet https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh -O ~/miniconda.sh && \
     chmod +x ~/miniconda.sh && \
     ~/miniconda.sh -b -p $CONDA_DIR && \
-    rm ~/miniconda.sh
+    rm ~/miniconda.sh && \
+	rm -rf /tmp/* && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+	echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile && \
+	conda init bash && \
+	conda env create -f covid19-notebook-etl-environment.yml && \
+    conda clean -i -t -s -y && \
+    rm -rf /usr/local/src/* && \
+	echo "conda activate bayesian_conda_env" >> ~/.bashrc
 
-# Put conda in path
-ENV PATH=$CONDA_DIR/bin:$PATH
-
-# Make conda activate command available from /bin/bash --login shells
-RUN echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile
-
-# Make conda activate command available from /bin/bash --interative shells
-RUN conda init bash
-# Deploy conda environment
-COPY covid19-notebook-etl-environment.yml .
-RUN conda env create -f covid19-notebook-etl-environment.yml
-
-# Make RUN commands use the new environment
-RUN echo "conda activate bayesian_conda_env" >> ~/.bashrc
 SHELL ["/bin/bash", "--login", "-c"]
 
 # copy Python scripts/notebooks
 COPY covid19-sir-bayes-model/sir_model.py /src/
 COPY ./IL_tab_charts.ipynb /src/
-
 COPY ./covid19-notebook-etl-run.sh ./covid19-notebook-etl-run-with-slack.sh /src/
 CMD [ "bash", "/src/covid19-notebook-etl-run-with-slack.sh" ]
