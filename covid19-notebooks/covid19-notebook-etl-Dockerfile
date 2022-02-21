@@ -1,49 +1,46 @@
 # This is the Dockerfile for the "covid19-notebook-etl" job.
 # The image is built by `/.github/workflows/build_covid19-notebook-etl.yml`.
 
-FROM quay.io/cdis/debian:bullseye AS build
+FROM continuumio/miniconda3 AS build
 
 WORKDIR /src
 
-# Install Mambaforge, a minimal installer for Conda specific to conda-forge
-ENV CONDA_DIR $HOME/miniconda3
-
-# Put conda in path
-ENV PATH=$CONDA_DIR/bin:$PATH
-
-# Deploy conda environment and clean
 COPY covid19-notebook-etl-environment.yml .
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-	curl \
-	python3 \
-	python3-pip \
-	python3-pandas \
-	python3-matplotlib \
-	python3-numpy \
-	python3-scipy \
-	g++ \
-	wget && \
-	apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-	wget --quiet https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh -O ~/miniconda.sh && \
-    chmod +x ~/miniconda.sh && \
-    ~/miniconda.sh -b -p $CONDA_DIR && \
-    rm ~/miniconda.sh && \
-	rm -rf /tmp/* && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-	echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile && \
-	conda init bash && \
-	conda env create -f covid19-notebook-etl-environment.yml && \
-    conda clean -i -t -s -y && \
-    rm -rf /usr/local/src/* && \
-	echo "conda activate bayesian_conda_env" >> ~/.bashrc
+RUN conda env create -f covid19-notebook-etl-environment.yml
 
-SHELL ["/bin/bash", "--login", "-c"]
+# Install conda-pack:
+RUN conda install -c conda-forge conda-pack
+
+WORKDIR /venv
+
+# Use conda-pack to create a standalone enviornment
+# in /venv:
+RUN conda-pack -n bayesian_conda_env -o /tmp/env.tar && \
+  tar xf /tmp/env.tar && \
+  rm /tmp/env.tar
+
+# We've put venv in same path it'll be in final image,
+# so now fix up paths:
+RUN /venv/bin/conda-unpack
+
+# The runtime-stage image; we can use Debian as the
+# base image since the Conda env also includes Python
+# for us.
+FROM debian:buster AS runtime
+
+# Copy /venv from the previous stage:
+COPY --from=build /venv /venv
 
 # copy Python scripts/notebooks
 COPY covid19-sir-bayes-model/sir_model.py /src/
 COPY ./IL_tab_charts.ipynb /src/
 COPY ./covid19-notebook-etl-run.sh ./covid19-notebook-etl-run-with-slack.sh /src/
+
+# # When image is run, run the code with the environment
+# # activated:
+# SHELL ["/bin/bash", "-c"]
+# ENTRYPOINT source /venv/bin/activate && \
+#            python -c "import numpy; print('success!')"
+
 CMD [ "bash", "/src/covid19-notebook-etl-run-with-slack.sh" ]

@@ -3,11 +3,11 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - nomkl
   - jupyterlab=3.2.8
   - aesara=2.3.8
   - arviz=0.5.1
   - pymc3=3.8
-  - mkl-service=2.4.0
   - sunode=0.2.1
   - ipython=8.0.1
   - scikit-learn=1.0.2
