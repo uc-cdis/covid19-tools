@@ -43,21 +43,22 @@ class IDPH_ZIPCODE(base.BaseETL):
         print(
             f"Latest submitted date: {latest_submitted_date}. Getting data until date: {today}"
         )
+        existing_summary_locations = (
+            self.metadata_helper.get_existing_summary_locations()
+        )
         for i in range(int((today - latest_submitted_date).days)):
             date = latest_submitted_date + datetime.timedelta(i + 1)
-            self.parse_data(date.strftime("%Y-%m-%d"))
+            self.parse_data(date.strftime("%Y-%m-%d"), existing_summary_locations)
 
-    def parse_data(self, date_str):
+    def parse_data(self, date_str, existing_summary_locations):
         """
         Converts a JSON files to data we can submit via Sheepdog. Stores the
         records to submit in `self.summary_locations` and `self.summary_clinicals`.
 
         Args:
             date_str (str): date in "%Y-%m-%d" format
+            existing_summary_locations (list): [<location submitter_id>, ...]
         """
-        existing_summary_locations = (
-            self.metadata_helper.get_existing_summary_locations()
-        )
         url = f"https://idph.illinois.gov/DPHPublicInformation/api/COVIDExport/GetZip?reportDate={date_str}"
         print("Getting data from {}".format(url))
         with closing(self.get(url, stream=True)) as r:
