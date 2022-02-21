@@ -1,7 +1,7 @@
 # This is the Dockerfile for the "covid19-notebook-etl" job.
 # The image is built by `/.github/workflows/build_covid19-notebook-etl.yml`.
 
-FROM continuumio/miniconda3 AS build
+FROM continuumio/miniconda3:latest AS build
 
 WORKDIR /src
 
@@ -37,10 +37,6 @@ COPY covid19-sir-bayes-model/sir_model.py /src/
 COPY ./IL_tab_charts.ipynb /src/
 COPY ./covid19-notebook-etl-run.sh ./covid19-notebook-etl-run-with-slack.sh /src/
 
-# # When image is run, run the code with the environment
-# # activated:
-# SHELL ["/bin/bash", "-c"]
-# ENTRYPOINT source /venv/bin/activate && \
-#            python -c "import numpy; print('success!')"
+RUN echo "source /venv/bin/activate" >> ~/.bashrc
 
 CMD [ "bash", "/src/covid19-notebook-etl-run-with-slack.sh" ]
