@@ -31,7 +31,7 @@ date_data_begin = confirmed_cases.loc[
     (confirmed_cases["Province_State"] == "Illinois")
     & (confirmed_cases["Admin2"] == "Cook"),
     :,
-].columns[-70]
+].columns[-72]
 month, day, year = map(int, date_data_end.split("/"))
 
 data_begin = date_data_begin

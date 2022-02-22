@@ -7,13 +7,13 @@ dependencies:
   - aesara=2.3.8
   - arviz=0.5.1
   - pymc3=3.8
-  - mkl-service=2.4.0
+  # Without mkl, there will be a warning: No module named 'mkl', but it won't affect running the code.
+  # - mkl-service=2.4.0
+  - nomkl
   - sunode=0.2.1
-  - ipython=8.0.1
   - scikit-learn=1.0.2
   - pygpu=0.7.6
   - google-cloud-bigquery[bqstorage,pandas]>=2.13.1,<3.0.0
-  - jupyter>=1.0.0,<2.0.0
   - seaborn>=0.11.1,<1.0.0
   - plotly=5.5.0
   - awscli>=1.22.0,<2.0.0

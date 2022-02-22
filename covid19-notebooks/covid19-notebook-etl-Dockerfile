@@ -31,8 +31,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ~/miniconda.sh -b -p $CONDA_DIR && \
     rm ~/miniconda.sh && \
 	rm -rf /tmp/* && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
 	echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile && \
 	conda init bash && \
 	conda env create -f covid19-notebook-etl-environment.yml && \
