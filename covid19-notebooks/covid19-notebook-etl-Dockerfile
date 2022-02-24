@@ -1,24 +1,49 @@
 # This is the Dockerfile for the "covid19-notebook-etl" job.
+# The image is built by `/.github/workflows/build_covid19-notebook-etl.yml`.
 
 FROM quay.io/cdis/debian:bullseye
 
 WORKDIR /src
 
-RUN apt-get update && apt-get install -y \
+# Install Mambaforge, a minimal installer for Conda specific to conda-forge
+ENV CONDA_DIR $HOME/miniconda3
+
+# Put conda in path
+ENV PATH=$CONDA_DIR/bin:$PATH
+
+# Deploy conda environment and clean
+COPY covid19-notebook-etl-environment.yml .
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
 	curl \
 	python3 \
 	python3-pip \
 	python3-pandas \
 	python3-matplotlib \
 	python3-numpy \
-	python3-scipy
-
-RUN pip3 install awscli==1.18.*
-COPY ./covid19-notebook-etl-requirements.txt /src/
-RUN pip3 install -r covid19-notebook-etl-requirements.txt
+	python3-scipy \
+	g++ \
+	wget && \
+	apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+	wget --quiet https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh -O ~/miniconda.sh && \
+    chmod +x ~/miniconda.sh && \
+    ~/miniconda.sh -b -p $CONDA_DIR && \
+    rm ~/miniconda.sh && \
+	rm -rf /tmp/* && \
+	echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile && \
+	conda init bash && \
+	conda env create -f covid19-notebook-etl-environment.yml && \
+    conda clean -i -t -s -y && \
+    rm -rf /usr/local/src/* && \
+	echo "conda activate bayesian_conda_env" >> ~/.bashrc
 
 # copy Python scripts/notebooks
+COPY covid19-sir-bayes-model/sir_model.py /src/
 COPY ./IL_tab_charts.ipynb /src/
-
 COPY ./covid19-notebook-etl-run.sh ./covid19-notebook-etl-run-with-slack.sh /src/
-CMD [ "bash", "/src/covid19-notebook-etl-run-with-slack.sh" ]
+SHELL ["conda", "run","--no-capture-output", "-n", "bayesian_conda_env", "/bin/bash", "-c"]
+EXPOSE 5003
+
+# The code to run when container is started
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "bayesian_conda_env", "/bin/bash", "/src/covid19-notebook-etl-run-with-slack.sh"]

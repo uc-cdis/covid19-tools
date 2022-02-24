@@ -3,7 +3,7 @@ import requests
 
 
 class AsyncFileHelper:
-    """ Asynchronous file helper class"""
+    """Asynchronous file helper class"""
 
     session = None
 

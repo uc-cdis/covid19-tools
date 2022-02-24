@@ -56,8 +56,8 @@ def _get_generation_time_interval():
 
     mean_si = 4.7
     std_si = 2.9
-    mu_si = np.log(mean_si ** 2 / np.sqrt(std_si ** 2 + mean_si ** 2))
-    sigma_si = np.sqrt(np.log(std_si ** 2 / mean_si ** 2 + 1))
+    mu_si = np.log(mean_si**2 / np.sqrt(std_si**2 + mean_si**2))
+    sigma_si = np.sqrt(np.log(std_si**2 / mean_si**2 + 1))
     dist = sps.lognorm(scale=np.exp(mu_si), s=sigma_si)
 
     # Discretize the Generation Interval up to 20 days max
@@ -302,7 +302,7 @@ with pm.Model() as model:
 
     a = pm.HalfNormal("amplitude", sigma=2)
     l = pm.TruncatedNormal("time-scale", mu=10, sigma=2, lower=0)
-    cov_func = a ** 2 * pm.gp.cov.ExpQuad(input_dim=1, ls=l)
+    cov_func = a**2 * pm.gp.cov.ExpQuad(input_dim=1, ls=l)
 
     gp = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
 
