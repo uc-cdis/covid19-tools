@@ -1,7 +1,7 @@
 # This is the Dockerfile for the "covid19-notebook-etl" job.
 # The image is built by `/.github/workflows/build_covid19-notebook-etl.yml`.
 
-FROM quay.io/cdis/debian:bullseye AS build
+FROM quay.io/cdis/debian:bullseye
 
 WORKDIR /src
 
@@ -38,10 +38,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /usr/local/src/* && \
 	echo "conda activate bayesian_conda_env" >> ~/.bashrc
 
-SHELL ["/bin/bash", "--login", "-c"]
-
 # copy Python scripts/notebooks
 COPY covid19-sir-bayes-model/sir_model.py /src/
 COPY ./IL_tab_charts.ipynb /src/
 COPY ./covid19-notebook-etl-run.sh ./covid19-notebook-etl-run-with-slack.sh /src/
-CMD [ "bash", "/src/covid19-notebook-etl-run-with-slack.sh" ]
+SHELL ["conda", "run","--no-capture-output", "-n", "bayesian_conda_env", "/bin/bash", "-c"]
+EXPOSE 5003
+
+# The code to run when container is started
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "bayesian_conda_env", "/bin/bash", "/src/covid19-notebook-etl-run-with-slack.sh"]
