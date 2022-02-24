@@ -18,11 +18,11 @@ for file in "${NOTEBOOKS[@]}"; do
     exit 1
   fi
   echo "Running notebook $file..."
-  /miniconda3/envs/bayesian_conda_env/bin/jupyter nbconvert --to notebook --inplace --execute "$file"
+  jupyter nbconvert --to notebook --inplace --execute "$file"
 done
 
 echo "Running SIR-based Bayesian model script..."
-/miniconda3/envs/bayesian_conda_env/bin/python3 sir_model.py
+python3 sir_model.py
 
 echo "Copying to S3 bucket..."
 for file in IL_tab_charts*.svg; do
