@@ -23,7 +23,7 @@ jobs:
         id: extract_branch
         shell: bash
         # get the branch name, and replace "/" with "_"
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/} | tr / _)"
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/*/} | tr / _)"
       - name: Build and push
         uses: docker/build-push-action@v2
         with:
