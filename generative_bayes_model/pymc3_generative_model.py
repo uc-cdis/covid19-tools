@@ -106,7 +106,8 @@ daily_data.insert(0, "days_since_100", range(1, len(daily_data) + 1))
 update_date = str(data_sum.index[-1])
 daily_data["date"] = pd.to_datetime(daily_data.index)
 # Take past 9 month data as sampling data
-daily_data = daily_data[-180:]
+daily_data_all = daily_data[-180:]
+daily_data = daily_data[-90:]
 max_zero_length = maximum_zeros_length(daily_data.cases.values)
 window_size = max_zero_length + 2
 
@@ -127,7 +128,7 @@ def average_missing_data(numbers, window_size):
     return moving_averages
 
 
-len_observed = len(daily_data[window_size // 2 : -window_size // 2 + 1])
+len_observed = len(daily_data_all[window_size // 2 : -window_size // 2 + 1])
 convolution_ready_gt = _get_convolution_ready_gt(len_observed)
 
 with pm.Model() as model_r_t_infection_delay:
@@ -152,19 +153,12 @@ with pm.Model() as model_r_t_infection_delay:
     # Stop infections from taking on unresonably large values that break the NegativeBinomial
     infections = tt.clip(infections, 0, 13_000_000)
 
-    # Likelihood
-    #     pm.NegativeBinomial(
-    #         'obs',
-    #         infections,
-    #         alpha = pm.Gamma('alpha', mu=6, sigma=1),
-    #         observed=daily_data.cases.values
-    #     )
     eps = pm.HalfNormal("eps", 10)  # Error term
     pm.Lognormal(
         "obs",
         pm.math.log(infections),
         eps,
-        observed=average_missing_data(daily_data.cases.values, window_size),
+        observed=average_missing_data(daily_data_all.cases.values, window_size),
     )
 
 with model_r_t_infection_delay:
@@ -213,7 +207,7 @@ def get_delay_distribution():
     return p_delay
 
 
-len_observed = len(daily_data[window_size // 2 : -window_size // 2 + 1])
+len_observed = len(daily_data_all[window_size // 2 : -window_size // 2 + 1])
 convolution_ready_gt = _get_convolution_ready_gt(len_observed)
 p_delay = get_delay_distribution()
 p_delay.iloc[:5] = 1e-5
@@ -241,22 +235,12 @@ with pm.Model() as model_r_t_onset:
         "test_adjusted_positive", conv(infections, p_delay, len_observed)
     )
 
-    # Stop infections from taking on unresonably large values that break the NegativeBinomial
-    # infections = tt.clip(infections, 0, 13_000_000)
-
-    # Likelihood
-    #     pm.NegativeBinomial(
-    #         'obs',
-    #         infections,
-    #         alpha = pm.Gamma('alpha', mu=6, sigma=1),
-    #         observed=daily_data.cases.values
-    #     )
     eps = pm.HalfNormal("eps", 10)  # Error term
     pm.Lognormal(
         "obs",
         pm.math.log(infections),
         eps,
-        observed=average_missing_data(daily_data.cases.values, window_size),
+        observed=average_missing_data(daily_data_all.cases.values, window_size),
     )
 
     prior_pred = pm.sample_prior_predictive()
@@ -264,10 +248,10 @@ with pm.Model() as model_r_t_onset:
 with model_r_t_onset:
     trace_r_t_onset = pm.sample(tune=500, chains=2, cores=8, target_accept=0.9)
 
-start_date = daily_data.date[0]
+start_date = daily_data_all.date[0]
 fig, ax = plt.subplots(figsize=(10, 6))
 plt.plot(
-    daily_data.date[window_size // 2 : -window_size // 2 + 1],
+    daily_data_all.date[window_size // 2 : -window_size // 2 + 1],
     trace_r_t_onset["r_t"].T,
     color="0.5",
     alpha=0.05,
@@ -276,7 +260,11 @@ plt.plot(
 ax.set(
     xlabel="Time",
     ylabel="$R_e(t)$",
-    Title="Estimated $R_e(t)$ as of {}".format(update_date),
+)
+ax.set_title(
+    "Estimated $R_e(t)$ as of {}".format(update_date),
+    size=15,
+    y=1.08,
 )
 ax.axhline(1.0, c="k", lw=1, linestyle="--")
 fig.autofmt_xdate()
@@ -286,70 +274,115 @@ fig.savefig("results/17031/rt.svg", dpi=30, bbox_inches="tight")
 with model_r_t_onset:
     post_pred_r_t_onset = pm.sample_posterior_predictive(trace_r_t_onset, samples=100)
 r2 = az.r2_score(
-    average_missing_data(daily_data.cases.values, window_size),
+    average_missing_data(daily_data_all.cases.values, window_size),
     post_pred_r_t_onset["obs"],
 )[0]
-start_date = daily_data.date[0]
+start_date = daily_data_all.date[0]
 
-y = average_missing_data(daily_data.cases.values, window_size)
-T = len(y)
-F = 15
-t = np.arange(T + F)[:, None]
+
+num_days = len(daily_data) + 1
+num_days_to_predict = 45
+np.random.seed(0)
+
+
+def SIR_model(λ, μ, S_begin, I_begin, N):
+    new_I_0 = tt.zeros_like(I_begin)
+
+    def next_day(λ, S_t, I_t, _):
+        new_I_t = (λ / N) * I_t * S_t
+        S_t = S_t - new_I_t
+        I_t = I_t + new_I_t - μ * I_t
+        return S_t, I_t, new_I_t
+
+    outputs, _ = theano.scan(
+        fn=next_day, sequences=[λ], outputs_info=[S_begin, I_begin, new_I_0]
+    )
+    S_all, I_all, new_I_all = outputs
+    return S_all, I_all, new_I_all
+
 
 with pm.Model() as model:
-    c = pm.TruncatedNormal("mean", mu=4, sigma=2, lower=0)
-    mean_func = pm.gp.mean.Constant(c=c)
 
-    a = pm.HalfNormal("amplitude", sigma=2)
-    l = pm.TruncatedNormal("time-scale", mu=10, sigma=2, lower=0)
-    cov_func = a**2 * pm.gp.cov.ExpQuad(input_dim=1, ls=l)
+    # true cases at begin of loaded data but we do not know the real number (sigma is 90%)
+    I_begin = pm.Lognormal("I_begin", mu=np.log(data_sum.cases[-90]), sigma=0.9)
 
-    gp = pm.gp.Latent(mean_func=mean_func, cov_func=cov_func)
+    # fraction of people that are newly infected each day (sigma is 50%)
+    λ = pm.Lognormal("λ", mu=np.log(0.4), sigma=0.5)
 
-    f = gp.prior("f", X=t)
+    # fraction of people that recover each day, recovery rate mu (sigma is 20%)
+    μ = pm.Lognormal("μ", mu=np.log(1 / 8), sigma=0.2)
 
-    y_past = pm.Poisson("y_past", mu=tt.exp(f[:T]), observed=y)
-    y_logp = pm.Deterministic("y_logp", y_past.logpt)
+    # prior of the error of observed cases
+    σ_obs = pm.HalfCauchy("σ_obs", beta=1)
 
-with model:
-    trace = pm.sample(
-        500, tune=800, chains=1, target_accept=0.95, random_seed=42, cores=8
+    N_cook = 5.15e6  # cook population in 2020
+
+    # Initail state
+    S_begin = N_cook - I_begin
+    # calculate S_past, I_past, new_I_past usign sir model
+    S_past, I_past, new_I_past = SIR_model(
+        λ=λ * tt.ones(num_days - 1), μ=μ, S_begin=S_begin, I_begin=I_begin, N=N_cook
     )
+    new_infections_obs = daily_data.cases.values
 
-with model:
-    y_future = pm.Poisson("y_future", mu=tt.exp(f[-F:]), shape=F)
-    forecasts = pm.sample_posterior_predictive(trace, vars=[y_future], random_seed=42)
+    # Approximates Poisson
+    # calculate the likelihood of the model:
+    # observed cases are distributed following studentT around the model
+    # Recursively update the parameters using MCMC
+    # syntax of pymc3=> https://docs.pymc.io/api/distributions/continuous.html
+    pm.StudentT(  # Student’s T log-likelihood eg: pm.StudentT(nu[, mu, lam, sigma, sd])
+        "obs",
+        nu=4,
+        mu=new_I_past,
+        sigma=new_I_past**0.5 * σ_obs,
+        observed=new_infections_obs,
+    )
+    # saves the variables for later retrieval
+    S_past = pm.Deterministic("S_past", S_past)
+    I_past = pm.Deterministic("I_past", I_past)
+    new_I_past = pm.Deterministic("new_I_past", new_I_past)
 
-samples = forecasts["y_future"]
+    # delay in days between contracting the disease and being recorded
+    # assuming a median delay of 8 days.
+    delay = pm.Lognormal("delay", mu=np.log(8), sigma=0.1)  #
+    # Initail state
+    S_begin = S_past[-1]
+    I_begin = I_past[-1]
+    # Forecast in no change condition
+    forecast_no_change = SIR_model(
+        λ=λ * tt.ones(num_days_to_predict),
+        μ=μ,
+        S_begin=S_begin,
+        I_begin=I_begin,
+        N=N_cook,
+    )
+    S_no_change, I_no_change, new_I_no_change = forecast_no_change
 
-low = np.zeros(F)
-high = np.zeros(F)
-mean = np.zeros(F)
-median = np.zeros(F)
+    # saves the variables for later retrieval
+    pm.Deterministic("S_no_change", S_no_change)
+    pm.Deterministic("I_no_change", I_no_change)
+    pm.Deterministic("new_I_no_change", new_I_no_change)
 
-for i in range(F):
-    # low[i] = np.min(samples[:,i])
-    low[i] = np.percentile(samples[:, i], 10)
-    high[i] = np.percentile(samples[:, i], 90)
-    # high[i] = np.max(samples[:,i])
-    median[i] = np.percentile(samples[:, i], 50)
-    mean[i] = np.mean(samples[:, i])
+    trace = pm.sample(draws=100, tune=200, chains=1)
+
+low = np.percentile(trace["new_I_no_change"], q=10.0, axis=0)
+high = np.percentile(trace["new_I_no_change"], q=90.0, axis=0)
+median = np.percentile(trace["new_I_no_change"], q=50.0, axis=0)
 
 fig, ax = plt.subplots(figsize=(10, 6))
 ax.plot(
-    daily_data.date[window_size // 2 : -window_size // 2 + 1],
+    daily_data_all.date[window_size // 2 : -window_size // 2 + 1],
     post_pred_r_t_onset["obs"].T,
     color="0.5",
     alpha=0.05,
 )
 ax.plot(
-    daily_data.date[window_size // 2 : -window_size // 2 + 1],
-    average_missing_data(daily_data.cases.values, window_size),
+    daily_data_all.date[window_size // 2 : -window_size // 2 + 1],
+    average_missing_data(daily_data_all.cases.values, window_size),
     color="r",
     linewidth=1,
     markersize=5,
 )
-
 
 ax.set(xlabel="Time", ylabel="Daily confirmed cases", yscale="log")
 plt.suptitle(
@@ -365,41 +398,33 @@ ax.set_title(
     y=1.1,
 )
 
-# def thousands(x, pos):
-#     "The two args are the value and tick position"
-#     return "%1.0fK" % (x * 1e-3)
 
-# formatter = FuncFormatter(thousands)
-# ax.yaxis.set_major_formatter(formatter)
 fig.autofmt_xdate()
 legend_elements = [
     Line2D([0], [0], color="red", lw=2, label="Reported cases"),
-    Line2D([0], [0], color="black", label="15-days forecast (median)", linestyle="--"),
-    Line2D([0], [0], color="orange", label="15-days forecast (mean)", linestyle="--"),
+    Line2D([0], [0], color="black", label="45-days forecast (median)", linestyle="--"),
     Patch(facecolor="silver", edgecolor="silver", label="Posterior predicted cases"),
     Patch(
         facecolor="lightskyblue",
         edgecolor="lightskyblue",
-        label="15-days forecast (90% prediciton intervals)",
+        label="45-days forecast (90% prediciton intervals)",
     ),
 ]
-x_future = np.arange(1, F + 1)
+x_future = np.arange(1, num_days_to_predict + 1)
 ax.plot(
-    pd.date_range(start=daily_data.date[-window_size // 2], periods=15, freq="D"),
+    pd.date_range(
+        start=daily_data.date[-window_size // 2], periods=num_days_to_predict, freq="D"
+    ),
     median,
     color="black",
     lw=1,
     linestyle="--",
 )
-ax.plot(
-    pd.date_range(start=daily_data.date[-window_size // 2], periods=15, freq="D"),
-    mean,
-    color="orange",
-    lw=1,
-    linestyle="--",
-)
+
 plt.fill_between(
-    pd.date_range(start=daily_data.date[-window_size // 2], periods=15, freq="D"),
+    pd.date_range(
+        start=daily_data.date[-window_size // 2], periods=num_days_to_predict, freq="D"
+    ),
     low,
     high,
     alpha=0.6,

@@ -31,7 +31,7 @@ date_data_begin = confirmed_cases.loc[
     (confirmed_cases["Province_State"] == "Illinois")
     & (confirmed_cases["Admin2"] == "Cook"),
     :,
-].columns[-72]
+].columns[-90]
 month, day, year = map(int, date_data_end.split("/"))
 
 data_begin = date_data_begin
@@ -52,6 +52,15 @@ cases_all = np.array(
         "1/22/20":,
     ]
 )[0]
+
+cases_part_all = np.array(
+    confirmed_cases.loc[
+        (confirmed_cases["Province_State"] == "Illinois")
+        & (confirmed_cases["Admin2"] == "Cook"),
+        "12/7/21":,
+    ]
+)[0]
+
 date_data_end = date(year + 2000, month, day)
 date_today = date_data_end + datetime.timedelta(days=1)
 print(
@@ -413,7 +422,7 @@ ax.set(
     ylabel="Daily confirmed cases",
 )
 plt.suptitle(
-    "With Reported Data From Past 2 Months and SIR Model Predictions",
+    "With Reported Data From Past 3 Months and SIR Model Predictions",
     fontsize=12,
     y=0.92,
 )
@@ -503,7 +512,7 @@ for lang, legends_list in legends_lang.items():
     for label, color, legend in zip(obs_cases_labels_local, colors, legends_list[1]):
         time = np.arange(0, num_days_to_predict)
         cases = dict_obsc_cases[label]
-        cases = cases + cases_obs[0]
+        cases = cases + cases_part_all[0]
         # find median
         median = np.median(cases, axis=-1)
         percentiles = (
