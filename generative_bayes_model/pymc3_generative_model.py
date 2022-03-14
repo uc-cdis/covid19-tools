@@ -165,6 +165,11 @@ with model_r_t_infection_delay:
     trace_r_t_infection_delay = pm.sample(
         tune=500, chains=2, cores=8, target_accept=0.9
     )
+    pm.save_trace(
+        trace=trace_r_t_infection_delay,
+        directory="./trace_r_t_infection_delay",
+        overwrite=True,
+    )
 
 
 def conv(a, b, len_observed):
@@ -247,6 +252,7 @@ with pm.Model() as model_r_t_onset:
 
 with model_r_t_onset:
     trace_r_t_onset = pm.sample(tune=500, chains=2, cores=8, target_accept=0.9)
+    pm.save_trace(trace=trace_r_t_onset, directory="./trace_r_t_onset", overwrite=True)
 
 start_date = daily_data_all.date[0]
 fig, ax = plt.subplots(figsize=(10, 6))
@@ -364,6 +370,7 @@ with pm.Model() as model:
     pm.Deterministic("new_I_no_change", new_I_no_change)
 
     trace = pm.sample(draws=100, tune=200, chains=1)
+    pm.save_trace(trace=trace, directory="./trace", overwrite=True)
 
 low = np.percentile(trace["new_I_no_change"], q=10.0, axis=0)
 high = np.percentile(trace["new_I_no_change"], q=90.0, axis=0)

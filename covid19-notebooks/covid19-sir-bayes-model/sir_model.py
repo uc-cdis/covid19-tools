@@ -31,7 +31,7 @@ date_data_begin = confirmed_cases.loc[
     (confirmed_cases["Province_State"] == "Illinois")
     & (confirmed_cases["Admin2"] == "Cook"),
     :,
-].columns[-90]
+].columns[-96]
 month, day, year = map(int, date_data_end.split("/"))
 
 data_begin = date_data_begin
@@ -50,14 +50,6 @@ cases_all = np.array(
         (confirmed_cases["Province_State"] == "Illinois")
         & (confirmed_cases["Admin2"] == "Cook"),
         "1/22/20":,
-    ]
-)[0]
-
-cases_part_all = np.array(
-    confirmed_cases.loc[
-        (confirmed_cases["Province_State"] == "Illinois")
-        & (confirmed_cases["Admin2"] == "Cook"),
-        "12/7/21":,
     ]
 )[0]
 
@@ -329,6 +321,7 @@ with pm.Model() as model:
     # -------------------------------------------------------------------------- #
     time_beg = time.time()
     trace = pm.sample(draws=500, tune=800, chains=2)
+    pm.save_trace(trace=trace, directory="./sir_model_trace", overwrite=True)
     print("Model run in {:.2f} s".format(time.time() - time_beg))
 
 # -------------------------------------------------------------------------------
@@ -479,6 +472,7 @@ def return_obs_cases_future(trace):
         obs_cases_future[label] = (
             np.cumsum(trace[label], axis=1)
             + np.sum(trace.new_I_past, axis=1)[:, None]
+            + cases_obs[0]
             + trace.I_begin[:, None]
         )
         obs_cases_future[label] = obs_cases_future[label].T
@@ -512,7 +506,6 @@ for lang, legends_list in legends_lang.items():
     for label, color, legend in zip(obs_cases_labels_local, colors, legends_list[1]):
         time = np.arange(0, num_days_to_predict)
         cases = dict_obsc_cases[label]
-        cases = cases + cases_part_all[0]
         # find median
         median = np.median(cases, axis=-1)
         percentiles = (
@@ -562,7 +555,7 @@ for lang, legends_list in legends_lang.items():
     ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(func_format))
 
     plt.suptitle(
-        "With Reported Data From Past 2 Months and SIR Model Predictions",
+        "With Reported Data From Past 3 Months and SIR Model Predictions",
         fontsize=12,
         y=0.92,
     )
