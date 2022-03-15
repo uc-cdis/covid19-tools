@@ -288,7 +288,6 @@ plt.plot(
     color="0.5",
     alpha=0.05,
 )
-# plt.plot(pd.date_range(start=start_date, periods=len(daily_data.cases.values), freq='D'), trace_r_t_infection_delay['r_t'].T, color='r', alpha=0.1)
 ax.set(
     xlabel="Time",
     ylabel="$R_e(t)$",

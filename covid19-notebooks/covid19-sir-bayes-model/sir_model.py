@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def setup_logger():
     """
-    Sets up the logger.
+    Sets up logger
     """
     logger_format = "[%(levelname)s] [%(asctime)s] [%(name)s] - %(message)s"
     logger.setLevel(level=logging.INFO)
