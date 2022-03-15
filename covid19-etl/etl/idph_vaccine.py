@@ -93,9 +93,7 @@ class IDPH_VACCINE(IDPH):
             "Middle Eastern or North African*": "Middle Eastern or North African",
             "Middle Eastern or North Africa": "Middle Eastern or North African",
         }
-        gender_mapping = {
-            "Unknown": "Unknown or Left Blank",
-        }
+        gender_mapping = {"Unknown": "Unknown or Left Blank", "": None}
         age_group_mapping = {"65+": "greater than 65"}
         if prop_name == "Race" and value in race_mapping:
             return race_mapping.get(value)
