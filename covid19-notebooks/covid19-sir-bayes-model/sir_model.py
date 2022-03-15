@@ -12,7 +12,25 @@ import datetime
 from datetime import date
 import time
 import matplotlib
+import logging
+import sys
 
+logger = logging.getLogger(__name__)
+
+
+def setup_logger():
+    """
+    Sets up logger
+    """
+    logger_format = "[%(levelname)s] [%(asctime)s] [%(name)s] - %(message)s"
+    logger.setLevel(level=logging.INFO)
+    handler = logging.StreamHandler(sys.stderr)
+    formatter = logging.Formatter(logger_format, datefmt="%Y%m%d %H:%M:%S")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+
+setup_logger()
 # ------------------------------------------------------------------------------ #
 # Step 1: load data
 # ------------------------------------------------------------------------------ #
@@ -31,7 +49,7 @@ date_data_begin = confirmed_cases.loc[
     (confirmed_cases["Province_State"] == "Illinois")
     & (confirmed_cases["Admin2"] == "Cook"),
     :,
-].columns[-72]
+].columns[-96]
 month, day, year = map(int, date_data_end.split("/"))
 
 data_begin = date_data_begin
@@ -52,9 +70,10 @@ cases_all = np.array(
         "1/22/20":,
     ]
 )[0]
+
 date_data_end = date(year + 2000, month, day)
 date_today = date_data_end + datetime.timedelta(days=1)
-print(
+logger.info(
     "Cases yesterday ({}): {} and day before yesterday: {}".format(
         date_data_end.isoformat(), *cases_obs[:-3:-1]
     )
@@ -320,7 +339,8 @@ with pm.Model() as model:
     # -------------------------------------------------------------------------- #
     time_beg = time.time()
     trace = pm.sample(draws=500, tune=800, chains=2)
-    print("Model run in {:.2f} s".format(time.time() - time_beg))
+    pm.save_trace(trace=trace, directory="./sir_model_trace", overwrite=True)
+    logger.info("Model run in {:.2f} s".format(time.time() - time_beg))
 
 # -------------------------------------------------------------------------------
 # Step 4 Plot data of new infections
@@ -413,7 +433,7 @@ ax.set(
     ylabel="Daily confirmed cases",
 )
 plt.suptitle(
-    "With Reported Data From Past 2 Months and SIR Model Predictions",
+    "With Reported Data From Past 3 Months and SIR Model Predictions",
     fontsize=12,
     y=0.92,
 )
@@ -470,6 +490,7 @@ def return_obs_cases_future(trace):
         obs_cases_future[label] = (
             np.cumsum(trace[label], axis=1)
             + np.sum(trace.new_I_past, axis=1)[:, None]
+            + cases_obs[0]
             + trace.I_begin[:, None]
         )
         obs_cases_future[label] = obs_cases_future[label].T
@@ -503,7 +524,6 @@ for lang, legends_list in legends_lang.items():
     for label, color, legend in zip(obs_cases_labels_local, colors, legends_list[1]):
         time = np.arange(0, num_days_to_predict)
         cases = dict_obsc_cases[label]
-        cases = cases + cases_obs[0]
         # find median
         median = np.median(cases, axis=-1)
         percentiles = (
@@ -553,7 +573,7 @@ for lang, legends_list in legends_lang.items():
     ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(func_format))
 
     plt.suptitle(
-        "With Reported Data From Past 2 Months and SIR Model Predictions",
+        "With Reported Data From Past 3 Months and SIR Model Predictions",
         fontsize=12,
         y=0.92,
     )
@@ -564,7 +584,7 @@ for lang, legends_list in legends_lang.items():
         "IL_tab_charts_cumulative_logistic_last360.svg", dpi=60, bbox_inches="tight"
     )
 
-print(
+logger.info(
     "effective m: {:.3f} +- {:.3f}".format(
         1 + np.median(trace.λ - trace.μ), np.std(trace.λ - trace.μ)
     )

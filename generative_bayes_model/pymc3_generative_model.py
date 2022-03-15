@@ -1,5 +1,6 @@
 import time
 import os
+import logging
 
 t0 = time.time()
 import pymc3 as pm
@@ -28,6 +29,23 @@ warnings.simplefilter("ignore")
 # sampler_kwargs = {"chains":4, "cores":4, "return_inferencedata":True}
 #%config InlineBackend.figure_format = 'svg'
 theano.config.gcc.cxxflags = "-Wno-c++11-narrowing"
+
+import logging
+import sys
+
+logger = logging.getLogger(__name__)
+
+
+def setup_logger():
+    """
+    Sets up the logger.
+    """
+    logger_format = "[%(levelname)s] [%(asctime)s] [%(name)s] - %(message)s"
+    logger.setLevel(level=logging.INFO)
+    handler = logging.StreamHandler(sys.stderr)
+    formatter = logging.Formatter(logger_format, datefmt="%Y%m%d %H:%M:%S")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 
 def _random(self, sigma, mu, size, sample_shape):
@@ -89,6 +107,8 @@ def maximum_zeros_length(a):
             all_length.append(len(list(g)))
     return max(all_length)
 
+
+setup_logger()
 
 jh_data = pd.read_csv(
     "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
@@ -171,6 +191,11 @@ with model_r_t_infection_delay:
     trace_r_t_infection_delay = pm.sample(
         tune=500, chains=2, cores=8, target_accept=0.9
     )
+    pm.save_trace(
+        trace=trace_r_t_infection_delay,
+        directory="./trace_r_t_infection_delay",
+        overwrite=True,
+    )
 
 
 def conv(a, b, len_observed):
@@ -241,16 +266,6 @@ with pm.Model() as model_r_t_onset:
         "test_adjusted_positive", conv(infections, p_delay, len_observed)
     )
 
-    # Stop infections from taking on unresonably large values that break the NegativeBinomial
-    # infections = tt.clip(infections, 0, 13_000_000)
-
-    # Likelihood
-    #     pm.NegativeBinomial(
-    #         'obs',
-    #         infections,
-    #         alpha = pm.Gamma('alpha', mu=6, sigma=1),
-    #         observed=daily_data.cases.values
-    #     )
     eps = pm.HalfNormal("eps", 10)  # Error term
     pm.Lognormal(
         "obs",
@@ -263,6 +278,7 @@ with pm.Model() as model_r_t_onset:
 
 with model_r_t_onset:
     trace_r_t_onset = pm.sample(tune=500, chains=2, cores=8, target_accept=0.9)
+    pm.save_trace(trace=trace_r_t_onset, directory="./trace_r_t_onset", overwrite=True)
 
 start_date = daily_data.date[0]
 fig, ax = plt.subplots(figsize=(10, 6))
@@ -272,7 +288,6 @@ plt.plot(
     color="0.5",
     alpha=0.05,
 )
-# plt.plot(pd.date_range(start=start_date, periods=len(daily_data.cases.values), freq='D'), trace_r_t_infection_delay['r_t'].T, color='r', alpha=0.1)
 ax.set(
     xlabel="Time",
     ylabel="$R_e(t)$",
@@ -315,6 +330,7 @@ with model:
     trace = pm.sample(
         500, tune=800, chains=1, target_accept=0.95, random_seed=42, cores=8
     )
+    pm.save_trace(trace=trace, directory="./trace", overwrite=True)
 
 with model:
     y_future = pm.Poisson("y_future", mu=tt.exp(f[-F:]), shape=F)
@@ -365,12 +381,6 @@ ax.set_title(
     y=1.1,
 )
 
-# def thousands(x, pos):
-#     "The two args are the value and tick position"
-#     return "%1.0fK" % (x * 1e-3)
-
-# formatter = FuncFormatter(thousands)
-# ax.yaxis.set_major_formatter(formatter)
 fig.autofmt_xdate()
 legend_elements = [
     Line2D([0], [0], color="red", lw=2, label="Reported cases"),
@@ -411,4 +421,4 @@ ax.grid(False)
 fig.savefig("results/17031/cases.svg", dpi=60, bbox_inches="tight")
 t1 = time.time()
 totaltime = (t1 - t0) / 3600
-print("total run time is {:.4f} hours".format(totaltime))
+logger.info("total run time is {:.4f} hours".format(totaltime))
