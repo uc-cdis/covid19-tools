@@ -1,5 +1,6 @@
 import time
 import os
+import logging
 
 t0 = time.time()
 import pymc3 as pm
@@ -28,6 +29,23 @@ warnings.simplefilter("ignore")
 # sampler_kwargs = {"chains":4, "cores":4, "return_inferencedata":True}
 #%config InlineBackend.figure_format = 'svg'
 theano.config.gcc.cxxflags = "-Wno-c++11-narrowing"
+
+import logging
+import sys
+
+logger = logging.getLogger(__name__)
+
+
+def setup_logger():
+    """
+    Sets up the logger.
+    """
+    logger_format = "[%(levelname)s] [%(asctime)s] [%(name)s] - %(message)s"
+    logger.setLevel(level=logging.INFO)
+    handler = logging.StreamHandler(sys.stderr)
+    formatter = logging.Formatter(logger_format, datefmt="%Y%m%d %H:%M:%S")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
 
 def _random(self, sigma, mu, size, sample_shape):
@@ -89,6 +107,8 @@ def maximum_zeros_length(a):
             all_length.append(len(list(g)))
     return max(all_length)
 
+
+setup_logger()
 
 jh_data = pd.read_csv(
     "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv"
@@ -402,4 +422,4 @@ ax.grid(False)
 fig.savefig("results/17031/cases.svg", dpi=60, bbox_inches="tight")
 t1 = time.time()
 totaltime = (t1 - t0) / 3600
-print("total run time is {:.4f} hours".format(totaltime))
+logger.info("total run time is {:.4f} hours".format(totaltime))
