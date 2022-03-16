@@ -328,7 +328,7 @@ with pm.Model() as model:
 
 with model:
     trace = pm.sample(
-        500, tune=800, chains=1, target_accept=0.95, random_seed=42, cores=8
+        500, tune=800, chains=1, target_accept=0.95, random_seed=42, cores=8, init="adapt_diag"
     )
     pm.save_trace(trace=trace, directory="./trace", overwrite=True)
 
