@@ -327,9 +327,30 @@ with pm.Model() as model:
     y_logp = pm.Deterministic("y_logp", y_past.logpt)
 
 with model:
-    trace = pm.sample(
-        500, tune=800, chains=1, target_accept=0.95, random_seed=42, cores=8, init="adapt_diag"
-    )
+    try:
+        trace = pm.sample(
+            100, tune=100, chains=1, target_accept=0.95, random_seed=42, cores=1
+        )
+    except ValueError:
+        trace = pm.sample(
+            100,
+            tune=100,
+            chains=1,
+            target_accept=0.95,
+            random_seed=42,
+            cores=1,
+            init="adapt_diag",
+        )
+    else:
+        trace = pm.sample(
+            100,
+            tune=100,
+            chains=1,
+            target_accept=0.95,
+            random_seed=42,
+            cores=1,
+            init="advi+adapt_diag",
+        )
     pm.save_trace(trace=trace, directory="./trace", overwrite=True)
 
 with model:
