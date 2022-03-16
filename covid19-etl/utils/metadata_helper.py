@@ -105,9 +105,14 @@ class MetadataHelper:
                 f"Did not receive any data from Guppy. Query result for the query - {query_string} with variables - {variables} is \n\t {query_res}"
             )
         loc = query_res["data"]["location"]
-        if len(loc) > 0:
+        if loc is None:
+            print(
+                f"INFO: Invalid response -- {query_res} from query - {self.project_id}"
+            )
+        elif len(loc) > 0:
             return loc[0]["date"].split("T")[0]
-        print(f"INFO: no existing location data in Guppy for {self.project_id}")
+        else:
+            print(f"INFO: no existing location data in Guppy for {self.project_id}")
         return None
 
     def add_record_to_submit(self, record):
