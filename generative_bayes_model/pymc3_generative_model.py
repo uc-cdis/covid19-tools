@@ -331,26 +331,31 @@ with model:
         trace = pm.sample(
             100, tune=100, chains=1, target_accept=0.95, random_seed=42, cores=1
         )
-    except ValueError:
-        trace = pm.sample(
-            100,
-            tune=100,
-            chains=1,
-            target_accept=0.95,
-            random_seed=42,
-            cores=1,
-            init="adapt_diag",
-        )
-    else:
-        trace = pm.sample(
-            100,
-            tune=100,
-            chains=1,
-            target_accept=0.95,
-            random_seed=42,
-            cores=1,
-            init="advi+adapt_diag",
-        )
+    except ValueError as e:
+        logger.warning(f"Ran into ValueError, now trying adapt_diag. Details: {e}")
+        try:
+            trace = pm.sample(
+                100,
+                tune=100,
+                chains=1,
+                target_accept=0.95,
+                random_seed=42,
+                cores=1,
+                init="adapt_diag",
+            )
+        except Exception as e2:
+            logger.warning(
+                f"Ran into another exception, now trying advi+adapt_diag. Details: {e2}"
+            )
+            trace = pm.sample(
+                100,
+                tune=100,
+                chains=1,
+                target_accept=0.95,
+                random_seed=42,
+                cores=1,
+                init="advi+adapt_diag",
+            )
     pm.save_trace(trace=trace, directory="./trace", overwrite=True)
 
 with model:
