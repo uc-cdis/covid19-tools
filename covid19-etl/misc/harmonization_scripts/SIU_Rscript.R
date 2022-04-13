@@ -13,12 +13,30 @@ library(stringi)
 #After mapping, go to the project page <url/Walder-SIU-SARS-CoV2>, click on the "virus_sequence" node and then download the tsv to the directory designated in "path_to_files". 
 #At this point run this script.
 
+###########################
+#
+# Edit this section
+#
+###########################
+
+
 #Paste in your file directory path to where your file lives
 path_to_files="COVID19/SIU_data/Metadata/"
 
 #Input needed for the metadata file and the name of the CMC node submitter_id
-metadata_file="2021-04-19.csv"
-cmc="SIU-SARS-CoV2_2021-04-19"
+metadata_file="2022-01-10.csv"
+cmc="SIU-SARS-CoV2_2022-01-10"
+
+
+
+
+#############################
+#
+# Code below, do not change
+#
+#############################
+
+
 
 #Read in files
 df=read_csv(file = paste(path_to_files,metadata_file,sep=""))
