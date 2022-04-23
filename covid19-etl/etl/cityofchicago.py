@@ -200,7 +200,9 @@ class CITYOFCHICAGO(base.BaseETL):
             "age_60_69": "60 to 69",
             "age_70_79": "70 to 79",
             "age_80_": "greater than 80",
+            "80_": "greater than 80",
             "age_unknown": "unknown",
+            "unknown_age": "unknown",
         }
 
         # Race mapping for submitter id value from original dataset to value in Gen3 data dictionary
@@ -209,7 +211,9 @@ class CITYOFCHICAGO(base.BaseETL):
             "asian_non_latinx": "Asian",
             "black_non_latinx": "Black or African-American",
             "white_non_latinx": "White",
+            "other_non_latinx": "Other race",
             "other_race_non_latinx": "Other race",
+            "unknown_race_eth": "Unknown",
             "unknown_race_ethnicity": "Unknown",
         }
 
@@ -219,7 +223,9 @@ class CITYOFCHICAGO(base.BaseETL):
             "asian_non_latinx": "Asian",
             "black_non_latinx": "Black",
             "white_non_latinx": "White",
+            "other_non_latinx": "Other",
             "other_race_non_latinx": "Other",
+            "unknown_race_eth": "Unknown",
             "unknown_race_ethnicity": "Unknown",
         }
 
