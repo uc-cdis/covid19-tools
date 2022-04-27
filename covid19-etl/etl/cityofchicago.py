@@ -20,6 +20,11 @@ import sys
 CITYOFCHICAGO_CDH_URL = "https://data.cityofchicago.org/resource/naz8-j4nc.csv"
 
 
+def convert_str_to_int(string):
+    # Method to parse numbers from string to int and 0 if string it empty
+    return int(string or 0)
+
+
 class CITYOFCHICAGO(base.BaseETL):
     def __init__(self, base_url, access_token, s3_bucket):
         self.base_url = base_url
@@ -35,7 +40,7 @@ class CITYOFCHICAGO(base.BaseETL):
             access_token=self.access_token,
         )
 
-        self.city = "chicago"
+        self.city = "Chicago"
         self.county = "Cook"
         self.country = "US"
         self.state = "IL"
@@ -45,11 +50,196 @@ class CITYOFCHICAGO(base.BaseETL):
         self.summary_clinicals = {}
         self.summary_group_demographics = {}
 
-        self.summary_location_submitter_id = ""
+    def get_summary_location(self, summary_location_submitter_id):
+        # This dataset would only require one `summary_location` which is chicago, so the entry is made in `summary_location` only if it doesn't already exsist
 
-        self.headers = []
+        current_summary_location = self.metadata_helper.get_existing_summary_locations()
+        if len(current_summary_location) > 0:
+            return
+        else:
+            self.summary_locations[summary_location_submitter_id] = {
+                "country_region": self.country,
+                "county": self.county,
+                "province_state": self.state,
+                "projects": [{"code": self.project_code}],
+            }
 
-        self.expected_csv_headers = [
+    def add_summary_clinical(
+        self,
+        cases_total,
+        deaths_total,
+        hospitalizations_total,
+        record_date,
+        summary_location_submitter_id,
+    ):
+
+        # To add `summary_clinical` data for each date in dataset with total of cases, deaths and hospitalization records
+
+        summary_clinical_submitter_id = derived_submitter_id(
+            summary_location_submitter_id,
+            "summary_location",
+            "summary_clinical",
+            {"date": record_date.strftime("%Y-%m-%d")},
+        )
+        summary_clinical = {
+            "submitter_id": summary_clinical_submitter_id,
+            "count": cases_total,
+            "deaths": deaths_total,
+            "hospitaliIzedCumulative": hospitalizations_total,
+            "date": record_date.strftime("%Y-%m-%dT%H:%M:%S"),
+            "summary_locations": [{"submitter_id": summary_location_submitter_id}],
+        }
+        self.summary_clinicals[summary_clinical_submitter_id] = summary_clinical
+        return summary_clinical_submitter_id
+
+    def add_to_summary_group_demographics(
+        self, header_value, record_value, summary_clinical_submitter_id
+    ):
+
+        # To add `summary_group_demographics` data for each date in dataset with total of cases, deaths and hospitalization records
+
+        # `summary_group_demographics` have summary of covid data for either AgeGroup, Race, Gender
+        age_group_dict = {"AgeGroup": "None", "Race": "None", "Gender": "None"}
+
+        # This dict variable have valueset for for `summary_group_demographics`
+        summary_group_demographics_value_dict = {
+            "age_group": "",
+            "race": "",
+            "gender": "",
+            "ethnicity": "",
+            "count": 0,
+            "deaths": 0,
+            "hospitalizations": 0,
+            "summary_clinicals": [{"submitter_id": summary_clinical_submitter_id}],
+        }
+
+        # age group mapping for value from original dataset to value in Gen3 data dictionary
+        age_group = {
+            "0_17": "less than 17",
+            "18_29": "18 to 29",
+            "30_39": "30 to 39",
+            "40_49": "40 to 49",
+            "50_59": "50 to 59",
+            "60_69": "60 to 69",
+            "70_79": "70 to 79",
+            "80": "greater than 80",
+            "unknown_age": "unknown",
+            "age_unknown": "unknown",
+        }
+
+        # Race mapping for submitter id value from original dataset to value in Gen3 data dictionary
+        race_submitter_id = {
+            "latinx": "Hispanic or Latino",
+            "asian_non_latinx": "Asian",
+            "black_non_latinx": "Black or African-American",
+            "white_non_latinx": "White",
+            "other_non_latinx": "Other race",
+            "other_race_non_latinx": "Other race",
+            "unknown_race_eth": "Unknown",
+            "unknown_race_ethnicity": "Unknown",
+        }
+
+        # race mapping for value from original dataset to value in Gen3 data dictionary
+        race = {
+            "latinx": "Hispanic",
+            "asian_non_latinx": "Asian",
+            "black_non_latinx": "Black",
+            "white_non_latinx": "White",
+            "other_non_latinx": "Other",
+            "other_race_non_latinx": "Other",
+            "unknown_race_eth": "Unknown",
+            "unknown_race_ethnicity": "Unknown",
+        }
+
+        # Gender for value from original dataset to value in Gen3 data dictionary
+        gender = {
+            "female": "Female",
+            "male": "Male",
+            "unknown_gender": "Unknown",
+        }
+
+        record_type_mapping = {
+            "cases": "count",
+            "deaths": "deaths",
+            "hospitalizations": "hospitalizations",
+        }
+
+        record_type, submitter_value = header_value.split("_", maxsplit=1)
+
+        # check if submitter value have substrings in age_group keys
+        # example age_group have key 0_17 so if submitter value is either `cases_age_0_17` , `deaths_0_17_yrs` or `hospitalizations_age_0_17` which is common denominator in all three column names
+        if len([a for a in age_group.keys() if submitter_value.find(a) >= 0]) > 0:
+
+            if submitter_value.find("unknown") < 0:
+                # cases and hospitalization have age group values as cases_age_30_39 and hospitalizations_age_30_39
+                submitter_value = submitter_value.replace("age_", "")
+
+            if submitter_value.find("yrs") > 0:
+                # deaths have age group values as deaths_30_39_yrs
+                submitter_value = submitter_value.replace("_yrs", "")
+
+            if submitter_value.find("80") >= 0:
+                age_group_dict["AgeGroup"] = "80+"
+                submitter_value = "80"
+
+            elif submitter_value.find("unknown") >= 0:
+                age_group_dict["AgeGroup"] = "unknown"
+
+            else:
+                age_group_dict["AgeGroup"] = submitter_value
+
+            summary_group_demographics_value_dict["age_group"] = age_group[
+                submitter_value
+            ]
+
+        elif submitter_value in race:
+            age_group_dict["Race"] = race_submitter_id[submitter_value]
+            summary_group_demographics_value_dict["race"] = race[submitter_value]
+            if submitter_value == "latinx":
+                summary_group_demographics_value_dict["ethnicity"] = "Hispanic"
+            else:
+                summary_group_demographics_value_dict["ethnicity"] = "Nonhispanic"
+
+        elif submitter_value in gender:
+            age_group_dict["Gender"] = gender[submitter_value]
+            if submitter_value == "unknown_gender":
+                summary_group_demographics_value_dict[
+                    "gender"
+                ] = "Unknown or Left Blank"
+            else:
+                summary_group_demographics_value_dict["gender"] = gender[
+                    submitter_value
+                ]
+
+        else:
+            raise Exception(
+                "This process only give summary of covid data on either AgeGroup, Race or Gender."
+            )
+
+        summary_group_demographics_submitter_id = derived_submitter_id(
+            summary_clinical_submitter_id,
+            "summary_clinical",
+            "summary_group_demographic",
+            age_group_dict,
+        )
+
+        if (
+            summary_group_demographics_submitter_id
+            not in self.summary_group_demographics
+        ):
+            self.summary_group_demographics[
+                summary_group_demographics_submitter_id
+            ] = summary_group_demographics_value_dict
+
+        self.summary_group_demographics[summary_group_demographics_submitter_id][
+            record_type_mapping[record_type]
+        ] = record_value
+
+    def parse_cityofchicago_file(
+        self, start_date, end_date, summary_location_submitter_id
+    ):
+
+        expected_csv_headers = [
             "lab_report_date",
             "cases_total",
             "deaths_total",
@@ -110,191 +300,6 @@ class CITYOFCHICAGO(base.BaseETL):
             "hospitalizations_unknown_race_ethnicity",
         ]
 
-    def get_unified_date_format(self, datetime):
-        """
-        Method to parse and check the date from datasource used in this ETL
-        """
-        date = datetime
-        if "T" in datetime:
-            date = datetime.split("T")[0]
-        year, month, day = date.split("-")
-        # format all the dates the same way
-        if len(year) == 2:
-            year = "20{}".format(year)
-        if len(month) == 1:
-            month = "0{}".format(month)
-        if len(day) == 1:
-            day = "0{}".format(day)
-        return "-".join((year, month, day))
-
-    def convert_str_to_int(self, string):
-        # Method to parse numbers from string to int and 0 if string it empty
-
-        return int(string or 0)
-
-    def get_summary_location(self):
-        # This dataset would only require one `summary_location` which is chicago, so the entry is made in `summary_location` only if it doesn't already exsist
-
-        current_summary_location = self.metadata_helper.get_existing_summary_locations()
-        if len(current_summary_location) > 0:
-            return
-        else:
-            self.summary_locations[self.summary_location_submitter_id] = {
-                "country_region": self.country,
-                "county": self.county,
-                "province_state": self.state,
-                "projects": [{"code": self.project_code}],
-            }
-
-    def add_summary_clinical(
-        self, cases_total, deaths_total, hospitalizations_total, today
-    ):
-
-        # To add `summary_clinical` data for each date in dataset with total of cases, deaths and hospitalization records
-
-        summary_clinical_submitter_id = derived_submitter_id(
-            self.summary_location_submitter_id,
-            "summary_location",
-            "summary_clinical",
-            {"date": today.strftime("%Y-%m-%d")},
-        )
-        summary_clinical = {
-            "submitter_id": summary_clinical_submitter_id,
-            "count": cases_total,
-            "deaths": deaths_total,
-            "hospitaliIzedCumulative": hospitalizations_total,
-            "date": today.strftime("%Y-%m-%dT%H:%M:%S"),
-            "summary_locations": [{"submitter_id": self.summary_location_submitter_id}],
-        }
-        self.summary_clinicals[summary_clinical_submitter_id] = summary_clinical
-        return summary_clinical_submitter_id
-
-    def add_to_summary_group_demographics(
-        self, header_value, record_value, summary_clinical_submitter_id
-    ):
-
-        # To add `summary_group_demographics` data for each date in dataset with total of cases, deaths and hospitalization records
-
-        # `summary_group_demographics` have summary of covid data for either AgeGroup, Race, Gender
-        age_group_dict = {"AgeGroup": "None", "Race": "None", "Gender": "None"}
-
-        # This dict variable have valueset for for `summary_group_demographics`
-        summary_group_demographics_value_dict = {
-            "age_group": "",
-            "race": "",
-            "gender": "",
-            "ethnicity": "",
-            "count": 0,
-            "deaths": 0,
-            "hospitalizations": 0,
-            "summary_clinicals": [{"submitter_id": summary_clinical_submitter_id}],
-        }
-
-        # age group mapping for value from original dataset to value in Gen3 data dictionary
-        age_group = {
-            "age_0_17": "less than 17",
-            "age_18_29": "18 to 29",
-            "age_30_39": "30 to 39",
-            "age_40_49": "40 to 49",
-            "age_50_59": "50 to 59",
-            "age_60_69": "60 to 69",
-            "age_70_79": "70 to 79",
-            "age_80_": "greater than 80",
-            "80_": "greater than 80",
-            "age_unknown": "unknown",
-            "unknown_age": "unknown",
-        }
-
-        # Race mapping for submitter id value from original dataset to value in Gen3 data dictionary
-        race_submitter_id = {
-            "latinx": "Hispanic or Latino",
-            "asian_non_latinx": "Asian",
-            "black_non_latinx": "Black or African-American",
-            "white_non_latinx": "White",
-            "other_non_latinx": "Other race",
-            "other_race_non_latinx": "Other race",
-            "unknown_race_eth": "Unknown",
-            "unknown_race_ethnicity": "Unknown",
-        }
-
-        # race mapping for value from original dataset to value in Gen3 data dictionary
-        race = {
-            "latinx": "Hispanic",
-            "asian_non_latinx": "Asian",
-            "black_non_latinx": "Black",
-            "white_non_latinx": "White",
-            "other_non_latinx": "Other",
-            "other_race_non_latinx": "Other",
-            "unknown_race_eth": "Unknown",
-            "unknown_race_ethnicity": "Unknown",
-        }
-
-        # Gender for value from original dataset to value in Gen3 data dictionary
-        gender = {
-            "female": "Female",
-            "male": "Male",
-            "unknown_gender": "Unknown",
-        }
-
-        record_type_mapping = {
-            "cases": "count",
-            "deaths": "deaths",
-            "hospitalizations": "hospitalizations",
-        }
-
-        record_type, submitter_value = header_value.split("_", maxsplit=1)
-        if submitter_value in age_group:
-            if "80" in submitter_value:
-                age_group_dict["AgeGroup"] = "80+"
-            else:
-                age_group_dict["AgeGroup"] = age_group[submitter_value].replace(
-                    " to ", "_"
-                )
-            summary_group_demographics_value_dict["age_group"] = age_group[
-                submitter_value
-            ]
-
-        elif submitter_value in race:
-            age_group_dict["Race"] = race_submitter_id[submitter_value]
-            summary_group_demographics_value_dict["race"] = race[submitter_value]
-            if submitter_value == "latinx":
-                summary_group_demographics_value_dict["ethnicity"] = "Hispanic"
-            else:
-                summary_group_demographics_value_dict["ethnicity"] = "Nonhispanic"
-
-        elif submitter_value in gender:
-            age_group_dict["Gender"] = gender[submitter_value]
-            if submitter_value == "unknown_gender":
-                summary_group_demographics_value_dict[
-                    "gender"
-                ] = "Unknown or Left Blank"
-            else:
-                summary_group_demographics_value_dict["gender"] = gender[
-                    submitter_value
-                ]
-
-        else:
-            return
-
-        summary_group_demographics_submitter_id = derived_submitter_id(
-            summary_clinical_submitter_id,
-            "summary_clinical",
-            "summary_group_demographic",
-            age_group_dict,
-        )
-
-        if (
-            summary_group_demographics_submitter_id
-            not in self.summary_group_demographics
-        ):
-            self.summary_group_demographics[
-                summary_group_demographics_submitter_id
-            ] = summary_group_demographics_value_dict
-        self.summary_group_demographics[summary_group_demographics_submitter_id][
-            record_type_mapping[record_type]
-        ] = record_value
-
-    def parse_cityofchicago_file(self, start_date, end_date):
         # parse original file into value to be passed in sheepdog
         city_of_chicago_url = (
             CITYOFCHICAGO_CDH_URL
@@ -308,23 +313,23 @@ class CITYOFCHICAGO(base.BaseETL):
         with closing(requests.get(city_of_chicago_url, stream=True)) as r:
             f = (line.decode("utf-8") for line in r.iter_lines())
             reader = csv.reader(f, delimiter=",", quotechar='"')
-            self.headers = next(reader)
+            headers = next(reader)
 
-            if self.headers[0] == "404: Not Found":
-                print("Unable to get file contents, received {}.".format(self.headers))
+            if headers[0] == "404: Not Found":
+                print("Unable to get file contents, received {}.".format(headers))
                 return
 
-            obtained_h = self.headers[: len(self.expected_csv_headers)]
+            obtained_h = headers[: len(expected_csv_headers)]
             assert (
-                obtained_h == self.expected_csv_headers
+                obtained_h == expected_csv_headers
             ), "CSV headers have changed (expected {}, got {}). We may need to update the ETL code".format(
-                self.expected_csv_headers, obtained_h
+                expected_csv_headers, obtained_h
             )
 
             for row in reader:
-                self.parse_row(row)
+                self.parse_row(headers, row, summary_location_submitter_id)
 
-    def parse_row(self, row):
+    def parse_row(self, headers, row, summary_location_submitter_id):
 
         """
         according to row mapping in the dataset, in each row
@@ -333,23 +338,25 @@ class CITYOFCHICAGO(base.BaseETL):
         column 3 to rest would be for summary_group_demographics for Age group, race , gender and ethincity
         Here we are ignoring records which doesn't have any lab report dates
         """
-        if row[0] != "":
-            row_dict = {}
-            file_latest_date = self.get_unified_date_format(row[0])
-            row_dict[self.headers[0]] = file_latest_date
-            summary_clinical_submitter_id = self.add_summary_clinical(
-                self.convert_str_to_int(row[1]),
-                self.convert_str_to_int(row[2]),
-                self.convert_str_to_int(row[3]),
-                datetime.strptime(file_latest_date, "%Y-%m-%d"),
+        if not row or not row[0]:
+            return
+        record_date = datetime.strptime(row[0], "%Y-%m-%dT%H:%M:%S.%f").strftime(
+            "%Y-%m-%d"
+        )
+        summary_clinical_submitter_id = self.add_summary_clinical(
+            convert_str_to_int(row[1]),
+            convert_str_to_int(row[2]),
+            convert_str_to_int(row[3]),
+            datetime.strptime(record_date, "%Y-%m-%d"),
+            summary_location_submitter_id,
+        )
+        for i in range(4, len(headers)):
+
+            self.add_to_summary_group_demographics(
+                headers[i],
+                convert_str_to_int(row[i]),
+                summary_clinical_submitter_id,
             )
-            for i in range(3, len(self.headers)):
-                row_dict[self.headers[i]] = self.convert_str_to_int(row[i])
-                self.add_to_summary_group_demographics(
-                    self.headers[i],
-                    row_dict[self.headers[i]],
-                    summary_clinical_submitter_id,
-                )
 
     def files_to_submissions(self):
         # ETL code that reads from the data source
@@ -359,10 +366,9 @@ class CITYOFCHICAGO(base.BaseETL):
 
         # The following condition is for the first entry in dataset, which is from date `03-01-2020`
         if latest_submitted_date == None:
-            latest_submitted_date = datetime.strptime("2020-03-01", "%Y-%m-%d")
+            latest_submitted_date = datetime(2020, 3, 1)
 
-        today = datetime.today()
-        today = today.replace(hour=0, minute=0, second=0, microsecond=0)
+        today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
 
         if latest_submitted_date == today:
             print("Nothing to submit: today and latest submitted date are the same.")
@@ -372,28 +378,29 @@ class CITYOFCHICAGO(base.BaseETL):
             f"Latest submitted date: {latest_submitted_date}. Getting data until date: {today}"
         )
 
-        self.summary_location_submitter_id = format_submitter_id(
+        summary_location_submitter_id = format_submitter_id(
             "summary_location",
             {"country": self.country, "state": self.state, "city": self.city},
         )
 
-        self.get_summary_location()
+        self.get_summary_location(summary_location_submitter_id)
         self.parse_cityofchicago_file(
             latest_submitted_date.strftime("%Y-%m-%dT%H:%M:%S"),
             today.strftime("%Y-%m-%dT%H:%M:%S"),
+            summary_location_submitter_id,
         )
         print("Done in {} secs".format(int(time.time() - start)))
 
     def submit_metadata(self):
         # Submits the data in `self.summary_locations`, `self.summary_clinicals` and `self.summary_group_demographic` to Sheepdog.
         print("Submitting data...")
-        if len(self.summary_locations) > 0:
-            print("Submitting summary_location data")
-            for sl in self.summary_locations.values():
-                sl_record = {"type": "summary_location"}
-                sl_record.update(sl)
-                self.metadata_helper.add_record_to_submit(sl_record)
-            self.metadata_helper.batch_submit_records()
+        print(self.summary_group_demographics)
+        print("Submitting summary_location data")
+        for sl in self.summary_locations.values():
+            sl_record = {"type": "summary_location"}
+            sl_record.update(sl)
+            self.metadata_helper.add_record_to_submit(sl_record)
+        self.metadata_helper.batch_submit_records()
 
         print("Submitting summary_clinical data")
         for sc in self.summary_clinicals.values():
