@@ -29,8 +29,8 @@
 | [COV-465][cov-465] | NCBI-FILE | [bucket][ncbi-bucket] | scheduled|
 | [COV-482][cov-482] | NCBI-MANIFEST | [bucket][ncbi-bucket] | scheduled|
 | [COV-465][cov-465] | NCBI | [bucket][ncbi-bucket] | scheduled|
-| [COV-532][cov-532] | COM-MOBILITY | [here](com-mobility) | scheduled|
-| [COV-1151][cov-1151] | CITYOFCHICAGO | [here](cityofchicago) | scheduled|
+| [COV-532][cov-532] | COM-MOBILITY | [here][com-mobility] | scheduled|
+| [COV-1151][cov-1151] | CITYOFCHICAGO | [here][cityofchicago] | scheduled|
 
 
 ## Deployment
