@@ -3,7 +3,7 @@
 
 import boto3
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import json
 import requests
@@ -79,14 +79,14 @@ class CITYOFCHICAGO(base.BaseETL):
             summary_location_submitter_id,
             "summary_location",
             "summary_clinical",
-            {"date": record_date.strftime("%Y-%m-%d")},
+            {"date": record_date.split("T")[0]},
         )
         summary_clinical = {
             "submitter_id": summary_clinical_submitter_id,
             "count": cases_total,
             "deaths": deaths_total,
             "hospitaliIzedCumulative": hospitalizations_total,
-            "date": record_date.strftime("%Y-%m-%dT%H:%M:%S"),
+            "date": record_date,
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
         self.summary_clinicals[summary_clinical_submitter_id] = summary_clinical
@@ -99,17 +99,10 @@ class CITYOFCHICAGO(base.BaseETL):
         # To add `summary_group_demographics` data for each date in dataset with total of cases, deaths and hospitalization records
 
         # `summary_group_demographics` have summary of covid data for either AgeGroup, Race, Gender
-        age_group_dict = {"AgeGroup": "None", "Race": "None", "Gender": "None"}
+        submitter_id_dict = {"AgeGroup": "None", "Race": "None", "Gender": "None"}
 
         # This dict variable have valueset for for `summary_group_demographics`
         summary_group_demographics_value_dict = {
-            "age_group": "",
-            "race": "",
-            "gender": "",
-            "ethnicity": "",
-            "count": 0,
-            "deaths": 0,
-            "hospitalizations": 0,
             "summary_clinicals": [{"submitter_id": summary_clinical_submitter_id}],
         }
 
@@ -179,21 +172,21 @@ class CITYOFCHICAGO(base.BaseETL):
                 submitter_value = submitter_value.replace("_yrs", "")
 
             if submitter_value.find("80") >= 0:
-                age_group_dict["AgeGroup"] = "80+"
+                submitter_id_dict["AgeGroup"] = "80+"
                 submitter_value = "80"
 
             elif submitter_value.find("unknown") >= 0:
-                age_group_dict["AgeGroup"] = "unknown"
+                submitter_id_dict["AgeGroup"] = "unknown"
 
             else:
-                age_group_dict["AgeGroup"] = submitter_value
+                submitter_id_dict["AgeGroup"] = submitter_value
 
             summary_group_demographics_value_dict["age_group"] = age_group[
                 submitter_value
             ]
 
         elif submitter_value in race:
-            age_group_dict["Race"] = race_submitter_id[submitter_value]
+            submitter_id_dict["Race"] = race_submitter_id[submitter_value]
             summary_group_demographics_value_dict["race"] = race[submitter_value]
             if submitter_value == "latinx":
                 summary_group_demographics_value_dict["ethnicity"] = "Hispanic"
@@ -201,7 +194,7 @@ class CITYOFCHICAGO(base.BaseETL):
                 summary_group_demographics_value_dict["ethnicity"] = "Nonhispanic"
 
         elif submitter_value in gender:
-            age_group_dict["Gender"] = gender[submitter_value]
+            submitter_id_dict["Gender"] = gender[submitter_value]
             if submitter_value == "unknown_gender":
                 summary_group_demographics_value_dict[
                     "gender"
@@ -220,7 +213,7 @@ class CITYOFCHICAGO(base.BaseETL):
             summary_clinical_submitter_id,
             "summary_clinical",
             "summary_group_demographic",
-            age_group_dict,
+            submitter_id_dict,
         )
 
         if (
@@ -340,12 +333,11 @@ class CITYOFCHICAGO(base.BaseETL):
         """
         if not row or not row[0]:
             return
-        record_date = row[0].split("T")[0]
         summary_clinical_submitter_id = self.add_summary_clinical(
             convert_str_to_int(row[1]),
             convert_str_to_int(row[2]),
             convert_str_to_int(row[3]),
-            datetime.strptime(record_date, "%Y-%m-%d"),
+            row[0],
             summary_location_submitter_id,
         )
         for i in range(4, len(headers)):
@@ -383,8 +375,8 @@ class CITYOFCHICAGO(base.BaseETL):
 
         self.get_summary_location(summary_location_submitter_id)
         self.parse_cityofchicago_file(
-            latest_submitted_date.strftime("%Y-%m-%dT%H:%M:%S"),
-            today.strftime("%Y-%m-%dT%H:%M:%S"),
+            latest_submitted_date.strftime("%Y-%m-%dT%H:%M:%S.%f"),
+            today.strftime("%Y-%m-%dT%H:%M:%S.%f"),
             summary_location_submitter_id,
         )
         print("Done in {} secs".format(int(time.time() - start)))
