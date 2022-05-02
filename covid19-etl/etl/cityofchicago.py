@@ -335,14 +335,12 @@ class CITYOFCHICAGO(base.BaseETL):
         according to row mapping in the dataset, in each row
         column 0 would be lab report date
         column 1,2 and 3 would be total number of cases, deaths and hospitalization per day which would be used in summary_clinical
-        column 3 to rest would be for summary_group_demographics for Age group, race , gender and ethincity
+        column 4 to rest would be for summary_group_demographics for Age group, race , gender and ethincity
         Here we are ignoring records which doesn't have any lab report dates
         """
         if not row or not row[0]:
             return
-        record_date = datetime.strptime(row[0], "%Y-%m-%dT%H:%M:%S.%f").strftime(
-            "%Y-%m-%d"
-        )
+        record_date = row[0].split("T")[0]
         summary_clinical_submitter_id = self.add_summary_clinical(
             convert_str_to_int(row[1]),
             convert_str_to_int(row[2]),
@@ -394,7 +392,6 @@ class CITYOFCHICAGO(base.BaseETL):
     def submit_metadata(self):
         # Submits the data in `self.summary_locations`, `self.summary_clinicals` and `self.summary_group_demographic` to Sheepdog.
         print("Submitting data...")
-        print(self.summary_group_demographics)
         print("Submitting summary_location data")
         for sl in self.summary_locations.values():
             sl_record = {"type": "summary_location"}
