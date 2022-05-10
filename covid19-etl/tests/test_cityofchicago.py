@@ -57,21 +57,21 @@ def test_cityofchicago():
         for row in file_data:
             etl.parse_row(headers, row, etl.summary_location_submitter_id)
 
-    assert etl.summary_locations == {
-        "summary_location_us_il_chicago": {
-            "country_region": "US",
-            "county": "Cook",
-            "province_state": "IL",
-            "projects": [{"code": "cityofchicago"}],
+        assert etl.summary_locations == {
+            "summary_location_us_il_chicago": {
+                "country_region": "US",
+                "county": "Cook",
+                "province_state": "IL",
+                "projects": [{"code": "cityofchicago"}],
+            }
         }
-    }
     assert (
         etl.summary_clinicals["summary_clinical_us_il_chicago_2022-04-22"]["count"]
         == 683
-    )  # Matching cases_total count for date `2022-04-22` from test_data
+    )  # Matching cases_total count for date `2022-04-22`
     assert (
-        len(etl.summary_group_demographics) == 180
-    )  # 10 rows in original dataset and each row can make 18 different summary_group_demographics rows
+        len(etl.summary_group_demographics) == 162
+    )  # 9 rows in original dataset with lab_report_date and each row can make 18 different summary_group_demographics rows
     assert (
         etl.last_submission_identifier == "2022-04-24"
     )  # according to dataset, used for testing, it doesnt have hopitalization data after `2022-04-24`

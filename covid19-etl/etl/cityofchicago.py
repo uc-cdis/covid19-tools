@@ -27,7 +27,10 @@ def str_to_int(string):
 
 def str_to_datetime(string):
     # Method to convert date from string to datetime
-    return datetime.strptime(string, "%Y-%m-%d")
+    try:
+        return datetime.strptime(string, "%Y-%m-%d")
+    except ValueError:
+        raise Exception("ParseError: The date format is not Valid")
 
 
 class CITYOFCHICAGO(base.BaseETL):
