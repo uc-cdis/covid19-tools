@@ -30,7 +30,7 @@ def str_to_datetime(string):
     try:
         return datetime.strptime(string, "%Y-%m-%d")
     except ValueError:
-        raise Exception("ParseError: The date format is not Valid")
+        raise Exception(f"ParseError: The date format is not Valid for {string}")
 
 
 class CITYOFCHICAGO(base.BaseETL):
@@ -372,7 +372,7 @@ class CITYOFCHICAGO(base.BaseETL):
 
         today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
 
-        if latest_submitted_date != None and latest_submitted_date == today:
+        if latest_submitted_date == today:
             print("Nothing to submit: today and latest submitted date are the same.")
             return
 
@@ -403,11 +403,6 @@ class CITYOFCHICAGO(base.BaseETL):
         # Submits the data in `self.last_submission_identifier`, `self.summary_locations`, `self.summary_clinicals` and `self.summary_group_demographic` to Sheepdog.
         print("Submitting data...")
 
-        print("Updating last submission identifier date for project")
-        self.metadata_helper.update_last_submission(
-            self.last_submission_identifier.split("T")[0]
-        )
-
         print("Submitting summary_location data")
         for sl in self.summary_locations.values():
             sl_record = {"type": "summary_location"}
@@ -428,3 +423,8 @@ class CITYOFCHICAGO(base.BaseETL):
             sgd_record.update(sgd)
             self.metadata_helper.add_record_to_submit(sgd_record)
         self.metadata_helper.batch_submit_records()
+
+        print("Updating last submission identifier date for project")
+        self.metadata_helper.update_last_submission(
+            self.last_submission_identifier.split("T")[0]
+        )
