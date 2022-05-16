@@ -17,6 +17,7 @@ COUNTRY_NAME_MAPPING = {
     "Saint Vincent and the Grenadines": "St. Vincent & Grenadines",
     "Sao Tome and Principe": "São Tomé & Príncipe",
     "United Kingdom": "UK",
+    "Korea, North": "North Korea",
 }
 ISO_CODES_MAPPING = {
     # ISO codes for countries that are not in the CSV file
