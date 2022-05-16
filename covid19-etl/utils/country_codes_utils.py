@@ -12,7 +12,7 @@ COUNTRY_NAME_MAPPING = {
     "Cote d'Ivoire": "Côte d’Ivoire",
     "Eswatini": "Swaziland",
     "Holy See": "Vatican City",
-    "Korea, North": "North Korea",    
+    "Korea, North": "North Korea",
     "Korea, South": "South Korea",
     "North Macedonia": "Macedonia",
     "Saint Vincent and the Grenadines": "St. Vincent & Grenadines",
