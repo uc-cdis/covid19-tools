@@ -66,6 +66,7 @@ class CITYOFCHICAGO(base.BaseETL):
             return
         else:
             self.summary_locations[summary_location_submitter_id] = {
+                "submitter_id": summary_location_submitter_id,
                 "country_region": self.country,
                 "county": self.county,
                 "province_state": self.state,
