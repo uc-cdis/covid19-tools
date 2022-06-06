@@ -340,7 +340,7 @@ class CITYOFCHICAGO(base.BaseETL):
         column 4 to rest would be for summary_group_demographics for Age group, race , gender and ethincity
         Here we are ignoring records which doesn't have any lab report dates
         """
-        if not row[0]:
+        if not row or not row[0]:
             raise Exception(
                 "This row doesn't have date field present, ETL did not run successfully"
             )
