@@ -69,5 +69,5 @@ def test_cityofchicago():
         len(etl.summary_group_demographics) == 180
     )  # 10 rows in original dataset with lab_report_date and each row can make 18 different summary_group_demographics rows
     assert (
-        etl.last_submission_identifier == "2022-04-27"
-    )  # according to dataset, used for testing, it doesnt have hopitalization data after `2022-04-24`
+        etl.last_submission_identifier == "2022-04-26"
+    )  # according to dataset, used for testing, it doesnt have hopitalization data after `2022-04-26`

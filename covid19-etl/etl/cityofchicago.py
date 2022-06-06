@@ -221,6 +221,10 @@ class CITYOFCHICAGO(base.BaseETL):
             submitter_id_dict,
         )
 
+        summary_group_demographics_value_dict[
+            "submitter_id"
+        ] = summary_group_demographics_submitter_id
+
         if (
             summary_group_demographics_submitter_id
             not in self.summary_group_demographics
@@ -336,12 +340,17 @@ class CITYOFCHICAGO(base.BaseETL):
         column 4 to rest would be for summary_group_demographics for Age group, race , gender and ethincity
         Here we are ignoring records which doesn't have any lab report dates
         """
-        if not row or not row[0]:
+        if not row[0]:
             raise Exception(
                 "This row doesn't have date field present, ETL did not run successfully"
             )
         record_date = row[0].split("T")[0]
 
+        # Condition to check if cases or deaths data is not appended in the records
+        if row[1] == "" or row[2] == "":
+            raise Exception(
+                "The row doesn't have data for cases and deaths field, ETL would not run successfully"
+            )
         # Condition to check if hospitalization data is not appended in the records
         if row[3] != "" and str_to_datetime(
             self.last_submission_identifier
