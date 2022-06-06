@@ -13,8 +13,7 @@ INPUT_DATA_PATH = os.path.join(
 
 def get_test_etl():
     def mock_get(*args):
-        url = args[0][0]
-        with open(os.path.join(INPUT_DATA_PATH, os.path.basename(url))) as f:
+        with open(INPUT_DATA_PATH) as f:
             data = f.read()
 
         class MockResponse(object):
@@ -50,28 +49,25 @@ def get_test_etl():
 def test_cityofchicago():
     # run the ETL
     etl = get_test_etl()
-    etl.get_summary_location(etl.summary_location_submitter_id)
-    with open(INPUT_DATA_PATH, "r") as file:
-        file_data = csv.reader(file)
-        headers = next(file_data)
-        for row in file_data:
-            etl.parse_row(headers, row, etl.summary_location_submitter_id)
+    etl.files_to_submissions()
 
-        assert etl.summary_locations == {
-            "summary_location_us_il_chicago": {
-                "country_region": "US",
-                "county": "Cook",
-                "province_state": "IL",
-                "projects": [{"code": "cityofchicago"}],
-            }
+    assert etl.summary_locations == {
+        "summary_location_us_il_chicago": {
+            "submitter_id": "summary_location_us_il_chicago",
+            "country_region": "US",
+            "county": "Cook",
+            "province_state": "IL",
+            "projects": [{"code": "cityofchicago"}],
         }
+    }
+
     assert (
         etl.summary_clinicals["summary_clinical_us_il_chicago_2022-04-22"]["count"]
         == 683
     )  # Matching cases_total count for date `2022-04-22`
     assert (
-        len(etl.summary_group_demographics) == 162
-    )  # 9 rows in original dataset with lab_report_date and each row can make 18 different summary_group_demographics rows
+        len(etl.summary_group_demographics) == 180
+    )  # 10 rows in original dataset with lab_report_date and each row can make 18 different summary_group_demographics rows
     assert (
-        etl.last_submission_identifier == "2022-04-24"
+        etl.last_submission_identifier == "2022-04-27"
     )  # according to dataset, used for testing, it doesnt have hopitalization data after `2022-04-24`

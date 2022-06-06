@@ -1,21 +1,17 @@
 #  This ETL is for city of chicago dataset for COVID-19 Daily Cases, Deaths, and Hospitalizations (CDH)
 #  Reference: https://data.cityofchicago.org/Health-Human-Services/COVID-19-Daily-Cases-Deaths-and-Hospitalizations/naz8-j4nc
 
-import boto3
-import csv
-from datetime import datetime, timedelta
-import time
-import json
-import requests
-import pandas as pd
 from contextlib import closing
+import csv
+from datetime import datetime
+import time
+
+from etl import base
 from utils.metadata_helper import MetadataHelper
 from utils.format_helper import (
     derived_submitter_id,
     format_submitter_id,
 )
-from etl import base
-import sys
 
 CITYOFCHICAGO_CDH_URL = "https://data.cityofchicago.org/resource/naz8-j4nc.csv"
 
@@ -94,7 +90,7 @@ class CITYOFCHICAGO(base.BaseETL):
             "submitter_id": summary_clinical_submitter_id,
             "count": cases_total,
             "deaths": deaths_total,
-            "hospitaliIzedCumulative": hospitalizations_total,
+            "hospitalizedCumulative": hospitalizations_total,
             "date": record_date,
             "summary_locations": [{"submitter_id": summary_location_submitter_id}],
         }
@@ -312,7 +308,7 @@ class CITYOFCHICAGO(base.BaseETL):
             + "'"
         )
 
-        with closing(requests.get(city_of_chicago_url, stream=True)) as r:
+        with closing(self.get(city_of_chicago_url, stream=True)) as r:
             f = (line.decode("utf-8") for line in r.iter_lines())
             reader = csv.reader(f, delimiter=",", quotechar='"')
             headers = next(reader)
@@ -341,10 +337,12 @@ class CITYOFCHICAGO(base.BaseETL):
         Here we are ignoring records which doesn't have any lab report dates
         """
         if not row or not row[0]:
-            return
+            raise Exception(
+                "This row doesn't have date field present, ETL did not run successfully"
+            )
         record_date = row[0].split("T")[0]
 
-        # Condition to check if hospitalization data is appended in the records
+        # Condition to check if hospitalization data is not appended in the records
         if row[3] != "" and str_to_datetime(
             self.last_submission_identifier
         ) < str_to_datetime(record_date):
