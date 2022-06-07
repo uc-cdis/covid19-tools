@@ -121,8 +121,8 @@ class CITYOFCHICAGO(base.BaseETL):
             "60_69": "60 to 69",
             "70_79": "70 to 79",
             "80": "greater than 80",
-            "unknown_age": "unknown",
-            "age_unknown": "unknown",
+            "unknown_age": "Unknown",
+            "age_unknown": "Unknown",
         }
 
         # Race mapping for submitter id value from original dataset to value in Gen3 data dictionary
