@@ -113,7 +113,7 @@ class CITYOFCHICAGO(base.BaseETL):
 
         # age group mapping for value from original dataset to value in Gen3 data dictionary
         age_group = {
-            "0_17": "less than 17",
+            "0_17": "less than 18",
             "18_29": "18 to 29",
             "30_39": "30 to 39",
             "40_49": "40 to 49",
