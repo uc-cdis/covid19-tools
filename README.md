@@ -29,7 +29,8 @@
 | [COV-465][cov-465] | NCBI-FILE | [bucket][ncbi-bucket] | scheduled|
 | [COV-482][cov-482] | NCBI-MANIFEST | [bucket][ncbi-bucket] | scheduled|
 | [COV-465][cov-465] | NCBI | [bucket][ncbi-bucket] | scheduled|
-| [COV-532][cov-532] | COM-MOBILITY | [here](com-mobility) | scheduled|
+| [COV-532][cov-532] | COM-MOBILITY | [here][com-mobility] | scheduled|
+| [COV-1151][cov-1151] | CITYOFCHICAGO | [here][cityofchicago] | scheduled|
 
 
 ## Deployment
@@ -158,6 +159,7 @@ covid19-tools
 [atlas]: https://opportunityinsights.org/data/?geographic_level=0&topic=0&paper_id=1652#resource-listing
 [com-mobility]: https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv
 [ncbi-bucket]: https://github.com/uc-cdis/covid19-tools#ncbi
+[cityofchicago]: https://data.cityofchicago.org/resource/naz8-j4nc.csv
 [cov-12]: https://occ-data.atlassian.net/browse/COV-12
 [cov-18]: https://occ-data.atlassian.net/browse/COV-18
 [cov-24]: https://occ-data.atlassian.net/browse/COV-24
@@ -186,3 +188,4 @@ covid19-tools
 [cov-925]: https://occ-data.atlassian.net/browse/COV-925
 [cov-1014]: https://occ-data.atlassian.net/browse/COV-1014
 [cov-1019]: https://occ-data.atlassian.net/browse/COV-1019
+[cov-1151]: https://occ-data.atlassian.net/browse/COV-1151

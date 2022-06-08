@@ -9,8 +9,12 @@ from etl.jhu_to_s3_global import JHU_TO_S3_GLOBAL
 from utils.country_codes_utils import get_codes_dictionary, get_codes_for_country_name
 
 
-INPUT_DATA_DIR = os.path.join(os.path.dirname(__file__), "test_jhu_to_s3_input")
-OUTPUT_DATA_DIR = os.path.join(os.path.dirname(__file__), "test_jhu_to_s3_output")
+INPUT_DATA_DIR = os.path.join(
+    os.path.dirname(__file__), "test_data/test_jhu_to_s3_input"
+)
+OUTPUT_DATA_DIR = os.path.join(
+    os.path.dirname(__file__), "test_data/test_jhu_to_s3_output"
+)
 FILES_TO_DELETE = set()
 
 
