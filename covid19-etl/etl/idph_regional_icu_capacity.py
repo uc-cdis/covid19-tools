@@ -44,7 +44,7 @@ class IDPH_REGIONAL_ICU_CAPACITY(base.BaseETL):
         """
 
         today = datetime.date.today()
-        latest_submitted_date = self.metadata_helper.get_latest_submitted_date_idph()
+        latest_submitted_date = self.metadata_helper.get_latest_submitted_date()
         if latest_submitted_date == today:
             print("Nothing to submit: today and latest submitted date are the same.")
             return

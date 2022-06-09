@@ -62,7 +62,7 @@ class IDPH_VACCINE(IDPH):
         """
 
         # latest_submitted_date = (
-        #     self.metadata_helper.get_latest_submitted_date_idph()
+        #     self.metadata_helper.get_latest_submitted_date()
         # )
         # if latest_submitted_date != None and latest_submitted_date == self.date:
         #     print(
