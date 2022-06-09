@@ -1,3 +1,4 @@
+from dateutil.parser import parse
 import os
 import csv
 from etl.cityofchicago import CITYOFCHICAGO
@@ -29,12 +30,12 @@ def get_test_etl():
         def get_existing_summary_locations(self):
             return []
 
-        def get_latest_submitted_date_idph(self):
+        def get_latest_submitted_date(self):
             return None
 
         def get_last_submission(self):
             # The following returns date for the first entry in dataset, which is `2020-03-01`
-            return "2020-03-01"
+            return parse("2020-03-01")
 
     etl = CITYOFCHICAGO("base_url", "access_token", "s3_bucket")
     etl.get = lambda *args, **kwargs: mock_get(args)

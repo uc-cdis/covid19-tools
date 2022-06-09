@@ -38,7 +38,7 @@ class IDPH_FACILITY(IDPH):
         Reads JSON file and convert the data to Sheepdog records
         """
 
-        latest_submitted_date = self.metadata_helper.get_latest_submitted_date_idph()
+        latest_submitted_date = self.metadata_helper.get_latest_submitted_date()
         today = datetime.date.today()
         if latest_submitted_date == today:
             print("Nothing to submit: today and latest submitted date are the same.")

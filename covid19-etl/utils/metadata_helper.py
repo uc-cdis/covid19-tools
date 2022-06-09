@@ -73,12 +73,12 @@ class MetadataHelper:
 
         return summary_locations, latest_submitted_date
 
-    def get_latest_submitted_date_idph(self):
+    def get_latest_submitted_date(self):
         """
         Queries Guppy for the existing `location` data.
         Returns the latest submitted date as Python "datetime.date" in "%Y-%m-%d" format
         """
-        str_latest_submitted_date = self.get_str_latest_submitted_date_idph()
+        str_latest_submitted_date = self.get_str_latest_submitted_date()
         if str_latest_submitted_date is not None:
             latest_submitted_date = datetime.datetime.strptime(
                 str_latest_submitted_date, "%Y-%m-%d"
@@ -86,7 +86,7 @@ class MetadataHelper:
             return latest_submitted_date.date()
         return None
 
-    def get_str_latest_submitted_date_idph(self):
+    def get_str_latest_submitted_date(self):
         print("Getting the latest summary_clinical date from Guppy...")
         query_string = """query ($filter: JSON) {
             location (
@@ -252,6 +252,7 @@ class MetadataHelper:
             raise
 
     def get_last_submission(self):
+        """ Returns a datetime """
         query_string = (
             '{ project (first: 0, dbgap_accession_number: "'
             + self.project_code

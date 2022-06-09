@@ -303,14 +303,7 @@ class CITYOFCHICAGO(base.BaseETL):
         ]
 
         # parse original file into value to be passed in sheepdog
-        city_of_chicago_url = (
-            CITYOFCHICAGO_CDH_URL
-            + "?$where=lab_report_date between '"
-            + start_date
-            + "' and '"
-            + end_date
-            + "'"
-        )
+        city_of_chicago_url = f"{CITYOFCHICAGO_CDH_URL}?$where=lab_report_date between '{start_date}' and '{end_date}'"
 
         with closing(self.get(city_of_chicago_url, stream=True)) as r:
             f = (line.decode("utf-8") for line in r.iter_lines())
@@ -376,7 +369,7 @@ class CITYOFCHICAGO(base.BaseETL):
         # ETL code that reads from the data source
         # and generates the data to submit
         start = time.time()
-        latest_submitted_date = self.metadata_helper.get_latest_submitted_date_idph()
+        latest_submitted_date = self.metadata_helper.get_latest_submitted_date()
 
         today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -389,10 +382,12 @@ class CITYOFCHICAGO(base.BaseETL):
             {"country": self.country, "state": self.state, "city": self.city},
         )
 
-        self.last_submission_identifier = self.metadata_helper.get_last_submission()
+        self.last_submission_identifier = self.metadata_helper.get_last_submission()  # datetime
 
-        # The following condition is for the first entry in dataset, which is from date `2020-03-01`
-        if self.last_submission_identifier == None:
+        if self.last_submission_identifier:
+            self.last_submission_identifier = self.last_submission_identifier.strftime("%Y-%m-%d")
+        else:
+            # for the first entry in dataset, which is from date `2020-03-01`
             self.last_submission_identifier = "2020-03-01"
 
         print(
@@ -402,7 +397,7 @@ class CITYOFCHICAGO(base.BaseETL):
         self.get_summary_location(summary_location_submitter_id)
         self.parse_cityofchicago_file(
             self.last_submission_identifier,
-            today.strftime("%Y-%m-%dT%H:%M:%S.%f"),
+            today.strftime("%Y-%m-%d"),
             summary_location_submitter_id,
         )
         print("Done in {} secs".format(int(time.time() - start)))
