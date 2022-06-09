@@ -382,10 +382,14 @@ class CITYOFCHICAGO(base.BaseETL):
             {"country": self.country, "state": self.state, "city": self.city},
         )
 
-        self.last_submission_identifier = self.metadata_helper.get_last_submission()  # datetime
+        self.last_submission_identifier = (
+            self.metadata_helper.get_last_submission()
+        )  # datetime
 
         if self.last_submission_identifier:
-            self.last_submission_identifier = self.last_submission_identifier.strftime("%Y-%m-%d")
+            self.last_submission_identifier = self.last_submission_identifier.strftime(
+                "%Y-%m-%d"
+            )
         else:
             # for the first entry in dataset, which is from date `2020-03-01`
             self.last_submission_identifier = "2020-03-01"

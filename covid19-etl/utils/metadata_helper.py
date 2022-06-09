@@ -252,7 +252,7 @@ class MetadataHelper:
             raise
 
     def get_last_submission(self):
-        """ Returns a datetime """
+        """Returns a datetime"""
         query_string = (
             '{ project (first: 0, dbgap_accession_number: "'
             + self.project_code
