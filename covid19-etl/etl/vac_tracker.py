@@ -40,7 +40,7 @@ class VAC_TRACKER(base.BaseETL):
         """
         Reads json files and converts the data to Sheepdog records
         """
-        url = "https://biorender.com/page-data/covid-vaccine-tracker/page-data.json"
+        url = "https://marketing.biorender.com/page-data/covid-vaccine-tracker/details/v-CV34/rvsv-sars-cov-2-s-vaccine/page-data.json"
         self.parse_file(url)
 
     def parse_file(self, url):
