@@ -6,7 +6,7 @@ on:
       - 'covid19-notebooks/**'
 
 jobs:
-  dockerBuild:
+  build-covid19-notebook-etl:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,7 +25,7 @@ jobs:
         # get the branch name, and replace "/" with "_"
         run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/*/} | tr / _)"
       - name: Build and push
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: ./covid19-notebooks
           file: ./covid19-notebooks/covid19-notebook-etl-Dockerfile
