@@ -8,7 +8,7 @@ on:
       - 'covid19-etl/**'
 
 jobs:
-  build:
+  build-covid19-etl:
     uses: uc-cdis/.github/.github/workflows/image_build_push.yaml@master
     with:
       OVERRIDE_REPO_NAME: "covid19-etl"
