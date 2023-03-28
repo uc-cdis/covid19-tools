@@ -44,6 +44,7 @@ class IDPH_VACCINE(IDPH):
         into `self.counties_inventory` the data in format:
             { <county name>: { <county properties> } }
         """
+        print(f"Getting {ROOT_URL}")
         response = self.get(ROOT_URL, headers={"content-type": "json"})
         assert response, f"No data at {ROOT_URL}"
         json_response = json.loads(response.text)
@@ -111,7 +112,7 @@ class IDPH_VACCINE(IDPH):
             if key is not None:
                 key_props[key] = props_value.get(k)
         props_data = {}
-        for (k, v) in props_mapping.items():
+        for k, v in props_mapping.items():
             if k in props_value:
                 if k in key_props_name:
                     value = props_value.get(k)
@@ -165,7 +166,7 @@ class IDPH_VACCINE(IDPH):
         illinois_summary_clinical_submitter_id = ""
         for i, county in enumerate(self.counties_inventory):
             if i % 10 == 0:
-                print(f"{i} / {len(self.counties_inventory)} counties")
+                print(f"{i} / {len(self.counties_inventory)} counties ({county})")
 
             county_covid_response = self.get(
                 COUNTY_COVID_LINK_FORMAT.format(county),
@@ -224,9 +225,9 @@ class IDPH_VACCINE(IDPH):
                 "date": self.date,
                 "summary_locations": [{"submitter_id": summary_location_submitter_id}],
             }
-            for (key, value) in county_vaccine_mapping.items():
+            for key, value in county_vaccine_mapping.items():
                 if value == "vaccine_persons_fully_vaccinated_pct":
-                    summary_clinical[value] = int(county_covid_data.get(key) * 100)
+                    summary_clinical[value] = int(county_covid_data.get(key, 0) * 100)
                 elif value == "vaccine_administered_count_roll_avg":
                     summary_clinical[value] = int(county_covid_data.get(key))
                 elif value == "date":
@@ -237,7 +238,7 @@ class IDPH_VACCINE(IDPH):
                     summary_clinical[value] = county_covid_data.get(key)
             # for (key, value) in county_demo_mapping.items():
             #     summary_clinical[value] = county_demo_data.get(key)
-            for (key, value) in inventory_reported.items():
+            for key, value in inventory_reported.items():
                 summary_clinical[value] = (
                     self.counties_inventory[county].get(key)
                     if value != "date"
@@ -254,6 +255,7 @@ class IDPH_VACCINE(IDPH):
         """
         Parse the Illinois total stats
         """
+        print(f"Getting {TOTAL_VACCINE_LINK}")
         county_covid_response = self.get(
             TOTAL_VACCINE_LINK, headers={"content-type": "json"}
         )
@@ -267,7 +269,7 @@ class IDPH_VACCINE(IDPH):
             "LTC_Administered": "vaccine_long_term_care_administered",
             "Report_Date": "date",
         }
-        for (key, value) in total_vaccine_mapping.items():
+        for key, value in total_vaccine_mapping.items():
             if value != "date":
                 self.summary_clinicals[state_summary_clinical_submitter_id][
                     value
