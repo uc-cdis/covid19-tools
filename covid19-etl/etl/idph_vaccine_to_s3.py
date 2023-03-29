@@ -189,7 +189,10 @@ class IDPH_VACCINE_TO_S3(base.BaseETL):
                     # ignore dates that are in Chicago data but not Cook data;
                     # counts without the rest of Cook county would look weird
                     if date in chicago_data_by_date:
-                        data["by_date"][date] += chicago_data_by_date[date]
+                        # handle latest date potentially None values
+                        data["by_date"][date] = (data["by_date"][date] or 0) + (
+                            chicago_data_by_date[date] or 0
+                        )
                 break
 
         return existing_data
