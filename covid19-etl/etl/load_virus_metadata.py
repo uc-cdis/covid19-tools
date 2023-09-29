@@ -1,3 +1,6 @@
+# DEPRECATED
+
+from datetime import datetime
 import glob
 import hashlib
 from os import path

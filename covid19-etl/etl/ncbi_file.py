@@ -44,6 +44,8 @@ class NCBI_FILE(base.BaseETL):
         )
 
         self.bucket = "sra-pub-sars-cov2-metadata-us-east-1"
+        # Note: in .json files, each row is a valid JSON object, but the file
+        # is not
         self.nodes = {
             "virus_sequence_contig": ["contigs/contigs.json"],
             "virus_sequence_peptide": ["peptides/peptides.json"],
@@ -54,6 +56,7 @@ class NCBI_FILE(base.BaseETL):
             ],
             "virus_sequence_hmm_search": ["hmmsearch_notc/hmmsearch_notc.json"],
             "virus_sequence_run_taxonomy": [
+                # contains a CSV file
                 "sra_taxonomy/coronaviridae_07_31_2020_000000000000.gz"
             ],
         }
@@ -66,6 +69,7 @@ class NCBI_FILE(base.BaseETL):
         tasks = []
         for node_name, value in self.nodes.items():
             if node_name == "virus_sequence_run_taxonomy":
+                # files for this node are indexed differently (unzip first)
                 continue
             key = value[0]
             headers = value[1] if len(value) > 1 else None
@@ -79,14 +83,17 @@ class NCBI_FILE(base.BaseETL):
 
         try:
             results = loop.run_until_complete(asyncio.gather(*tasks))
-
             loop.run_until_complete(
                 asyncio.gather(self.index_virus_sequence_run_taxonomy_file(results[0]))
             )
-            loop.run_until_complete(asyncio.gather(AsyncFileHelper.close_session()))
-
         finally:
-            loop.close()
+            try:
+                if AsyncFileHelper.session:
+                    future = AsyncFileHelper.close_session()
+                    if future:
+                        loop.run_until_complete(asyncio.gather(future))
+            finally:
+                loop.close()
         end = time.strftime("%X")
         print(f"Running time: From {start} to {end}")
 
@@ -279,7 +286,7 @@ class NCBI_FILE(base.BaseETL):
         return f, accession_number
 
     async def file_to_indexd(self, filepath):
-        """Asynchornous call to index the data file"""
+        """Asynchornous call to upload and index the data file"""
         filename = os.path.basename(filepath)
         retrying = True
         while retrying:

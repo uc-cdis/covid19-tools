@@ -19,6 +19,20 @@ class FileHelper:
         self.project_code = project_code
         self.headers = {"Authorization": f"Bearer {access_token}"}
 
+    def get_indexd_record(self, guid):
+        url = f"{self.base_url}/index/index/{guid}"
+        r = requests.get(url)
+        if r.status_code == 200:
+            return r.json()
+        elif r.status_code == 404:
+            return None
+        else:
+            r.raise_for_status()
+
+    def indexd_record_exists(self, guid):
+        record = self.get_indexd_record(guid)
+        return True if record else False
+
     def find_by_name(self, filename):
         url = f"{self.base_url}/index/index?file_name={filename}"
         r = requests.get(url)
@@ -35,6 +49,7 @@ class FileHelper:
         return None, None, None, None
 
     def update_authz(self, did, rev):
+        """Update authz field and remove uploader for did"""
         url = f"{self.base_url}/index/index/{did}?rev={rev}"
         body_json = {
             "authz": [f"/programs/{self.program_name}/projects/{self.project_code}"],
