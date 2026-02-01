@@ -8,3 +8,4 @@ pywaffle
 requests
 scipy
 seaborn
+torch>=2.10.0 # not directly required, pinned by Snyk to avoid a vulnerability
