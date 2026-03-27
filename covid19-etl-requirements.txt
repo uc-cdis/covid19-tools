@@ -7,3 +7,5 @@ requests>=2.23.0,<3.0.0
 xlrd>=1.2.0,<2.0.0
 retry>=0.9.2
 google-cloud-bigquery==2.2.0
+protobuf>=4.25.8 # not directly required, pinned by Snyk to avoid a vulnerability
+urllib3>=2.5.0 # not directly required, pinned by Snyk to avoid a vulnerability
